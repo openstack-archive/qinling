@@ -62,3 +62,12 @@ class UnauthorizedException(QinlingException):
 class NotAllowedException(QinlingException):
     http_code = 403
     message = "Operation not allowed"
+
+
+class DBError(QinlingException):
+    http_code = 400
+
+
+class ApplicationContextNotFoundException(QinlingException):
+    http_code = 400
+    message = "Application context not found"

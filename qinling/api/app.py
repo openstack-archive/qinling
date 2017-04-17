@@ -17,6 +17,7 @@ import pecan
 
 from qinling.api import access_control
 from qinling import context as ctx
+from qinling.db import api as db_api
 
 
 def get_pecan_config():
@@ -40,6 +41,8 @@ def setup_app(config=None):
         config = get_pecan_config()
 
     app_conf = dict(config.app)
+    db_api.setup_db()
+
     app = pecan.make_app(
         app_conf.pop('root'),
         hooks=lambda: [ctx.ContextHook(), ctx.AuthHook()],

@@ -18,9 +18,15 @@ import pecan
 from pecan import hooks
 
 from qinling import exceptions as exc
+from qinling.utils import thread_local
 
 CONF = cfg.CONF
+
 ALLOWED_WITHOUT_AUTH = ['/', '/v1/']
+
+CTX_THREAD_LOCAL_NAME = "QINLING_APP_CTX_THREAD_LOCAL"
+
+DEFAULT_PROJECT_ID = "<default-project>"
 
 
 def authenticate(req):
@@ -61,9 +67,39 @@ class AuthHook(hooks.PecanHook):
             )
 
 
+def has_ctx():
+    return thread_local.has_thread_local(CTX_THREAD_LOCAL_NAME)
+
+
+def get_ctx():
+    if not has_ctx():
+        raise exc.ApplicationContextNotFoundException()
+
+    return thread_local.get_thread_local(CTX_THREAD_LOCAL_NAME)
+
+
+def set_ctx(new_ctx):
+    thread_local.set_thread_local(CTX_THREAD_LOCAL_NAME, new_ctx)
+
+
+class Context(oslo_context.RequestContext):
+    _session = None
+
+    def __init__(self, is_admin=False, **kwargs):
+        super(Context, self).__init__(is_admin=is_admin, **kwargs)
+
+    @property
+    def projectid(self):
+        if CONF.pecan.auth_enable:
+            return self.project_id
+        else:
+            return DEFAULT_PROJECT_ID
+
+
 class ContextHook(hooks.PecanHook):
-    def on_route(self, state):
-        context_obj = oslo_context.RequestContext.from_environ(
-            state.request.environ
-        )
-        state.request.context['qinling_context'] = context_obj
+    def before(self, state):
+        context_obj = Context.from_environ(state.request.environ)
+        set_ctx(context_obj)
+
+    def after(self, state):
+        set_ctx(None)

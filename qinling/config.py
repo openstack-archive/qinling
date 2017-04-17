@@ -69,13 +69,40 @@ pecan_opts = [
     )
 ]
 
+engine_opts = [
+    cfg.StrOpt(
+        'host',
+        default='0.0.0.0',
+        help='Name of the engine node. This can be an opaque '
+             'identifier. It is not necessarily a hostname, '
+             'FQDN, or IP address.'
+    ),
+    cfg.StrOpt(
+        'topic',
+        default='qinling_engine',
+        help='The message topic that the engine listens on.'
+    ),
+]
+
+storage_opts = [
+    cfg.StrOpt(
+        'file_system_dir',
+        default='/opt/qinling/funtion/packages',
+        help='Directory to store funtion packages.'
+    )
+]
+
 CONF = cfg.CONF
 API_GROUP = 'api'
 PECAN_GROUP = 'pecan'
+ENGINE_GROUP = 'engine'
+STORAGE_GROUP = 'storage'
 CLI_OPTS = [launch_opt]
 
 CONF.register_opts(api_opts, group=API_GROUP)
 CONF.register_opts(pecan_opts, group=PECAN_GROUP)
+CONF.register_opts(engine_opts, group=ENGINE_GROUP)
+CONF.register_opts(storage_opts, group=STORAGE_GROUP)
 CONF.register_cli_opts(CLI_OPTS)
 
 default_group_opts = itertools.chain(
@@ -88,6 +115,8 @@ def list_opts():
     return [
         (API_GROUP, api_opts),
         (PECAN_GROUP, pecan_opts),
+        (ENGINE_GROUP, engine_opts),
+        (STORAGE_GROUP, storage_opts),
         (None, default_group_opts)
     ]
 

@@ -161,8 +161,6 @@ class Link(Resource):
 
 
 class Function(Resource):
-    """Function resource."""
-
     id = wtypes.text
     name = wtypes.text
     description = wtypes.text
@@ -191,8 +189,6 @@ class Function(Resource):
 
 
 class Functions(ResourceList):
-    """A collection of Function resources."""
-
     functions = [Function]
 
     def __init__(self, **kwargs):
@@ -206,6 +202,45 @@ class Functions(ResourceList):
         sample.functions = [Function.sample()]
         sample.next = (
             "http://localhost:7070/v1/functions?"
+            "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
+            "marker=123e4567-e89b-12d3-a456-426655440000"
+        )
+
+        return sample
+
+
+class Environment(Resource):
+    id = wtypes.text
+    name = wtypes.text
+    description = wtypes.text
+    created_at = wtypes.text
+    updated_at = wtypes.text
+
+    @classmethod
+    def sample(cls):
+        return cls(
+            id='123e4567-e89b-12d3-a456-426655440000',
+            name='python2.7',
+            description='Python 2.7 environment.',
+            created_at='1970-01-01T00:00:00.000000',
+            updated_at='1970-01-01T00:00:00.000000'
+        )
+
+
+class Environments(ResourceList):
+    environments = [Environment]
+
+    def __init__(self, **kwargs):
+        self._type = 'environments'
+
+        super(Environments, self).__init__(**kwargs)
+
+    @classmethod
+    def sample(cls):
+        sample = cls()
+        sample.environments = [Environment.sample()]
+        sample.next = (
+            "http://localhost:7070/v1/environments?"
             "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
             "marker=123e4567-e89b-12d3-a456-426655440000"
         )

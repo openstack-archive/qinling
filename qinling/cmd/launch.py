@@ -38,6 +38,8 @@ from oslo_log import log as logging # noqa
 from oslo_service import service # noqa
 
 from qinling.api import service as api_service # noqa
+from qinling.engine import rpc # noqa
+from qinling.engine import service as eng_service # noqa
 from qinling import config # noqa
 from qinling import version # noqa
 
@@ -45,13 +47,19 @@ CONF = cfg.CONF
 
 
 def launch_api():
-    launcher = service.ProcessLauncher(cfg.CONF)
-
     server = api_service.WSGIService('qinling_api')
-
-    launcher.launch_service(server, workers=server.workers)
-
+    launcher = service.launch(CONF, server, workers=server.workers)
     launcher.wait()
+
+
+def launch_engine():
+    try:
+        server = eng_service.EngineService()
+        launcher = service.launch(CONF, server)
+        launcher.wait()
+    except RuntimeError as e:
+        sys.stderr.write("ERROR: %s\n" % e)
+        sys.exit(1)
 
 
 def launch_any(options):
@@ -64,6 +72,7 @@ def launch_any(options):
 
 LAUNCH_OPTIONS = {
     'api': launch_api,
+    'engine': launch_engine
 }
 
 QINLING_TITLE = r"""
@@ -129,16 +138,16 @@ def main():
 
         logging.setup(CONF, 'Qingling')
 
+        # Initialize RPC configuration.
+        rpc.get_transport()
+
         if cfg.CONF.server == ['all']:
-            # Launch all servers.
             launch_any(LAUNCH_OPTIONS.keys())
         else:
-            # Validate launch option.
             if set(cfg.CONF.server) - set(LAUNCH_OPTIONS.keys()):
                 raise Exception('Valid options are all or any combination of '
                                 ', '.join(LAUNCH_OPTIONS.keys()))
 
-            # Launch distinct set of server(s).
             launch_any(set(cfg.CONF.server))
 
     except RuntimeError as excp:

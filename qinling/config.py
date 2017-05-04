@@ -28,6 +28,7 @@ launch_opt = cfg.ListOpt(
     help='Specifies which qinling server to start by the launch script.'
 )
 
+API_GROUP = 'api'
 api_opts = [
     cfg.StrOpt('host', default='0.0.0.0', help='Qinling API server host.'),
     cfg.PortOpt('port', default=7070, help='Qinling API server port.'),
@@ -45,6 +46,7 @@ api_opts = [
     )
 ]
 
+PECAN_GROUP = 'pecan'
 pecan_opts = [
     cfg.StrOpt(
         'root',
@@ -69,6 +71,7 @@ pecan_opts = [
     )
 ]
 
+ENGINE_GROUP = 'engine'
 engine_opts = [
     cfg.StrOpt(
         'host',
@@ -82,8 +85,15 @@ engine_opts = [
         default='qinling_engine',
         help='The message topic that the engine listens on.'
     ),
+    cfg.StrOpt(
+        'orchestrator',
+        default='kubernetes',
+        choices=['kubernetes', 'swarm'],
+        help='The container orchestrator.'
+    ),
 ]
 
+STORAGE_GROUP = 'storage'
 storage_opts = [
     cfg.StrOpt(
         'file_system_dir',
@@ -92,17 +102,39 @@ storage_opts = [
     )
 ]
 
+KUBERNETES_GROUP = 'kubernetes'
+kubernetes_opts = [
+    cfg.StrOpt(
+        'namespace',
+        default='qinling',
+        help='Resources scope created by Qinling.'
+    ),
+    cfg.IntOpt(
+        'replicas',
+        default=3,
+        help='Number of desired replicas in deployment.'
+    ),
+    cfg.StrOpt(
+        'kube_host',
+        help='Kubernetes server address.'
+    ),
+    cfg.StrOpt(
+        'volume_name',
+        default='functiondir',
+        help='Name of the volume shared between worker container and utility '
+             'container.'
+    ),
+]
+
 CONF = cfg.CONF
-API_GROUP = 'api'
-PECAN_GROUP = 'pecan'
-ENGINE_GROUP = 'engine'
-STORAGE_GROUP = 'storage'
+
 CLI_OPTS = [launch_opt]
 
 CONF.register_opts(api_opts, group=API_GROUP)
 CONF.register_opts(pecan_opts, group=PECAN_GROUP)
 CONF.register_opts(engine_opts, group=ENGINE_GROUP)
 CONF.register_opts(storage_opts, group=STORAGE_GROUP)
+CONF.register_opts(kubernetes_opts, group=KUBERNETES_GROUP)
 CONF.register_cli_opts(CLI_OPTS)
 
 default_group_opts = itertools.chain(
@@ -117,6 +149,7 @@ def list_opts():
         (PECAN_GROUP, pecan_opts),
         (ENGINE_GROUP, engine_opts),
         (STORAGE_GROUP, storage_opts),
+        (KUBERNETES_GROUP, kubernetes_opts),
         (None, default_group_opts)
     ]
 

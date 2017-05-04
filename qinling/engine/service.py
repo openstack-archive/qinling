@@ -19,9 +19,11 @@ from oslo_service import service
 
 from qinling.db import api as db_api
 from qinling.engine import default_engine as engine
-from qinling.engine import rpc
+from qinling.orchestrator import base as orchestra_base
+from qinling import rpc
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 class EngineService(service.Service):
@@ -31,11 +33,13 @@ class EngineService(service.Service):
         self.server = None
 
     def start(self):
-        topic = cfg.CONF.engine.topic
-        server = cfg.CONF.engine.host
-        transport = messaging.get_transport(cfg.CONF)
+        orchestrator = orchestra_base.load_orchestrator(CONF)
+
+        topic = CONF.engine.topic
+        server = CONF.engine.host
+        transport = messaging.get_transport(CONF)
         target = messaging.Target(topic=topic, server=server, fanout=False)
-        endpoints = [engine.DefaultEngine()]
+        endpoints = [engine.DefaultEngine(orchestrator)]
         self.server = messaging.get_rpc_server(
             transport,
             target,

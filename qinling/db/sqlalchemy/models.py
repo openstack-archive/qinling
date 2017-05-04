@@ -33,3 +33,12 @@ class Function(model_base.QinlingSecureModelBase):
     provider = sa.Column(sa.String(32), nullable=False)
     package = sa.Column(sa.Boolean, nullable=False)
     code = sa.Column(st.JsonLongDictType(), nullable=False)
+
+
+class Runtime(model_base.QinlingSecureModelBase):
+    __tablename__ = 'runtime'
+
+    name = sa.Column(sa.String(255))
+    description = sa.Column(sa.String(255))
+    image = sa.Column(sa.String(255), nullable=False)
+    status = sa.Column(sa.String(32), nullable=False)

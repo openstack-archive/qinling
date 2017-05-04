@@ -18,7 +18,6 @@ import oslo_messaging as messaging
 from oslo_messaging.rpc import client
 
 from qinling import context as ctx
-from qinling.engine import base
 from qinling import exceptions as exc
 
 LOG = logging.getLogger(__name__)
@@ -111,7 +110,7 @@ class ContextSerializer(messaging.Serializer):
         return qinling_ctx
 
 
-class EngineClient(base.Engine):
+class EngineClient(object):
     """RPC Engine client."""
 
     def __init__(self, transport):
@@ -122,15 +121,26 @@ class EngineClient(base.Engine):
         serializer = ContextSerializer(
             messaging.serializer.JsonPayloadSerializer())
 
+        self.topic = cfg.CONF.engine.topic
+
         self._client = messaging.RPCClient(
             transport,
-            messaging.Target(topic=cfg.CONF.engine.topic),
+            messaging.Target(topic=self.topic),
             serializer=serializer
         )
 
     @wrap_messaging_exception
-    def create_environment(self):
-        return self._client.cast(
+    def create_runtime(self, id):
+        return self._client.prepare(topic=self.topic, server=None).cast(
             ctx.get_ctx(),
-            'create_environment'
+            'create_runtime',
+            runtime_id=id
+        )
+
+    @wrap_messaging_exception
+    def delete_runtime(self, id):
+        return self._client.prepare(topic=self.topic, server=None).cast(
+            ctx.get_ctx(),
+            'delete_runtime',
+            runtime_id=id
         )

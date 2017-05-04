@@ -16,9 +16,9 @@ import pecan
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
-from qinling.api.controllers.v1 import environment
 from qinling.api.controllers.v1 import function
 from qinling.api.controllers.v1 import resources
+from qinling.api.controllers.v1 import runtime
 
 
 class RootResource(resources.Resource):
@@ -34,7 +34,7 @@ class Controller(object):
     """API root controller for version 1."""
 
     functions = function.FunctionsController()
-    environments = environment.EnvironmentsController()
+    runtimes = runtime.RuntimesController()
 
     @wsme_pecan.wsexpose(RootResource)
     def index(self):

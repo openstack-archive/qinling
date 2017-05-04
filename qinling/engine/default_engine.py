@@ -15,11 +15,53 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from qinling.engine import base
+from qinling.db import api as db_api
+from qinling import exceptions as exc
 
 LOG = logging.getLogger(__name__)
 
 
-class DefaultEngine(base.Engine):
-    def create_environment(self, ctx):
-        LOG.info('Received request.')
+class DefaultEngine(object):
+    def __init__(self, orchestrator):
+        self.orchestrator = orchestrator
+
+    def create_runtime(self, ctx, runtime_id):
+        LOG.info('Start to create runtime, id=%s', runtime_id)
+
+        with db_api.transaction():
+            runtime = db_api.get_runtime(runtime_id)
+            identifier = '%s-%s' % (runtime_id, runtime.name)
+            labels = {'runtime_name': runtime.name, 'runtime_id': runtime_id}
+
+            try:
+                self.orchestrator.create_pool(
+                    identifier,
+                    runtime.image,
+                    labels=labels,
+                )
+
+                runtime.status = 'available'
+            except Exception as e:
+                LOG.exception(
+                    'Failed to create pool for runtime %s. Error: %s',
+                    runtime_id,
+                    str(e)
+                )
+
+                runtime.status = 'error'
+
+                raise exc.OrchestratorException('Failed to create pool.')
+
+    def delete_runtime(self, ctx, runtime_id):
+        LOG.info('Start to delete runtime, id=%s', runtime_id)
+
+        with db_api.transaction():
+            runtime = db_api.get_runtime(runtime_id)
+            identifier = '%s-%s' % (runtime_id, runtime.name)
+            labels = {'runtime_name': runtime.name, 'runtime_id': runtime_id}
+
+            self.orchestrator.delete_pool(identifier, labels=labels)
+
+            db_api.delete_runtime(runtime_id)
+
+            LOG.info('Runtime %s deleted.', runtime_id)

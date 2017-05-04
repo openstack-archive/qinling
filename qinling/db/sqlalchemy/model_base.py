@@ -20,6 +20,8 @@ import sqlalchemy as sa
 from sqlalchemy.ext import declarative
 from sqlalchemy.orm import attributes
 
+from qinling import context
+
 
 def id_column():
     return sa.Column(
@@ -27,6 +29,10 @@ def id_column():
         primary_key=True,
         default=uuidutils.generate_uuid()
     )
+
+
+def get_project_id():
+    return context.get_ctx().projectid
 
 
 class _QinlingModelBase(oslo_models.ModelBase, oslo_models.TimestampMixin):
@@ -109,4 +115,8 @@ class QinlingSecureModelBase(QinlingModelBase):
     __abstract__ = True
 
     id = id_column()
-    project_id = sa.Column(sa.String(80), nullable=False)
+    project_id = sa.Column(
+        sa.String(80),
+        nullable=False,
+        default=get_project_id
+    )

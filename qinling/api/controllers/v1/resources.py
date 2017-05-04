@@ -13,6 +13,8 @@
 #    limitations under the License.
 
 import json
+
+import wsme
 from wsme import types as wtypes
 
 from qinling.api.controllers.v1 import types
@@ -209,36 +211,42 @@ class Functions(ResourceList):
         return sample
 
 
-class Environment(Resource):
+class Runtime(Resource):
     id = wtypes.text
     name = wtypes.text
+    image = wsme.wsattr(wtypes.text, mandatory=True)
     description = wtypes.text
-    created_at = wtypes.text
-    updated_at = wtypes.text
+    status = wsme.wsattr(wtypes.text, readonly=True)
+    project_id = wsme.wsattr(wtypes.text, readonly=True)
+    created_at = wsme.wsattr(wtypes.text, readonly=True)
+    updated_at = wsme.wsattr(wtypes.text, readonly=True)
 
     @classmethod
     def sample(cls):
         return cls(
             id='123e4567-e89b-12d3-a456-426655440000',
             name='python2.7',
+            image='lingxiankong/python',
+            status='available',
+            project_id='<default-project>',
             description='Python 2.7 environment.',
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'
         )
 
 
-class Environments(ResourceList):
-    environments = [Environment]
+class Runtimes(ResourceList):
+    runtimes = [Runtime]
 
     def __init__(self, **kwargs):
         self._type = 'environments'
 
-        super(Environments, self).__init__(**kwargs)
+        super(Runtimes, self).__init__(**kwargs)
 
     @classmethod
     def sample(cls):
         sample = cls()
-        sample.environments = [Environment.sample()]
+        sample.runtimes = [Runtime.sample()]
         sample.next = (
             "http://localhost:7070/v1/environments?"
             "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"

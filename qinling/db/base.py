@@ -37,7 +37,7 @@ def _get_facade():
     return _FACADE
 
 
-def get_session(expire_on_commit=True, autocommit=False):
+def get_session(expire_on_commit=False, autocommit=False):
     """Helper method to grab session."""
     facade = _get_facade()
     return facade.get_session(expire_on_commit=expire_on_commit,

@@ -68,6 +68,16 @@ class DBError(QinlingException):
     http_code = 400
 
 
+class DBEntityNotFoundError(DBError):
+    http_code = 404
+    message = "Object not found"
+
+
 class ApplicationContextNotFoundException(QinlingException):
     http_code = 400
     message = "Application context not found"
+
+
+class OrchestratorException(QinlingException):
+    http_code = 500
+    message = "Orchestrator error."

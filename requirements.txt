@@ -22,3 +22,5 @@ SQLAlchemy>=1.0.10,!=1.1.5,!=1.1.6,!=1.1.7,!=1.1.8  # MIT
 sqlalchemy-migrate>=0.9.6  # Apache-2.0
 stevedore>=1.20.0 # Apache-2.0
 WSME>=0.8 # MIT
+kubernetes>=1.0.0b1  # Apache-2.0
+PyYAML>=3.10.0 # MIT

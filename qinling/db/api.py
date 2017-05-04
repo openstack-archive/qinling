@@ -83,3 +83,26 @@ def update_function(id, values):
 
 def delete_function(id):
     IMPL.delete_function(id)
+
+
+# Function
+
+
+def create_runtime(values):
+    return IMPL.create_runtime(values)
+
+
+def get_runtime(id):
+    return IMPL.get_runtime(id)
+
+
+def get_runtimes():
+    return IMPL.get_runtimes()
+
+
+def delete_runtime(id):
+    return IMPL.delete_runtime(id)
+
+
+def update_runtime(id, values):
+    return IMPL.update_runtime(id, values)

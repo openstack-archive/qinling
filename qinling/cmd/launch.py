@@ -38,9 +38,9 @@ from oslo_log import log as logging # noqa
 from oslo_service import service # noqa
 
 from qinling.api import service as api_service # noqa
-from qinling.engine import rpc # noqa
-from qinling.engine import service as eng_service # noqa
 from qinling import config # noqa
+from qinling.engine import service as eng_service # noqa
+from qinling import rpc # noqa
 from qinling import version # noqa
 
 CONF = cfg.CONF

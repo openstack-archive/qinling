@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ name }}
+  labels:
+{% for key, value in labels.items() %}
+    {{ key}}: {{ value }}
+{% endfor %}
+spec:
+  replicas: {{ replicas }}
+  selector:
+    matchLabels:
+{% for key, value in labels.items() %}
+      {{ key}}: {{ value }}
+{% endfor %}
+  template:
+    metadata:
+      labels:
+{% for key, value in labels.items() %}
+        {{ key}}: {{ value }}
+{% endfor %}
+    spec:
+      volumes:
+      - name: {{ volume_name }}
+        emptyDir: {}
+      containers:
+      - name: {{ container_name }}
+        image: {{ image }}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: {{ volume_name }}
+          mountPath: /function
+      - name: fetcher
+        image: fission/fetcher
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: {{ volume_name }}
+          mountPath: /function
+        command:
+        - /fetcher
+        - /function

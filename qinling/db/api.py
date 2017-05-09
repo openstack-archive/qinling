@@ -106,3 +106,34 @@ def delete_runtime(id):
 
 def update_runtime(id, values):
     return IMPL.update_runtime(id, values)
+
+
+# Execution
+
+
+def create_execution(values):
+    return IMPL.create_execution(values)
+
+
+def get_execution(id):
+    return IMPL.get_execution(id)
+
+
+def get_executions():
+    return IMPL.get_executions()
+
+
+def delete_execution(id):
+    return IMPL.delete_execution(id)
+
+
+def update_execution(id, values):
+    return IMPL.update_execution(id, values)
+
+
+def create_function_service_mapping(values):
+    return IMPL.create_function_service_mapping(values)
+
+
+def get_function_service_mapping(function_id):
+    return IMPL.get_function_service_mapping(function_id)

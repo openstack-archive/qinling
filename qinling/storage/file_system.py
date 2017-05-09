@@ -12,10 +12,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import os
+
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
 
+from qinling import exceptions as exc
 from qinling.storage import base
 
 LOG = logging.getLogger(__name__)
@@ -33,7 +36,43 @@ class FileSystemStorage(base.PackageStorage):
             'Store package, function: %s, project: %s', function, project_id
         )
 
+        project_path = os.path.join(CONF.storage.file_system_dir, project_id)
+        fileutils.ensure_tree(project_path)
+
+        func_zip = os.path.join(project_path, '%s.zip' % function)
+        with open(func_zip, 'wb') as fd:
+            fd.write(data)
+
     def retrieve(self, project_id, function):
         LOG.info(
             'Get package data, function: %s, project: %s', function, project_id
         )
+
+        func_zip = os.path.join(
+            CONF.storage.file_system_dir,
+            '%s/%s.zip' % (project_id, function)
+        )
+
+        if not os.path.exists(func_zip):
+            raise exc.StorageNotFoundException(
+                'Package of function %s for project %s not found.' %
+                (function, project_id)
+            )
+
+        f = open(func_zip, 'rb')
+
+        return f
+
+    def delete(self, project_id, function):
+        LOG.info(
+            'Delete package data, function: %s, project: %s', function,
+            project_id
+        )
+
+        func_zip = os.path.join(
+            CONF.storage.file_system_dir,
+            '%s/%s.zip' % (project_id, function)
+        )
+
+        if os.path.exists(func_zip):
+            os.remove(func_zip)

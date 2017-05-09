@@ -24,13 +24,58 @@ Create Date: 2017-05-03 12:02:51.935368
 revision = '001'
 down_revision = None
 
+import re
+
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.schema import CreateTable
 
 from qinling.db.sqlalchemy import types as st
 
 
+@compiles(CreateTable)
+def _add_if_not_exists(element, compiler, **kw):
+    output = compiler.visit_create_table(element, **kw)
+    if element.element.info.get("check_ifexists"):
+        output = re.sub(
+            "^\s*CREATE TABLE", "CREATE TABLE IF NOT EXISTS", output, re.S)
+    return output
+
+
 def upgrade():
+    op.create_table(
+        'function',
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('project_id', sa.String(length=80), nullable=False),
+        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('name', sa.String(length=255), nullable=True),
+        sa.Column('description', sa.String(length=255), nullable=True),
+        sa.Column('runtime_id', sa.String(length=36), nullable=False),
+        sa.Column('memory_size', sa.Integer, nullable=True),
+        sa.Column('timeout', sa.Integer, nullable=True),
+        sa.Column('code', st.JsonLongDictType(), nullable=False),
+        sa.Column('entry', sa.String(length=80), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('name', 'project_id'),
+        info={"check_ifexists": True}
+    )
+
+    op.create_table(
+        'function_service_mapping',
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('function_id', sa.String(length=36), nullable=False),
+        sa.Column('service_url', sa.String(length=255), nullable=False),
+        sa.PrimaryKeyConstraint('function_id'),
+        sa.UniqueConstraint('function_id', 'service_url'),
+        sa.ForeignKeyConstraint(
+            ['function_id'], [u'function.id'], ondelete='CASCADE'
+        ),
+        info={"check_ifexists": True}
+    )
+
     op.create_table(
         'runtime',
         sa.Column('created_at', sa.DateTime(), nullable=True),
@@ -42,4 +87,21 @@ def upgrade():
         sa.Column('image', sa.String(length=255), nullable=False),
         sa.Column('status', sa.String(length=32), nullable=False),
         sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('name'),
+        info={"check_ifexists": True}
+    )
+
+    op.create_table(
+        'execution',
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('project_id', sa.String(length=80), nullable=False),
+        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('function_id', sa.String(length=36), nullable=False),
+        sa.Column('status', sa.String(length=32), nullable=False),
+        sa.Column('sync', sa.BOOLEAN, nullable=False),
+        sa.Column('input', st.JsonLongDictType(), nullable=True),
+        sa.Column('output', st.JsonLongDictType(), nullable=True),
+        sa.PrimaryKeyConstraint('id'),
+        info={"check_ifexists": True}
     )

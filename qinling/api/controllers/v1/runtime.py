@@ -12,7 +12,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from pecan import rest
 import wsmeext.pecan as wsme_pecan
@@ -20,6 +19,7 @@ import wsmeext.pecan as wsme_pecan
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
 from qinling.db import api as db_api
+from qinling import exceptions as exc
 from qinling import rpc
 from qinling.utils import rest_utils
 
@@ -51,7 +51,6 @@ class RuntimesController(rest.RestController):
 
         return resources.Runtimes(runtimes=runtimes)
 
-
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(
         resources.Runtime,
@@ -79,6 +78,15 @@ class RuntimesController(rest.RestController):
 
         with db_api.transaction():
             runtime_db = db_api.get_runtime(id)
+
+            # Runtime can not be deleted if still associate with functions.
+            funcs = db_api.get_functions(runtime_id={'eq': id})
+            if len(funcs):
+                raise exc.NotAllowedException(
+                    'Runtime %s is still in use.' % id
+                )
+
             runtime_db.status = 'deleting'
 
+        # Clean related resources asynchronously
         self.engine_client.delete_runtime(id)

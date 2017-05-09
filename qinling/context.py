@@ -26,7 +26,7 @@ ALLOWED_WITHOUT_AUTH = ['/', '/v1/']
 
 CTX_THREAD_LOCAL_NAME = "QINLING_APP_CTX_THREAD_LOCAL"
 
-DEFAULT_PROJECT_ID = "<default-project>"
+DEFAULT_PROJECT_ID = "default"
 
 
 def authenticate(req):

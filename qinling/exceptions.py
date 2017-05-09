@@ -78,6 +78,15 @@ class ApplicationContextNotFoundException(QinlingException):
     message = "Application context not found"
 
 
+class StorageNotFoundException(QinlingException):
+    http_code = 404
+    message = "Storage file not found"
+
+
+class StorageProviderException(QinlingException):
+    http_code = 500
+
+
 class OrchestratorException(QinlingException):
     http_code = 500
     message = "Orchestrator error."

@@ -183,14 +183,18 @@ def _get_db_object_by_id(model, id, insecure=False):
 
 
 @db_base.session_aware()
-def get_function(id):
-    pass
+def get_function(id, session=None):
+    function = _get_db_object_by_id(models.Function, id)
+
+    if not function:
+        raise exc.DBEntityNotFoundError("Function not found [id=%s]" % id)
+
+    return function
 
 
 @db_base.session_aware()
-def get_functions(limit=None, marker=None, sort_keys=None,
-                  sort_dirs=None, fields=None, **kwargs):
-    pass
+def get_functions(session=None, **kwargs):
+    return _get_collection_sorted_by_time(models.Function, **kwargs)
 
 
 @db_base.session_aware()
@@ -214,8 +218,10 @@ def update_function(id, values):
 
 
 @db_base.session_aware()
-def delete_function(id):
-    pass
+def delete_function(id, session=None):
+    function = get_function(id)
+
+    session.delete(function)
 
 
 @db_base.session_aware()
@@ -253,3 +259,69 @@ def delete_runtime(id, session=None):
     runtime = get_runtime(id)
 
     session.delete(runtime)
+
+
+@db_base.session_aware()
+def create_execution(values, session=None):
+    execution = models.Execution()
+    execution.update(values.copy())
+
+    try:
+        execution.save(session=session)
+    except oslo_db_exc.DBDuplicateEntry as e:
+        raise exc.DBError(
+            "Duplicate entry for Execution: %s" % e.columns
+        )
+
+    return execution
+
+
+@db_base.session_aware()
+def get_execution(id, session=None):
+    execution = _get_db_object_by_id(models.Execution, id)
+
+    if not execution:
+        raise exc.DBEntityNotFoundError("Execution not found [id=%s]" % id)
+
+    return execution
+
+
+@db_base.session_aware()
+def get_executions(session=None, **kwargs):
+    return _get_collection_sorted_by_time(models.Execution, **kwargs)
+
+
+@db_base.session_aware()
+def delete_execution(id, session=None):
+    execution = get_execution(id)
+
+    session.delete(execution)
+
+
+@db_base.session_aware()
+def create_function_service_mapping(values, session=None):
+    mapping = models.FunctionServiceMapping()
+    mapping.update(values.copy())
+
+    try:
+        mapping.save(session=session)
+    except oslo_db_exc.DBDuplicateEntry as e:
+        raise exc.DBError(
+            "Duplicate entry for FunctionServiceMapping: %s" % e.columns
+        )
+
+    return mapping
+
+
+@db_base.session_aware()
+def get_function_service_mapping(function_id, session=None):
+    mapping = db_base.model_query(
+        models.FunctionServiceMapping
+    ).filter_by(function_id=function_id).first()
+
+    if not mapping:
+        raise exc.DBEntityNotFoundError(
+            "FunctionServiceMapping not found [function_id=%s]" % function_id
+        )
+
+    return mapping

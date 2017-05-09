@@ -34,6 +34,14 @@ class OrchestratorBase(object):
     def delete_pool(self, name, **kwargs):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def prepare_execution(self, function_id, **kwargs):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def run_execution(self, function_id, **kwargs):
+        raise NotImplementedError
+
 
 def load_orchestrator(conf):
     global ORCHESTRATOR

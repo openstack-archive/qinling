@@ -144,3 +144,15 @@ class EngineClient(object):
             'delete_runtime',
             runtime_id=id
         )
+
+    @wrap_messaging_exception
+    def create_execution(self, execution_id, function_id, runtime_id,
+                         input=None):
+        return self._client.prepare(topic=self.topic, server=None).call(
+            ctx.get_ctx(),
+            'create_execution',
+            execution_id=execution_id,
+            function_id=function_id,
+            runtime_id=runtime_id,
+            input=input
+        )

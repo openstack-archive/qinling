@@ -15,19 +15,19 @@
 import six
 
 from oslo_db.sqlalchemy import models as oslo_models
-from oslo_utils import uuidutils
 import sqlalchemy as sa
 from sqlalchemy.ext import declarative
 from sqlalchemy.orm import attributes
 
 from qinling import context
+from qinling.utils import common
 
 
 def id_column():
     return sa.Column(
         sa.String(36),
         primary_key=True,
-        default=uuidutils.generate_uuid()
+        default=common.generate_unicode_uuid
     )
 
 

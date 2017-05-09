@@ -15,8 +15,11 @@
 import abc
 
 import six
+from stevedore import driver
 
-STORAGE_PROVIDER_MAPPING = {}
+from qinling import exceptions as exc
+
+STORAGE_PROVIDER = None
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -31,8 +34,28 @@ class PackageStorage(object):
     def retrieve(self, project_id, function):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def delete(self, project_id, function):
+        raise NotImplementedError
 
-def load_storage_providers(conf):
-    global STORAGE_PROVIDER_MAPPING
 
-    return STORAGE_PROVIDER_MAPPING
+def load_storage_provider(conf):
+    global STORAGE_PROVIDER
+
+    if not STORAGE_PROVIDER:
+        try:
+            mgr = driver.DriverManager(
+                'qinling.storage.provider',
+                conf.storage.provider,
+                invoke_on_load=True,
+                invoke_args=[conf]
+            )
+
+            STORAGE_PROVIDER = mgr.driver
+        except Exception as e:
+            raise exc.StorageProviderException(
+                'Failed to load storage provider: %s. Error: %s' %
+                (conf.storage.provider, str(e))
+            )
+
+    return STORAGE_PROVIDER

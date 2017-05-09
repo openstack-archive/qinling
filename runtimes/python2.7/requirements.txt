@@ -1,0 +1,3 @@
+Flask>=0.11.1
+httplib2
+requests>=2.7.0

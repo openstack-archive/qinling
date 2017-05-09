@@ -12,11 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
 from oslo_log import log as logging
 
 from qinling.db import api as db_api
-from qinling import exceptions as exc
 
 LOG = logging.getLogger(__name__)
 
@@ -50,8 +48,6 @@ class DefaultEngine(object):
 
                 runtime.status = 'error'
 
-                raise exc.OrchestratorException('Failed to create pool.')
-
     def delete_runtime(self, ctx, runtime_id):
         LOG.info('Start to delete runtime, id=%s', runtime_id)
 
@@ -65,3 +61,40 @@ class DefaultEngine(object):
             db_api.delete_runtime(runtime_id)
 
             LOG.info('Runtime %s deleted.', runtime_id)
+
+    def create_execution(self, ctx, execution_id, function_id, runtime_id,
+                         input=None):
+        LOG.info(
+            'Creating execution. execution_id=%s, function_id=%s, '
+            'runtime_id=%s',
+            execution_id, function_id, runtime_id
+        )
+
+        with db_api.transaction():
+            execution = db_api.get_execution(execution_id)
+            runtime = db_api.get_runtime(runtime_id)
+            identifier = '%s-%s' % (runtime_id, runtime.name)
+            labels = {'runtime_name': runtime.name, 'runtime_id': runtime_id}
+
+            service_url = self.orchestrator.prepare_execution(
+                function_id, identifier=identifier, labels=labels
+            )
+
+            output = self.orchestrator.run_execution(
+                function_id, input=input, service_url=service_url
+            )
+
+            LOG.debug(
+                'Finished execution. execution_id=%s, output=%s',
+                execution_id,
+                output
+            )
+
+            execution.output = output
+            execution.status = 'success'
+
+            mapping = {
+                'function_id': function_id,
+                'service_url': service_url
+            }
+            db_api.create_function_service_mapping(mapping)

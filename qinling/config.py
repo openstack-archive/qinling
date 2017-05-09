@@ -99,7 +99,13 @@ storage_opts = [
         'file_system_dir',
         default='/opt/qinling/funtion/packages',
         help='Directory to store funtion packages.'
-    )
+    ),
+    cfg.StrOpt(
+        'provider',
+        default='local',
+        choices=['local', 'swift'],
+        help='Storage provider for function code package.'
+    ),
 ]
 
 KUBERNETES_GROUP = 'kubernetes'
@@ -118,11 +124,9 @@ kubernetes_opts = [
         'kube_host',
         help='Kubernetes server address.'
     ),
-    cfg.StrOpt(
-        'volume_name',
-        default='functiondir',
-        help='Name of the volume shared between worker container and utility '
-             'container.'
+    cfg.IPOpt(
+        'qinling_service_address',
+        help='Qinling API service ip address.'
     ),
 ]
 

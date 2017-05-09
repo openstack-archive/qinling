@@ -23,7 +23,7 @@ eventlet.monkey_patch(
     thread=False if '--use-debugger' in sys.argv else True,
     time=True)
 
-import os # noqa
+import os
 
 # If ../qingling/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
@@ -33,15 +33,15 @@ POSSIBLE_TOPDIR = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
 if os.path.exists(os.path.join(POSSIBLE_TOPDIR, 'qinling', '__init__.py')):
     sys.path.insert(0, POSSIBLE_TOPDIR)
 
-from oslo_config import cfg # noqa
-from oslo_log import log as logging # noqa
-from oslo_service import service # noqa
+from oslo_config import cfg
+from oslo_log import log as logging
+from oslo_service import service
 
-from qinling.api import service as api_service # noqa
-from qinling import config # noqa
-from qinling.engine import service as eng_service # noqa
-from qinling import rpc # noqa
-from qinling import version # noqa
+from qinling.api import service as api_service
+from qinling import config
+from qinling.engine import service as eng_service
+from qinling import rpc
+from qinling import version
 
 CONF = cfg.CONF
 

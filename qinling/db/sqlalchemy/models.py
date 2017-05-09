@@ -27,12 +27,26 @@ class Function(model_base.QinlingSecureModelBase):
 
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.String(255))
-    runtime = sa.Column(sa.String(32), nullable=False)
-    memorysize = sa.Column(sa.Integer, nullable=False)
-    timeout = sa.Column(sa.Integer, nullable=False)
-    provider = sa.Column(sa.String(32), nullable=False)
-    package = sa.Column(sa.Boolean, nullable=False)
+    runtime_id = sa.Column(sa.String(36), nullable=False)
+    memory_size = sa.Column(sa.Integer)
+    timeout = sa.Column(sa.Integer)
     code = sa.Column(st.JsonLongDictType(), nullable=False)
+    entry = sa.Column(sa.String(80), nullable=False)
+
+
+class FunctionServiceMapping(model_base.QinlingModelBase):
+    __tablename__ = 'function_service_mapping'
+
+    __table_args__ = (
+        sa.UniqueConstraint('function_id', 'service_url'),
+    )
+
+    function_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey(Function.id, ondelete='CASCADE'),
+        primary_key=True,
+    )
+    service_url = sa.Column(sa.String(255), nullable=False)
 
 
 class Runtime(model_base.QinlingSecureModelBase):
@@ -42,3 +56,15 @@ class Runtime(model_base.QinlingSecureModelBase):
     description = sa.Column(sa.String(255))
     image = sa.Column(sa.String(255), nullable=False)
     status = sa.Column(sa.String(32), nullable=False)
+
+    sa.UniqueConstraint('name')
+
+
+class Execution(model_base.QinlingSecureModelBase):
+    __tablename__ = 'execution'
+
+    function_id = sa.Column(sa.String(36), nullable=False)
+    status = sa.Column(sa.String(32), nullable=False)
+    sync = sa.Column(sa.BOOLEAN, default=True)
+    input = sa.Column(st.JsonLongDictType())
+    output = sa.Column(st.JsonLongDictType())

@@ -12,7 +12,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from oslo_utils import uuidutils
+
+
 def convert_dict_to_string(d):
     temp_list = ['%s=%s' % (k, v) for k, v in d.items()]
 
     return ','.join(temp_list)
+
+
+def generate_unicode_uuid():
+    return uuidutils.generate_uuid()

@@ -19,8 +19,6 @@ from wsme import types as wtypes
 
 from qinling.api.controllers.v1 import types
 
-PROVIDER_TYPES = wtypes.Enum(str, 'docker', 'fission')
-
 
 class Resource(wtypes.Base):
     """REST API Resource."""
@@ -166,11 +164,11 @@ class Function(Resource):
     id = wtypes.text
     name = wtypes.text
     description = wtypes.text
-    memorysize = int
+    memory_size = int
     timeout = int
-    runtime = wtypes.text
+    runtime_id = types.uuid
     code = types.jsontype
-    provider = PROVIDER_TYPES
+    entry = wtypes.text
     created_at = wtypes.text
     updated_at = wtypes.text
 
@@ -180,11 +178,11 @@ class Function(Resource):
             id='123e4567-e89b-12d3-a456-426655440000',
             name='hello_world',
             description='this is the first function.',
-            memorysize=1,
+            memory_size=1,
             timeout=1,
-            runtime='python2.7',
+            runtime_id='123e4567-e89b-12d3-a456-426655440001',
             code={'zip': True},
-            provider='docker',
+            entry='main',
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'
         )
@@ -228,7 +226,7 @@ class Runtime(Resource):
             name='python2.7',
             image='lingxiankong/python',
             status='available',
-            project_id='<default-project>',
+            project_id='default',
             description='Python 2.7 environment.',
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'
@@ -249,6 +247,51 @@ class Runtimes(ResourceList):
         sample.runtimes = [Runtime.sample()]
         sample.next = (
             "http://localhost:7070/v1/environments?"
+            "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
+            "marker=123e4567-e89b-12d3-a456-426655440000"
+        )
+
+        return sample
+
+
+class Execution(Resource):
+    id = types.uuid
+    function_id = wsme.wsattr(types.uuid, mandatory=True)
+    status = wsme.wsattr(wtypes.text, readonly=True)
+    sync = bool
+    input = types.jsontype
+    output = wsme.wsattr(types.jsontype, readonly=True)
+    created_at = wsme.wsattr(wtypes.text, readonly=True)
+    updated_at = wsme.wsattr(wtypes.text, readonly=True)
+
+    @classmethod
+    def sample(cls):
+        return cls(
+            id='123e4567-e89b-12d3-a456-426655440000',
+            function_id='123e4567-e89b-12d3-a456-426655440000',
+            status='success',
+            sync=True,
+            input={'data': 'hello, world'},
+            output={'result': 'hello, world'},
+            created_at='1970-01-01T00:00:00.000000',
+            updated_at='1970-01-01T00:00:00.000000'
+        )
+
+
+class Executions(ResourceList):
+    executions = [Execution]
+
+    def __init__(self, **kwargs):
+        self._type = 'executions'
+
+        super(Executions, self).__init__(**kwargs)
+
+    @classmethod
+    def sample(cls):
+        sample = cls()
+        sample.executions = [Execution.sample()]
+        sample.next = (
+            "http://localhost:7070/v1/executions?"
             "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
             "marker=123e4567-e89b-12d3-a456-426655440000"
         )

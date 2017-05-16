@@ -45,6 +45,10 @@ they can communicate with each other without any network configuration.
    `kubectl <https://kubernetes.io/docs/tasks/tools/install-kubectl/>`_
    command line tool.
 
+Qinling can work with OpenStack Keystone for authentication, or it can work
+without authentication at all. By default, authentication is disabled, config
+``auth_enable = True`` to enable authentication.
+
 After Kubernetes installation, perform the following commands on your local
 host.
 

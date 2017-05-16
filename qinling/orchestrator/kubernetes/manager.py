@@ -21,6 +21,7 @@ from oslo_log import log as logging
 import requests
 import yaml
 
+from qinling import context
 from qinling import exceptions as exc
 from qinling.orchestrator import base
 from qinling.utils import common
@@ -223,7 +224,12 @@ class KubernetesManager(base.OrchestratorBase):
             (self.conf.kubernetes.qinling_service_address,
              self.conf.api.port, function_id)
         )
-        data = {'download_url': download_url, 'function_id': function_id}
+
+        data = {
+            'download_url': download_url,
+            'function_id': function_id,
+            'token': context.get_ctx().auth_token
+        }
 
         LOG.debug(
             'Send request to pod %s, request_url: %s, data: %s',

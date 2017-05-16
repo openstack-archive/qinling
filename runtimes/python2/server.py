@@ -31,18 +31,26 @@ file_name = ''
 
 @app.route('/download', methods=['POST'])
 def download():
-    service_url = request.form['download_url']
+    download_url = request.form['download_url']
     function_id = request.form['function_id']
+    token = request.form['token']
+
+    headers = {}
+    if token:
+        headers = {'X-Auth-Token': token}
 
     global file_name
     file_name = '%s.zip' % function_id
 
-    app.logger.info('Request received, service_url:%s' % service_url)
+    app.logger.info(
+        'Request received, download_url:%s, headers: %s' %
+        (download_url, headers)
+    )
 
-    r = requests.get(service_url, stream=True)
+    r = requests.get(download_url, headers=headers, stream=True)
 
     with open(file_name, 'wb') as fd:
-        for chunk in r.iter_content(chunk_size=128):
+        for chunk in r.iter_content(chunk_size=65535):
             fd.write(chunk)
 
     if not zipfile.is_zipfile(file_name):

@@ -13,6 +13,7 @@
 #    limitations under the License.
 
 import os
+import zipfile
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -42,6 +43,11 @@ class FileSystemStorage(base.PackageStorage):
         func_zip = os.path.join(project_path, '%s.zip' % function)
         with open(func_zip, 'wb') as fd:
             fd.write(data)
+
+        if not zipfile.is_zipfile(func_zip):
+            fileutils.delete_if_exists(func_zip)
+
+            raise exc.InputException("Package is not a valid ZIP package.")
 
     def retrieve(self, project_id, function):
         LOG.info(

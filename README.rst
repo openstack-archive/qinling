@@ -100,11 +100,14 @@ python-qinlingclient is still under development.**
 Perform following commands on your local host, the process will create
 runtime/function/execution in Qinling.
 
-#. First, build a docker image that is used to create runtime in Qinling and
-   upload to docker hub. Only ``Python 2`` runtime is supported for now, but it
-   is very easy to add another program language support. Run the commands in
-   ``qinling`` repo directory, replace ``DOCKER_USER`` with your docker hub
-   username:
+#. (Optional) Prepare a docker image including development environment for a
+   specific programming language. For your convenience, I already build one
+   (``lingxiankong/python-runtime``) in my docker hub account that you could
+   directly use to create runtime in Qinling. Only ``Python 2`` runtime is
+   supported for now, but it is very easy to add another program language
+   support. If you indeed want to build a new image, run the following commands
+   in ``qinling`` repo directory, replace ``DOCKER_USER`` with your own docker
+   hub username:
 
    .. code-block:: console
 

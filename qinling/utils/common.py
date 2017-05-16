@@ -11,6 +11,8 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+import functools
+import warnings
 
 from oslo_utils import uuidutils
 
@@ -23,3 +25,20 @@ def convert_dict_to_string(d):
 
 def generate_unicode_uuid():
     return uuidutils.generate_uuid()
+
+
+def disable_ssl_warnings(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="A true SSLContext object is not available"
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="Unverified HTTPS request is being made"
+            )
+            return func(*args, **kwargs)
+
+    return wrapper

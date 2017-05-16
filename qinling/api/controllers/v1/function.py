@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import collections
 import json
 import os
 
@@ -29,16 +30,19 @@ from qinling import context
 from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling.storage import base as storage_base
+from qinling.utils.openstack import swift as swift_util
 from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 POST_REQUIRED = set(['name', 'runtime_id', 'code'])
+CODE_SOURCE = set(['package', 'swift', 'image'])
 
 
 class FunctionsController(rest.RestController):
     def __init__(self, *args, **kwargs):
-        self.storage_provider = storage_base.load_storage_provider(cfg.CONF)
+        self.storage_provider = storage_base.load_storage_provider(CONF)
 
         super(FunctionsController, self).__init__(*args, **kwargs)
 
@@ -57,15 +61,20 @@ class FunctionsController(rest.RestController):
             pecan.override_template('json')
             return resources.Function.from_dict(func_db.to_dict()).to_dict()
         else:
-            f = self.storage_provider.retrieve(
-                ctx.projectid,
-                id,
-            )
+            source = func_db.code['source']
 
-            pecan.response.app_iter = FileIter(f)
+            if source == 'package':
+                f = self.storage_provider.retrieve(ctx.projectid, id)
+            elif source == 'swift':
+                container = func_db.code['swift']['container']
+                obj = func_db.code['swift']['object']
+                f = swift_util.download_object(container, obj)
+
+            pecan.response.app_iter = (f if isinstance(f, collections.Iterable)
+                                       else FileIter(f))
             pecan.response.headers['Content-Type'] = 'application/zip'
             pecan.response.headers['Content-Disposition'] = (
-                'attachment; filename="%s"' % os.path.basename(f.name)
+                'attachment; filename="%s"' % os.path.basename(func_db.name)
             )
 
     @rest_utils.wrap_pecan_controller_exception
@@ -92,19 +101,40 @@ class FunctionsController(rest.RestController):
             'entry': kwargs.get('entry', 'main'),
         }
 
-        if values['code'].get('package', False):
+        source = values['code'].get('source')
+        if not source or source not in CODE_SOURCE:
+            raise exc.InputException(
+                'Invalid code source specified, available sources: %s' %
+                CODE_SOURCE
+            )
+
+        store = False
+        if values['code']['source'] == 'package':
+            store = True
             data = kwargs['package'].file.read()
+        elif values['code']['source'] == 'swift':
+            # Auth needs to be enabled because qinling needs to check swift
+            # object using user's credential.
+            if not CONF.pecan.auth_enable:
+                raise exc.InputException('Swift object not supported.')
+
+            container = values['code']['swift'].get('container')
+            object = values['code']['swift'].get('object')
+
+            if not swift_util.check_object(container, object):
+                raise exc.InputException('Object does not exist in Swift.')
 
         ctx = context.get_ctx()
 
         with db_api.transaction():
             func_db = db_api.create_function(values)
 
-            self.storage_provider.store(
-                ctx.projectid,
-                func_db.id,
-                data
-            )
+            if store:
+                self.storage_provider.store(
+                    ctx.projectid,
+                    func_db.id,
+                    data
+                )
 
         pecan.response.status = 201
         return resources.Function.from_dict(func_db.to_dict()).to_dict()
@@ -126,6 +156,11 @@ class FunctionsController(rest.RestController):
         LOG.info("Delete function [id=%s]", id)
 
         with db_api.transaction():
-            db_api.delete_function(id)
+            func_db = db_api.get_function(id)
+            source = func_db.code['source']
 
-            self.storage_provider.delete(context.get_ctx().projectid, id)
+            if source == 'package':
+                self.storage_provider.delete(context.get_ctx().projectid, id)
+
+            # This will also delete function service mapping as well.
+            db_api.delete_function(id)

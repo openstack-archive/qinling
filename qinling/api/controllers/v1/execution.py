@@ -45,6 +45,7 @@ class ExecutionsController(rest.RestController):
         LOG.info("Creating execution. [execution=%s]", params)
 
         function_id = params['function_id']
+        is_sync = params.get('sync', True)
 
         # Check if the service url is existing.
         try:
@@ -71,12 +72,14 @@ class ExecutionsController(rest.RestController):
         db_model = db_api.create_execution(params)
 
         self.engine_client.create_execution(
-            db_model.id, function_id, runtime_id, input=params.get('input')
+            db_model.id, function_id, runtime_id, input=params.get('input'),
+            is_sync=is_sync
         )
 
-        updated_db = db_api.get_execution(db_model.id)
+        if is_sync:
+            db_model = db_api.get_execution(db_model.id)
 
-        return resources.Execution.from_dict(updated_db.to_dict())
+        return resources.Execution.from_dict(db_model.to_dict())
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Executions)

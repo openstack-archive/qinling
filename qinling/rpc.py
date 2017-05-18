@@ -147,15 +147,27 @@ class EngineClient(object):
 
     @wrap_messaging_exception
     def create_execution(self, execution_id, function_id, runtime_id,
-                         input=None):
-        return self._client.prepare(topic=self.topic, server=None).call(
-            ctx.get_ctx(),
-            'create_execution',
-            execution_id=execution_id,
-            function_id=function_id,
-            runtime_id=runtime_id,
-            input=input
-        )
+                         input=None, is_sync=True):
+        method_client = self._client.prepare(topic=self.topic, server=None)
+
+        if is_sync:
+            return method_client.call(
+                ctx.get_ctx(),
+                'create_execution',
+                execution_id=execution_id,
+                function_id=function_id,
+                runtime_id=runtime_id,
+                input=input
+            )
+        else:
+            method_client.cast(
+                ctx.get_ctx(),
+                'create_execution',
+                execution_id=execution_id,
+                function_id=function_id,
+                runtime_id=runtime_id,
+                input=input
+            )
 
     @wrap_messaging_exception
     def delete_function(self, id, name):

@@ -29,6 +29,7 @@ from qinling.api.controllers.v1 import types
 from qinling import context
 from qinling.db import api as db_api
 from qinling import exceptions as exc
+from qinling import rpc
 from qinling.storage import base as storage_base
 from qinling.utils.openstack import swift as swift_util
 from qinling.utils import rest_utils
@@ -36,13 +37,14 @@ from qinling.utils import rest_utils
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
-POST_REQUIRED = set(['name', 'runtime_id', 'code'])
+POST_REQUIRED = set(['name', 'code'])
 CODE_SOURCE = set(['package', 'swift', 'image'])
 
 
 class FunctionsController(rest.RestController):
     def __init__(self, *args, **kwargs):
         self.storage_provider = storage_base.load_storage_provider(CONF)
+        self.engine_client = rpc.get_engine_client()
 
         super(FunctionsController, self).__init__(*args, **kwargs)
 
@@ -69,6 +71,13 @@ class FunctionsController(rest.RestController):
                 container = func_db.code['swift']['container']
                 obj = func_db.code['swift']['object']
                 f = swift_util.download_object(container, obj)
+            else:
+                msg = 'Download image function is not allowed.'
+                pecan.abort(
+                    status_code=405,
+                    detail=msg,
+                    headers={'Server-Error-Message': msg}
+                )
 
             pecan.response.app_iter = (f if isinstance(f, collections.Iterable)
                                        else FileIter(f))
@@ -82,21 +91,17 @@ class FunctionsController(rest.RestController):
     def post(self, **kwargs):
         LOG.info("Creating function, params=%s", kwargs)
 
+        # When using image to create function, runtime_id is not a required
+        # param.
         if not POST_REQUIRED.issubset(set(kwargs.keys())):
             raise exc.InputException(
                 'Required param is missing. Required: %s' % POST_REQUIRED
             )
 
-        runtime = db_api.get_runtime(kwargs['runtime_id'])
-        if runtime.status != 'available':
-            raise exc.InputException(
-                'Runtime %s not available.' % kwargs['runtime_id']
-            )
-
         values = {
             'name': kwargs['name'],
-            'description': kwargs.get('description', None),
-            'runtime_id': kwargs['runtime_id'],
+            'description': kwargs.get('description'),
+            'runtime_id': kwargs.get('runtime_id'),
             'code': json.loads(kwargs['code']),
             'entry': kwargs.get('entry', 'main'),
         }
@@ -105,8 +110,18 @@ class FunctionsController(rest.RestController):
         if not source or source not in CODE_SOURCE:
             raise exc.InputException(
                 'Invalid code source specified, available sources: %s' %
-                CODE_SOURCE
+                ', '.join(CODE_SOURCE)
             )
+
+        if source != 'image':
+            if not kwargs.get('runtime_id'):
+                raise exc.InputException('"runtime_id" must be specified.')
+
+            runtime = db_api.get_runtime(kwargs['runtime_id'])
+            if runtime.status != 'available':
+                raise exc.InputException(
+                    'Runtime %s is not available.' % kwargs['runtime_id']
+                )
 
         store = False
         if values['code']['source'] == 'package':
@@ -124,12 +139,12 @@ class FunctionsController(rest.RestController):
             if not swift_util.check_object(container, object):
                 raise exc.InputException('Object does not exist in Swift.')
 
-        ctx = context.get_ctx()
-
         with db_api.transaction():
             func_db = db_api.create_function(values)
 
             if store:
+                ctx = context.get_ctx()
+
                 self.storage_provider.store(
                     ctx.projectid,
                     func_db.id,
@@ -161,6 +176,8 @@ class FunctionsController(rest.RestController):
 
             if source == 'package':
                 self.storage_provider.delete(context.get_ctx().projectid, id)
+            if source == 'image':
+                self.engine_client.delete_function(id, func_db.name)
 
             # This will also delete function service mapping as well.
             db_api.delete_function(id)

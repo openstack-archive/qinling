@@ -42,6 +42,10 @@ class OrchestratorBase(object):
     def run_execution(self, function_id, **kwargs):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def delete_function(self, labels):
+        raise NotImplementedError
+
 
 def load_orchestrator(conf):
     global ORCHESTRATOR

@@ -52,7 +52,7 @@ def upgrade():
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=True),
         sa.Column('description', sa.String(length=255), nullable=True),
-        sa.Column('runtime_id', sa.String(length=36), nullable=False),
+        sa.Column('runtime_id', sa.String(length=36), nullable=True),
         sa.Column('memory_size', sa.Integer, nullable=True),
         sa.Column('timeout', sa.Integer, nullable=True),
         sa.Column('code', st.JsonLongDictType(), nullable=False),

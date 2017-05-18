@@ -23,8 +23,8 @@ def convert_dict_to_string(d):
     return ','.join(temp_list)
 
 
-def generate_unicode_uuid():
-    return uuidutils.generate_uuid()
+def generate_unicode_uuid(dashed=True):
+    return uuidutils.generate_uuid(dashed=dashed)
 
 
 def disable_ssl_warnings(func):

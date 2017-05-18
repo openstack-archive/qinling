@@ -27,7 +27,7 @@ class Function(model_base.QinlingSecureModelBase):
 
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.String(255))
-    runtime_id = sa.Column(sa.String(36), nullable=False)
+    runtime_id = sa.Column(sa.String(36), nullable=True)
     memory_size = sa.Column(sa.Integer)
     timeout = sa.Column(sa.Integer)
     code = sa.Column(st.JsonLongDictType(), nullable=False)

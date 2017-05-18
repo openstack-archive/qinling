@@ -15,6 +15,7 @@
 from oslo_log import log as logging
 
 from qinling.db import api as db_api
+from qinling.utils import common
 
 LOG = logging.getLogger(__name__)
 
@@ -72,16 +73,42 @@ class DefaultEngine(object):
 
         with db_api.transaction():
             execution = db_api.get_execution(execution_id)
-            runtime = db_api.get_runtime(runtime_id)
-            identifier = '%s-%s' % (runtime_id, runtime.name)
-            labels = {'runtime_name': runtime.name, 'runtime_id': runtime_id}
+            function = db_api.get_function(function_id)
+
+            source = function.code['source']
+            image = None
+            identifier = None
+            labels = None
+
+            if source == 'image':
+                image = function.code['image']
+                identifier = ('%s-%s' %
+                              (common.generate_unicode_uuid(dashed=False),
+                               function_id)
+                              )[:63]
+                labels = {
+                    'function_name': function.name, 'function_id': function_id
+                }
+            else:
+                runtime = db_api.get_runtime(runtime_id)
+                identifier = ('%s-%s' % (runtime_id, runtime.name))[:63]
+                labels = {
+                    'runtime_name': runtime.name, 'runtime_id': runtime_id
+                }
 
             service_url = self.orchestrator.prepare_execution(
-                function_id, identifier=identifier, labels=labels
+                function_id,
+                image=image,
+                identifier=identifier,
+                labels=labels,
+                input=input
             )
 
             output = self.orchestrator.run_execution(
-                function_id, input=input, service_url=service_url
+                function_id,
+                input=input,
+                identifier=identifier,
+                service_url=service_url,
             )
 
             LOG.debug(
@@ -93,8 +120,17 @@ class DefaultEngine(object):
             execution.output = output
             execution.status = 'success'
 
-            mapping = {
-                'function_id': function_id,
-                'service_url': service_url
-            }
-            db_api.create_function_service_mapping(mapping)
+            if not image:
+                mapping = {
+                    'function_id': function_id,
+                    'service_url': service_url
+                }
+                db_api.create_function_service_mapping(mapping)
+
+    def delete_function(self, ctx, function_id, function_name):
+        LOG.info('Start to delete function, id=%s', function_id)
+
+        labels = {
+            'function_name': function_name, 'function_id': function_id
+        }
+        self.orchestrator.delete_function(labels)

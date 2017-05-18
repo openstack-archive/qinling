@@ -21,8 +21,6 @@ from qinling import context
 
 CONF = cfg.CONF
 
-KS_SESSION = None
-
 
 def _get_user_keystone_session():
     ctx = context.get_ctx()

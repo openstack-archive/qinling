@@ -53,6 +53,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         self.deployment_template = jinja_env.get_template('deployment.j2')
         self.service_template = jinja_env.get_template('service.j2')
+        self.pod_template = jinja_env.get_template('pod.j2')
 
     def _ensure_namespace(self):
         ret = self.v1.list_namespace()
@@ -249,19 +250,82 @@ class KubernetesManager(base.OrchestratorBase):
 
         return pod_service_url
 
-    def prepare_execution(self, function_id, identifier=None, labels=None):
-        pod = self._choose_available_pod(labels)
+    def _create_pod(self, image, pod_name, labels, input):
+        pod_body = self.pod_template.render(
+            {
+                "pod_name": pod_name,
+                "labels": labels,
+                "pod_image": image,
+                "input": input
+            }
+        )
+
+        LOG.info(
+            "Creating pod %s for image function:\n%s", pod_name, pod_body
+        )
+
+        self.v1.create_namespaced_pod(
+            self.conf.kubernetes.namespace,
+            body=yaml.safe_load(pod_body),
+        )
+
+    def prepare_execution(self, function_id, image=None, identifier=None,
+                          labels=None, input=None):
+        """Prepare service URL for function.
+
+        For image function, create a single pod with input, so the function
+        will be executed.
+
+        For normal function, choose a pod from the pool and expose a service,
+        return the service URL.
+        """
+        pod = None
+
+        if image:
+            self._create_pod(image, identifier, labels, input)
+            return None
+        else:
+            pod = self._choose_available_pod(labels)
 
         if not pod:
             raise exc.OrchestratorException('No pod available.')
 
         return self._prepare_pod(pod, identifier, function_id, labels)
 
-    def run_execution(self, function_id, input=None, service_url=None):
-        func_url = '%s/execute' % service_url
+    def run_execution(self, function_id, input=None, identifier=None,
+                      service_url=None):
+        if service_url:
+            func_url = '%s/execute' % service_url
+            LOG.info('Invoke function %s, url: %s', function_id, func_url)
 
-        LOG.info('Invoke function %s, url: %s', function_id, func_url)
+            r = requests.post(func_url, data=input)
 
-        r = requests.post(func_url, data=input)
+            return {'result': r.json()}
+        else:
+            status = None
 
-        return {'result': r.json()}
+            # Wait for execution to be finished.
+            # TODO(kong): Do not retry infinitely.
+            while status != 'Succeeded':
+                pod = self.v1.read_namespaced_pod(
+                    identifier,
+                    self.conf.kubernetes.namespace
+                )
+                status = pod.status.phase
+
+                time.sleep(0.5)
+
+            output = self.v1.read_namespaced_pod_log(
+                identifier,
+                self.conf.kubernetes.namespace,
+            )
+
+            return {'result': output}
+
+    def delete_function(self, labels):
+        selector = common.convert_dict_to_string(labels)
+
+        self.v1.delete_collection_namespaced_pod(
+            self.conf.kubernetes.namespace,
+            label_selector=selector
+        )

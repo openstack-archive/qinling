@@ -91,6 +91,11 @@ engine_opts = [
         choices=['kubernetes', 'swarm'],
         help='The container orchestrator.'
     ),
+    cfg.IntOpt(
+        'function_service_expiration',
+        default=300,
+        help='Maximum service time for function in orchestrator.'
+    )
 ]
 
 STORAGE_GROUP = 'storage'

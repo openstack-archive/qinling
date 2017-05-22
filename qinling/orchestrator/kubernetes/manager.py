@@ -157,7 +157,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         return pod
 
-    def _prepare_pod(self, pod, deployment_name, function_id, service_labels):
+    def _prepare_pod(self, pod, deployment_name, function_id, labels):
         """Pod preparation.
 
         1. Update pod labels.
@@ -186,10 +186,11 @@ class KubernetesManager(base.OrchestratorBase):
 
         # Create service for the choosen pod.
         service_name = "service-%s" % function_id
+        labels.update({'function_id': function_id})
         service_body = self.service_template.render(
             {
                 "service_name": service_name,
-                "labels": service_labels,
+                "labels": labels,
                 "selector": pod_labels
             }
         )
@@ -322,10 +323,24 @@ class KubernetesManager(base.OrchestratorBase):
 
             return {'result': output}
 
-    def delete_function(self, labels):
+    def delete_function(self, function_id, labels=[]):
         selector = common.convert_dict_to_string(labels)
+
+        ret = self.v1.list_namespaced_service(
+            self.conf.kubernetes.namespace, label_selector=selector
+        )
+        names = [i.metadata.name for i in ret.items]
+        for svc_name in names:
+            self.v1.delete_namespaced_service(
+                svc_name,
+                self.conf.kubernetes.namespace,
+            )
+
+        LOG.info("Services for function %s deleted.", function_id)
 
         self.v1.delete_collection_namespaced_pod(
             self.conf.kubernetes.namespace,
             label_selector=selector
         )
+
+        LOG.info("Pod for function %s deleted.", function_id)

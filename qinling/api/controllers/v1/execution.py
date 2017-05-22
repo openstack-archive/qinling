@@ -46,33 +46,39 @@ class ExecutionsController(rest.RestController):
 
         function_id = params['function_id']
         is_sync = params.get('sync', True)
+        func_url = None
 
-        # Check if the service url is existing.
-        try:
-            mapping = db_api.get_function_service_mapping(function_id)
-            LOG.debug('Found Service url for function: %s', function_id)
+        with db_api.transaction():
+            func_db = db_api.get_function(function_id)
 
-            func_url = '%s/execute' % mapping.service_url
-            LOG.info('Invoke function %s, url: %s', function_id, func_url)
+            # Increase function invoke count, the updated_at field will be also
+            # updated.
+            func_db.count = func_db.count + 1
 
-            r = requests.post(func_url, data=params.get('input'))
-            params.update(
-                {'status': 'success', 'output': {'result': r.json()}}
-            )
+            try:
+                # Check if the service url is existing.
+                mapping_db = db_api.get_function_service_mapping(function_id)
+                LOG.info('Found Service url for function: %s', function_id)
+
+                func_url = '%s/execute' % mapping_db.service_url
+                LOG.info('Invoke function %s, url: %s', function_id, func_url)
+            except exc.DBEntityNotFoundError:
+                pass
+
+            if func_url:
+                r = requests.post(func_url, data=params.get('input'))
+                params.update(
+                    {'status': 'success', 'output': {'result': r.json()}}
+                )
+            else:
+                runtime_id = func_db.runtime_id
+                params.update({'status': 'running'})
+
             db_model = db_api.create_execution(params)
 
-            return resources.Execution.from_dict(db_model.to_dict())
-        except exc.DBEntityNotFoundError:
-            pass
-
-        func = db_api.get_function(function_id)
-        runtime_id = func.runtime_id
-        params.update({'status': 'running'})
-
-        db_model = db_api.create_execution(params)
-
         self.engine_client.create_execution(
-            db_model.id, function_id, runtime_id, input=params.get('input'),
+            db_model.id, function_id, runtime_id,
+            input=params.get('input'),
             is_sync=is_sync
         )
 

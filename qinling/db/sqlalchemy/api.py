@@ -143,7 +143,7 @@ def _get_collection(model, insecure=False, limit=None, marker=None,
         if fields else ()
     )
 
-    query = (db_base.model_query(model, *columns) if insecure
+    query = (db_base.model_query(model, columns) if insecure
              else _secure_query(model, *columns))
     query = db_filters.apply_filters(query, model, **filters)
 
@@ -325,3 +325,17 @@ def get_function_service_mapping(function_id, session=None):
         )
 
     return mapping
+
+
+@db_base.session_aware()
+def get_function_service_mappings(session=None, **kwargs):
+    return _get_collection_sorted_by_time(
+        models.FunctionServiceMapping, **kwargs
+    )
+
+
+@db_base.session_aware()
+def delete_function_service_mapping(id, session=None):
+    mapping = get_function_service_mapping(id)
+
+    session.delete(mapping)

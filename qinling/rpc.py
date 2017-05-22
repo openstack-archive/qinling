@@ -170,10 +170,9 @@ class EngineClient(object):
             )
 
     @wrap_messaging_exception
-    def delete_function(self, id, name):
+    def delete_function(self, id):
         return self._client.prepare(topic=self.topic, server=None).cast(
             ctx.get_ctx(),
             'delete_function',
-            function_id=id,
-            function_name=name
+            function_id=id
         )

@@ -15,12 +15,14 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging
+from oslo_messaging.rpc import dispatcher
 from oslo_service import service
 
 from qinling.db import api as db_api
 from qinling.engine import default_engine as engine
 from qinling.orchestrator import base as orchestra_base
 from qinling import rpc
+from qinling.services import periodics
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -35,21 +37,26 @@ class EngineService(service.Service):
     def start(self):
         orchestrator = orchestra_base.load_orchestrator(CONF)
 
+        db_api.setup_db()
+
+        LOG.info('Starting periodic tasks...')
+        periodics.start(orchestrator)
+
         topic = CONF.engine.topic
         server = CONF.engine.host
         transport = messaging.get_transport(CONF)
         target = messaging.Target(topic=topic, server=server, fanout=False)
         endpoints = [engine.DefaultEngine(orchestrator)]
+        access_policy = dispatcher.DefaultRPCAccessPolicy
         self.server = messaging.get_rpc_server(
             transport,
             target,
             endpoints,
             executor='eventlet',
+            access_policy=access_policy,
             serializer=rpc.ContextSerializer(
                 messaging.serializer.JsonPayloadSerializer())
         )
-
-        db_api.setup_db()
 
         LOG.info('Starting engine...')
         self.server.start()
@@ -57,12 +64,14 @@ class EngineService(service.Service):
         super(EngineService, self).start()
 
     def stop(self, graceful=False):
+        periodics.stop()
+
         if self.server:
             LOG.info('Stopping engine...')
             self.server.stop()
             if graceful:
                 LOG.info(
-                    'Consumer successfully stopped.  Waiting for final '
+                    'Consumer successfully stopped. Waiting for final '
                     'messages to be processed...'
                 )
                 self.server.wait()

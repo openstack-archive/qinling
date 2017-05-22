@@ -32,6 +32,7 @@ class Function(model_base.QinlingSecureModelBase):
     timeout = sa.Column(sa.Integer)
     code = sa.Column(st.JsonLongDictType(), nullable=False)
     entry = sa.Column(sa.String(80), nullable=False)
+    count = sa.Column(sa.Integer, default=0)
 
 
 class FunctionServiceMapping(model_base.QinlingModelBase):
@@ -41,10 +42,10 @@ class FunctionServiceMapping(model_base.QinlingModelBase):
         sa.UniqueConstraint('function_id', 'service_url'),
     )
 
+    id = model_base.id_column()
     function_id = sa.Column(
         sa.String(36),
         sa.ForeignKey(Function.id, ondelete='CASCADE'),
-        primary_key=True,
     )
     service_url = sa.Column(sa.String(255), nullable=False)
 

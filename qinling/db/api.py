@@ -137,3 +137,11 @@ def create_function_service_mapping(values):
 
 def get_function_service_mapping(function_id):
     return IMPL.get_function_service_mapping(function_id)
+
+
+def get_function_service_mappings(**kwargs):
+    return IMPL.get_function_service_mappings(**kwargs)
+
+
+def delete_function_service_mapping(id):
+    return IMPL.delete_function_service_mapping(id)

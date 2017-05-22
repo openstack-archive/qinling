@@ -127,10 +127,9 @@ class DefaultEngine(object):
                 }
                 db_api.create_function_service_mapping(mapping)
 
-    def delete_function(self, ctx, function_id, function_name):
+    def delete_function(self, ctx, function_id):
         LOG.info('Start to delete function, id=%s', function_id)
 
-        labels = {
-            'function_name': function_name, 'function_id': function_id
-        }
-        self.orchestrator.delete_function(labels)
+        labels = {'function_id': function_id}
+
+        self.orchestrator.delete_function(function_id, labels=labels)

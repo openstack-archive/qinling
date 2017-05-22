@@ -57,6 +57,7 @@ def upgrade():
         sa.Column('timeout', sa.Integer, nullable=True),
         sa.Column('code', st.JsonLongDictType(), nullable=False),
         sa.Column('entry', sa.String(length=80), nullable=False),
+        sa.Column('count', sa.Integer, nullable=False),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('name', 'project_id'),
         info={"check_ifexists": True}
@@ -64,11 +65,12 @@ def upgrade():
 
     op.create_table(
         'function_service_mapping',
+        sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('function_id', sa.String(length=36), nullable=False),
         sa.Column('service_url', sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint('function_id'),
+        sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('function_id', 'service_url'),
         sa.ForeignKeyConstraint(
             ['function_id'], [u'function.id'], ondelete='CASCADE'

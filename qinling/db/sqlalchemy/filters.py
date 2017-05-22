@@ -12,8 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import sqlalchemy as sa
-
 
 def apply_filters(query, model, **filters):
     filter_dict = {}
@@ -44,22 +42,6 @@ def apply_filters(query, model, **filters):
                 query = query.filter(column_attr.like(like_pattern))
         else:
             filter_dict[key] = value
-
-    # We need to handle tag case seprately. As tag datatype is MutableList.
-    # TODO(hparekh): Need to think how can we get rid of this.
-    tags = filters.pop('tags', None)
-
-    # To match the tag list, a resource must contain at least all of the
-    # tags present in the filter parameter.
-    if tags:
-        tag_attr = getattr(model, 'tags')
-
-        if not isinstance(tags, list):
-            expr = tag_attr.contains(tags)
-        else:
-            expr = sa.and_(*[tag_attr.contains(tag) for tag in tags])
-
-        query = query.filter(expr)
 
     if filter_dict:
         query = query.filter_by(**filter_dict)

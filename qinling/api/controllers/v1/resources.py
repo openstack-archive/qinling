@@ -169,6 +169,7 @@ class Function(Resource):
     runtime_id = types.uuid
     code = types.jsontype
     entry = wtypes.text
+    count = int
     created_at = wtypes.text
     updated_at = wtypes.text
 
@@ -183,6 +184,7 @@ class Function(Resource):
             runtime_id='123e4567-e89b-12d3-a456-426655440001',
             code={'zip': True},
             entry='main',
+            count=10,
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'
         )

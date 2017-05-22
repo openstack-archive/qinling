@@ -43,7 +43,7 @@ class OrchestratorBase(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_function(self, labels):
+    def delete_function(self, function_id, **kwargs):
         raise NotImplementedError
 
 

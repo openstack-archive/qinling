@@ -20,6 +20,7 @@ plugin mechanism.
 * Source: http://git.openstack.org/cgit/openstack/qinling
 * Features: https://blueprints.launchpad.net/qinling
 * Bugs: http://bugs.launchpad.net/qinling
+* IRC channel: #openstack-qinling
 
 Quick Start
 ~~~~~~~~~~~

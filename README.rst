@@ -4,10 +4,10 @@ Qinling
 
 .. note::
 
-   Qinling refers to Qinling Mountains in southern Shaanxi Province in China.
-   The mountains provide a natural boundary between North and South China and
-   support a huge variety of plant and wildlife, some of which is found
-   nowhere else on Earth.
+   Qinling (is pronounced "tʃinliŋ") refers to Qinling Mountains in southern
+   Shaanxi Province in China. The mountains provide a natural boundary between
+   North and South China and support a huge variety of plant and wildlife, some
+   of which is found nowhere else on Earth.
 
 Qinling is Function as a Service for OpenStack. This project aims to provide a
 platform to support serverless functions (like AWS Lambda). Qinling supports

@@ -76,11 +76,12 @@ class ExecutionsController(rest.RestController):
 
             db_model = db_api.create_execution(params)
 
-        self.engine_client.create_execution(
-            db_model.id, function_id, runtime_id,
-            input=params.get('input'),
-            is_sync=is_sync
-        )
+        if not func_url:
+            self.engine_client.create_execution(
+                db_model.id, function_id, runtime_id,
+                input=params.get('input'),
+                is_sync=is_sync
+            )
 
         if is_sync:
             db_model = db_api.get_execution(db_model.id)

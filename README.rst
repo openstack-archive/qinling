@@ -181,7 +181,7 @@ runtime/function/execution in Qinling.
             main()
         EOF
       $ pip install requests -t ~/qinling_test
-      $ zip ~/qinling_test/qinling_test.zip ~/qinling_test/*
+      $ zip -r ~/qinling_test/qinling_test.zip ~/qinling_test/*
 
    .. end
 

@@ -33,7 +33,7 @@ file_name = ''
 def download():
     download_url = request.form['download_url']
     function_id = request.form['function_id']
-    token = request.form['token']
+    token = request.form.get('token')
 
     headers = {}
     if token:
@@ -67,9 +67,17 @@ def execute():
     importer = zipimport.zipimporter(file_name)
     module = importer.load_module('main')
 
+    input = {}
+    if request.form:
+        # Refer to:
+        # http://werkzeug.pocoo.org/docs/0.12/datastructures/#werkzeug.datastructures.MultiDict
+        input = request.form.to_dict()
+
+    app.logger.debug('Invoking function with input: %s' % input)
+
     start = time.time()
     try:
-        result = module.main()
+        result = module.main(**input)
     except Exception as e:
         result = str(e)
 

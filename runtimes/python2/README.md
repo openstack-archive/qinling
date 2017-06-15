@@ -12,7 +12,7 @@ in their function packages through Qinling API or CLI.
 You'll need access to a Docker registry to push the image, by default it's
 docker hub. After modification, build a new image and upload to docker hub:
 
-    docker build -t USER/python-runtime. && docker push USER/python-runtime
+    docker build -t USER/python-runtime . && docker push USER/python-runtime
 
 
 ## Using the image in Qinling

@@ -103,7 +103,7 @@ class FunctionsController(rest.RestController):
             'description': kwargs.get('description'),
             'runtime_id': kwargs.get('runtime_id'),
             'code': json.loads(kwargs['code']),
-            'entry': kwargs.get('entry', 'main'),
+            'entry': kwargs.get('entry', 'main.main'),
         }
 
         source = values['code'].get('source')

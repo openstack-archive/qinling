@@ -26,46 +26,56 @@ from flask import Response
 import requests
 
 app = Flask(__name__)
-file_name = ''
+zip_file = ''
+function_module = 'main'
+function_method = 'main'
 
 
 @app.route('/download', methods=['POST'])
 def download():
     download_url = request.form['download_url']
     function_id = request.form['function_id']
+    entry = request.form['entry']
     token = request.form.get('token')
 
     headers = {}
     if token:
         headers = {'X-Auth-Token': token}
 
-    global file_name
-    file_name = '%s.zip' % function_id
+    global zip_file
+    zip_file = '%s.zip' % function_id
 
     app.logger.info(
-        'Request received, download_url:%s, headers: %s' %
-        (download_url, headers)
+        'Request received, download_url:%s, headers: %s, entry: %s' %
+        (download_url, headers, entry)
     )
 
     r = requests.get(download_url, headers=headers, stream=True)
 
-    with open(file_name, 'wb') as fd:
+    with open(zip_file, 'wb') as fd:
         for chunk in r.iter_content(chunk_size=65535):
             fd.write(chunk)
 
-    if not zipfile.is_zipfile(file_name):
+    if not zipfile.is_zipfile(zip_file):
         abort(500)
 
-    app.logger.info('Code package downloaded to %s' % file_name)
+    app.logger.info('Code package downloaded to %s' % zip_file)
+
+    global function_module
+    global function_method
+    function_module, function_method = tuple(entry.rsplit('.', 1))
 
     return 'success'
 
 
 @app.route('/execute', methods=['POST'])
 def execute():
-    global file_name
-    importer = zipimport.zipimporter(file_name)
-    module = importer.load_module('main')
+    global zip_file
+    global function_module
+    global function_method
+
+    importer = zipimport.zipimporter(zip_file)
+    module = importer.load_module(function_module)
 
     input = {}
     if request.form:
@@ -77,7 +87,8 @@ def execute():
 
     start = time.time()
     try:
-        result = module.main(**input)
+        func = getattr(module, function_method)
+        result = func(**input)
     except Exception as e:
         result = str(e)
 

@@ -101,7 +101,8 @@ class DefaultEngine(object):
                 image=image,
                 identifier=identifier,
                 labels=labels,
-                input=input
+                input=input,
+                entry=function.entry
             )
 
             output = self.orchestrator.run_execution(

@@ -157,7 +157,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         return pod
 
-    def _prepare_pod(self, pod, deployment_name, function_id, labels):
+    def _prepare_pod(self, pod, deployment_name, function_id, labels, entry):
         """Pod preparation.
 
         1. Update pod labels.
@@ -230,7 +230,8 @@ class KubernetesManager(base.OrchestratorBase):
         data = {
             'download_url': download_url,
             'function_id': function_id,
-            'token': context.get_ctx().auth_token
+            'entry': entry,
+            'token': context.get_ctx().auth_token,
         }
 
         LOG.debug(
@@ -271,7 +272,7 @@ class KubernetesManager(base.OrchestratorBase):
         )
 
     def prepare_execution(self, function_id, image=None, identifier=None,
-                          labels=None, input=None):
+                          labels=None, input=None, entry='main.main'):
         """Prepare service URL for function.
 
         For image function, create a single pod with input, so the function
@@ -291,7 +292,7 @@ class KubernetesManager(base.OrchestratorBase):
         if not pod:
             raise exc.OrchestratorException('No pod available.')
 
-        return self._prepare_pod(pod, identifier, function_id, labels)
+        return self._prepare_pod(pod, identifier, function_id, labels, entry)
 
     def run_execution(self, function_id, input=None, identifier=None,
                       service_url=None):

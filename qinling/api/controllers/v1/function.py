@@ -176,10 +176,9 @@ class FunctionsController(rest.RestController):
 
             if source == 'package':
                 self.storage_provider.delete(context.get_ctx().projectid, id)
-            if source == 'image':
-                # If it's image function, need to delete all resources created
-                # by orchestrator asynchronously.
-                self.engine_client.delete_function(id)
+
+            # Delete all resources created by orchestrator asynchronously.
+            self.engine_client.delete_function(id)
 
             # This will also delete function service mapping as well.
             db_api.delete_function(id)

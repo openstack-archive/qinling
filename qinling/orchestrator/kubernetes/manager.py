@@ -324,7 +324,7 @@ class KubernetesManager(base.OrchestratorBase):
 
             return {'result': output}
 
-    def delete_function(self, function_id, labels=[]):
+    def delete_function(self, function_id, labels=None):
         selector = common.convert_dict_to_string(labels)
 
         ret = self.v1.list_namespaced_service(

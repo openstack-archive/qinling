@@ -39,6 +39,7 @@ CONF = cfg.CONF
 
 POST_REQUIRED = set(['name', 'code'])
 CODE_SOURCE = set(['package', 'swift', 'image'])
+UPDATE_ALLOWED = set(['name', 'description', 'entry'])
 
 
 class FunctionsController(rest.RestController):
@@ -182,3 +183,30 @@ class FunctionsController(rest.RestController):
 
             # This will also delete function service mapping as well.
             db_api.delete_function(id)
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        resources.Function,
+        types.uuid,
+        body=resources.Function
+    )
+    def put(self, id, func):
+        """Update function.
+
+        Currently, we only support update name, description, entry.
+        """
+        values = {}
+        for key in UPDATE_ALLOWED:
+            if key in func.to_dict():
+                values.update({key: func.to_dict().get(key)})
+
+        LOG.info('Update function [id=%s, values=%s]' % (id, values))
+
+        with db_api.transaction():
+            func_db = db_api.update_function(id, values)
+            if 'entry' in values:
+                # Update entry will delete allocated resources in orchestrator.
+                db_api.delete_function_service_mapping(id)
+                self.engine_client.delete_function(id)
+
+        return resources.Function.from_dict(func_db.to_dict())

@@ -213,8 +213,11 @@ def create_function(values, session=None):
 
 
 @db_base.session_aware()
-def update_function(id, values):
-    pass
+def update_function(id, values, session=None):
+    function = get_function(id)
+    function.update(values.copy())
+
+    return function
 
 
 @db_base.session_aware()
@@ -336,6 +339,9 @@ def get_function_service_mappings(session=None, **kwargs):
 
 @db_base.session_aware()
 def delete_function_service_mapping(id, session=None):
-    mapping = get_function_service_mapping(id)
+    try:
+        mapping = get_function_service_mapping(id)
+    except exc.DBEntityNotFoundError:
+        return
 
     session.delete(mapping)

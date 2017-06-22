@@ -166,10 +166,10 @@ class Function(Resource):
     description = wtypes.text
     memory_size = int
     timeout = int
-    runtime_id = types.uuid
+    runtime_id = wsme.wsattr(types.uuid, readonly=True)
     code = types.jsontype
     entry = wtypes.text
-    count = int
+    count = wsme.wsattr(int, readonly=True)
     created_at = wtypes.text
     updated_at = wtypes.text
 

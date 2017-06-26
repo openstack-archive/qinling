@@ -146,6 +146,16 @@ class EngineClient(object):
         )
 
     @wrap_messaging_exception
+    def update_runtime(self, id, image=None, pre_image=None):
+        return self._client.prepare(topic=self.topic, server=None).cast(
+            ctx.get_ctx(),
+            'update_runtime',
+            runtime_id=id,
+            image=image,
+            pre_image=pre_image
+        )
+
+    @wrap_messaging_exception
     def create_execution(self, execution_id, function_id, runtime_id,
                          input=None, is_sync=True):
         method_client = self._client.prepare(topic=self.topic, server=None)

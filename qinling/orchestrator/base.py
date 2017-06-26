@@ -35,6 +35,10 @@ class OrchestratorBase(object):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def update_pool(self, name, **kwargs):
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def prepare_execution(self, function_id, **kwargs):
         raise NotImplementedError
 

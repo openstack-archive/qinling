@@ -265,6 +265,14 @@ def delete_runtime(id, session=None):
 
 
 @db_base.session_aware()
+def update_runtime(id, values, session=None):
+    runtime = get_runtime(id)
+    runtime.update(values.copy())
+
+    return runtime
+
+
+@db_base.session_aware()
 def create_execution(values, session=None):
     execution = models.Execution()
     execution.update(values.copy())

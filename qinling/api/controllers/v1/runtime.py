@@ -21,9 +21,12 @@ from qinling.api.controllers.v1 import types
 from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import rpc
+from qinling import status
 from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
+
+UPDATE_ALLOWED = set(['name', 'description', 'image'])
 
 
 class RuntimesController(rest.RestController):
@@ -62,7 +65,7 @@ class RuntimesController(rest.RestController):
 
         LOG.info("Creating runtime. [runtime=%s]", params)
 
-        params.update({'status': 'creating'})
+        params.update({'status': status.CREATING})
 
         db_model = db_api.create_runtime(params)
         self.engine_client.create_runtime(db_model.id)
@@ -86,7 +89,64 @@ class RuntimesController(rest.RestController):
                     'Runtime %s is still in use.' % id
                 )
 
-            runtime_db.status = 'deleting'
+            runtime_db.status = status.DELETING
 
         # Clean related resources asynchronously
         self.engine_client.delete_runtime(id)
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        resources.Runtime,
+        types.uuid,
+        body=resources.Runtime
+    )
+    def put(self, id, runtime):
+        """Update runtime.
+
+        Currently, we only support update name, description, image. When
+        updating image, send message to engine for asynchronous handling.
+        """
+        values = {}
+        for key in UPDATE_ALLOWED:
+            if key in runtime.to_dict():
+                values.update({key: runtime.to_dict().get(key)})
+
+        LOG.info('Update runtime [id=%s, values=%s]' % (id, values))
+
+        with db_api.transaction():
+            if 'image' in values:
+                pre_runtime = db_api.get_runtime(id)
+                if pre_runtime.status != status.AVAILABLE:
+                    raise exc.RuntimeNotAvailableException(
+                        'Runtime %s is not available.' % id
+                    )
+
+                pre_image = pre_runtime.image
+                if pre_image != values['image']:
+                    # Ensure there is no function running in the runtime.
+                    db_funcs = db_api.get_functions(
+                        insecure=True, fields=['id'], runtime_id=id
+                    )
+                    func_ids = [func.id for func in db_funcs]
+
+                    mappings = db_api.get_function_service_mappings(
+                        insecure=True, function_id={'in': func_ids}
+                    )
+                    if mappings:
+                        raise exc.NotAllowedException(
+                            'Runtime %s is still in use by functions.' % id
+                        )
+
+                    values['status'] = status.UPGRADING
+
+                    self.engine_client.update_runtime(
+                        id,
+                        image=values['image'],
+                        pre_image=pre_image
+                    )
+                else:
+                    values.pop('image')
+
+            runtime_db = db_api.update_runtime(id, values)
+
+        return resources.Runtime.from_dict(runtime_db.to_dict())

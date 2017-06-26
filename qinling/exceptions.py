@@ -64,6 +64,11 @@ class NotAllowedException(QinlingException):
     message = "Operation not allowed"
 
 
+class RuntimeNotAvailableException(QinlingException):
+    http_code = 403
+    message = "Runtime not available"
+
+
 class DBError(QinlingException):
     http_code = 400
 

@@ -50,7 +50,6 @@ class KubernetesManager(base.OrchestratorBase):
             loader=template_loader, autoescape=True, trim_blocks=True,
             lstrip_blocks=True
         )
-
         self.deployment_template = jinja_env.get_template('deployment.j2')
         self.service_template = jinja_env.get_template('service.j2')
         self.pod_template = jinja_env.get_template('pod.j2')
@@ -140,6 +139,61 @@ class KubernetesManager(base.OrchestratorBase):
 
         LOG.info("Pods in deployment %s deleted.", name)
         LOG.info("Deployment %s deleted.", name)
+
+    def update_pool(self, name, labels=None, image=None):
+        """Deployment rolling-update.
+
+        Return True if successful, otherwise return False after rolling back.
+        """
+        LOG.info('Start to do rolling-update deployment %s', name)
+
+        body = {
+            'spec': {
+                'template': {
+                    'spec': {
+                        'containers': [
+                            {
+                                # TODO(kong): Make the name configurable.
+                                'name': 'worker',
+                                'image': image
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        self.v1extention.patch_namespaced_deployment(
+            name, self.conf.kubernetes.namespace, body
+        )
+
+        unavailable_replicas = 1
+        # TODO(kong): Make this configurable
+        retry = 5
+        while unavailable_replicas != 0 and retry > 0:
+            time.sleep(5)
+            retry = retry - 1
+
+            deploy = self.v1extention.read_namespaced_deployment_status(
+                name,
+                self.conf.kubernetes.namespace
+            )
+            unavailable_replicas = deploy.status.unavailable_replicas
+
+        # Handle failure of rolling-update.
+        if unavailable_replicas > 0:
+            body = {
+                "name": name,
+                "rollbackTo": {
+                    "revision": 0
+                }
+            }
+            self.v1extention.create_namespaced_deployment_rollback_rollback(
+                name, self.conf.kubernetes.namespace, body
+            )
+
+            return False
+
+        return True
 
     def _choose_available_pod(self, labels):
         selector = common.convert_dict_to_string(labels)

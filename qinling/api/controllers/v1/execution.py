@@ -22,6 +22,7 @@ from qinling.api.controllers.v1 import types
 from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import rpc
+from qinling import status
 from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
@@ -72,7 +73,13 @@ class ExecutionsController(rest.RestController):
                 )
             else:
                 runtime_id = func_db.runtime_id
-                params.update({'status': 'running'})
+                runtime_db = db_api.get_runtime(runtime_id)
+                if runtime_db.status != status.AVAILABLE:
+                    raise exc.RuntimeNotAvailableException(
+                        'Runtime %s is not available.' % runtime_id
+                    )
+
+                params.update({'status': status.RUNNING})
 
             db_model = db_api.create_execution(params)
 

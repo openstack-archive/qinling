@@ -15,6 +15,7 @@
 from oslo_log import log as logging
 
 from qinling.db import api as db_api
+from qinling import status
 from qinling.utils import common
 
 LOG = logging.getLogger(__name__)
@@ -29,39 +30,50 @@ class DefaultEngine(object):
 
         with db_api.transaction():
             runtime = db_api.get_runtime(runtime_id)
-            identifier = '%s-%s' % (runtime_id, runtime.name)
-            labels = {'runtime_name': runtime.name, 'runtime_id': runtime_id}
+            labels = {'runtime_id': runtime_id}
 
             try:
                 self.orchestrator.create_pool(
-                    identifier,
+                    runtime_id,
                     runtime.image,
                     labels=labels,
                 )
-
-                runtime.status = 'available'
+                runtime.status = status.AVAILABLE
             except Exception as e:
                 LOG.exception(
                     'Failed to create pool for runtime %s. Error: %s',
                     runtime_id,
                     str(e)
                 )
-
-                runtime.status = 'error'
+                runtime.status = status.ERROR
 
     def delete_runtime(self, ctx, runtime_id):
         LOG.info('Start to delete runtime, id=%s', runtime_id)
 
-        with db_api.transaction():
-            runtime = db_api.get_runtime(runtime_id)
-            identifier = '%s-%s' % (runtime_id, runtime.name)
-            labels = {'runtime_name': runtime.name, 'runtime_id': runtime_id}
+        labels = {'runtime_id': runtime_id}
+        self.orchestrator.delete_pool(runtime_id, labels=labels)
+        db_api.delete_runtime(runtime_id)
 
-            self.orchestrator.delete_pool(identifier, labels=labels)
+        LOG.info('Runtime %s deleted.', runtime_id)
 
-            db_api.delete_runtime(runtime_id)
+    def update_runtime(self, ctx, runtime_id, image=None, pre_image=None):
+        LOG.info('Start to update runtime, id=%s, image=%s', runtime_id, image)
 
-            LOG.info('Runtime %s deleted.', runtime_id)
+        labels = {'runtime_id': runtime_id}
+        ret = self.orchestrator.update_pool(
+            runtime_id, labels=labels, image=image
+        )
+
+        if ret:
+            values = {'status': status.AVAILABLE}
+            db_api.update_runtime(runtime_id, values)
+
+            LOG.info('Runtime %s updated.', runtime_id)
+        else:
+            values = {'status': status.AVAILABLE, 'image': pre_image}
+            db_api.update_runtime(runtime_id, values)
+
+            LOG.info('Runtime %s rollbacked.', runtime_id)
 
     def create_execution(self, ctx, execution_id, function_id, runtime_id,
                          input=None):
@@ -86,15 +98,10 @@ class DefaultEngine(object):
                               (common.generate_unicode_uuid(dashed=False),
                                function_id)
                               )[:63]
-                labels = {
-                    'function_name': function.name, 'function_id': function_id
-                }
+                labels = {'function_id': function_id}
             else:
-                runtime = db_api.get_runtime(runtime_id)
-                identifier = ('%s-%s' % (runtime_id, runtime.name))[:63]
-                labels = {
-                    'runtime_name': runtime.name, 'runtime_id': runtime_id
-                }
+                identifier = runtime_id
+                labels = {'runtime_id': runtime_id}
 
             service_url = self.orchestrator.prepare_execution(
                 function_id,

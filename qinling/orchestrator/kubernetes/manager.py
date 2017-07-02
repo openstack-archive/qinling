@@ -286,6 +286,7 @@ class KubernetesManager(base.OrchestratorBase):
             'function_id': function_id,
             'entry': entry,
             'token': context.get_ctx().auth_token,
+            'auth_url': self.conf.keystone_authtoken.auth_url
         }
 
         LOG.debug(

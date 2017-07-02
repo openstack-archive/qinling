@@ -23,12 +23,15 @@ from flask import abort
 from flask import Flask
 from flask import request
 from flask import Response
+from keystoneauth1.identity import generic
+from keystoneauth1 import session
 import requests
 
 app = Flask(__name__)
 zip_file = ''
 function_module = 'main'
 function_method = 'main'
+openstack_session = None
 
 
 @app.route('/download', methods=['POST'])
@@ -37,10 +40,16 @@ def download():
     function_id = request.form['function_id']
     entry = request.form['entry']
     token = request.form.get('token')
+    auth_url = request.form.get('auth_url')
 
     headers = {}
     if token:
         headers = {'X-Auth-Token': token}
+
+        # Get openstack session.
+        global openstack_session
+        auth = generic.Token(auth_url=auth_url, token=token)
+        openstack_session = session.Session(auth=auth, verify=False)
 
     global zip_file
     zip_file = '%s.zip' % function_id
@@ -73,6 +82,9 @@ def execute():
     global zip_file
     global function_module
     global function_method
+    global openstack_session
+
+    context = {'os_session': openstack_session}
 
     importer = zipimport.zipimporter(zip_file)
     module = importer.load_module(function_module)
@@ -88,10 +100,9 @@ def execute():
     start = time.time()
     try:
         func = getattr(module, function_method)
-        result = func(**input)
+        result = func(context=context, **input)
     except Exception as e:
         result = str(e)
-
     duration = time.time() - start
 
     return Response(

@@ -1,7 +1,7 @@
 FROM alpine:3.5
 
 RUN apk update
-RUN apk add --no-cache python2 python2-dev build-base py2-pip
+RUN apk add --no-cache linux-headers python2 python2-dev build-base py2-pip py2-pbr
 RUN pip install --upgrade pip
 RUN rm -r /root/.cache
 

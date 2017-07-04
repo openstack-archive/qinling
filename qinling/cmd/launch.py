@@ -25,7 +25,7 @@ eventlet.monkey_patch(
 
 import os
 
-# If ../qingling/__init__.py exists, add ../ to Python search path, so that
+# If ../qinling/__init__.py exists, add ../ to Python search path, so that
 # it will override what happens to be installed in /usr/(local/)lib/python...
 POSSIBLE_TOPDIR = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
                                                 os.pardir,
@@ -136,7 +136,7 @@ def main():
         config.parse_args(get_properly_ordered_parameters())
         print_server_info()
 
-        logging.setup(CONF, 'Qingling')
+        logging.setup(CONF, 'Qinling')
 
         # Initialize RPC configuration.
         rpc.get_transport()

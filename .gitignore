@@ -46,7 +46,7 @@ ChangeLog
 .DS_Store
 etc/*.conf
 etc/qinling.conf.sample
-.patch
+*.patch
 
 #Linux swap file
 *.swp

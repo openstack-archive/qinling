@@ -21,11 +21,8 @@ from qinling import exceptions as exc
 from qinling.utils import thread_local
 
 CONF = cfg.CONF
-
 ALLOWED_WITHOUT_AUTH = ['/', '/v1/']
-
 CTX_THREAD_LOCAL_NAME = "QINLING_APP_CTX_THREAD_LOCAL"
-
 DEFAULT_PROJECT_ID = "default"
 
 

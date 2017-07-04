@@ -182,6 +182,14 @@ def _get_db_object_by_id(model, id, insecure=False):
     return query.filter_by(id=id).first()
 
 
+def _delete_all(model, insecure=False, **kwargs):
+    # NOTE(kong): Because we use 'in_' operator in _secure_query(), delete()
+    # method will raise error with default parameter. Please refer to
+    # http://docs.sqlalchemy.org/en/rel_1_0/orm/query.html#sqlalchemy.orm.query.Query.delete
+    query = db_base.model_query(model) if insecure else _secure_query(model)
+    query.filter_by(**kwargs).delete(synchronize_session=False)
+
+
 @db_base.session_aware()
 def get_function(id, session=None):
     function = _get_db_object_by_id(models.Function, id)
@@ -270,6 +278,11 @@ def update_runtime(id, values, session=None):
     runtime.update(values.copy())
 
     return runtime
+
+
+@db_base.session_aware()
+def delete_runtimes(session=None, insecure=False, **kwargs):
+    return _delete_all(models.Runtime, insecure=insecure, **kwargs)
 
 
 @db_base.session_aware()

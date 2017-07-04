@@ -54,6 +54,11 @@ def transaction():
         yield
 
 
+# A helper function for test.
+def delete_all():
+    delete_runtimes(insecure=True)
+
+
 # Function
 
 
@@ -106,6 +111,10 @@ def delete_runtime(id):
 
 def update_runtime(id, values):
     return IMPL.update_runtime(id, values)
+
+
+def delete_runtimes(**kwargs):
+    return IMPL.delete_runtimes(**kwargs)
 
 
 # Execution

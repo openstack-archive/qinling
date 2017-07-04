@@ -102,7 +102,6 @@ STORAGE_GROUP = 'storage'
 storage_opts = [
     cfg.StrOpt(
         'file_system_dir',
-        default='/opt/qinling/funtion/packages',
         help='Directory to store funtion packages.'
     ),
     cfg.StrOpt(

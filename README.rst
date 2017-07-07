@@ -96,11 +96,13 @@ host.
 Getting started with Qinling
 ----------------------------
 
-**Currently, RESTful API is the only way to interact with Qinling,
-python-qinlingclient is still under development.**
+**Currently, you can interact with Qinling using python-qinlingclient or
+sending RESTful API directly. Both ways are described in this guide.**
 
 ``httpie`` is a convenient tool to send HTTP request, make sure you installed
 ``httpie`` via ``pip install httpie`` before playing with Qinling.
+
+If you prefer to use CLI, please make sure python-qinlingclient is installed.
 
 Perform following commands on your local host, the process will create
 runtime/function/execution in Qinling.
@@ -167,6 +169,25 @@ runtime/function/execution in Qinling.
 
    .. end
 
+   Using CLI:
+
+   .. code-block:: console
+
+      $ openstack runtime create python2.7 DOCKER_USER/python-runtime
+      +------------+--------------------------------------+
+      | Field      | Value                                |
+      +------------+--------------------------------------+
+      | id         | c1d78623-56bf-4487-9a72-1299b2c55e65 |
+      | name       | python2.7                            |
+      | image      | DOCKER_USER/python-runtime           |
+      | project_id | default                              |
+      | status     | available                            |
+      | created_at | 2017-05-12 04:37:08.129860           |
+      | updated_at |                                      |
+      +------------+--------------------------------------+
+
+   .. end
+
 #. Create a customized function package:
 
    .. code-block:: console
@@ -206,11 +227,34 @@ runtime/function/execution in Qinling.
           },
           "created_at": "2017-05-12 04:49:59.659345",
           "description": null,
-          "entry": "main",
+          "entry": "main.main",
           "id": "352e4c02-3c6b-4860-9b85-f72344b1f986",
           "name": "github_test",
           "runtime_id": "c1d78623-56bf-4487-9a72-1299b2c55e65"
       }
+
+   .. end
+
+   Using CLI:
+
+   .. code-block:: console
+
+      $ openstack function create github_test \
+        c1d78623-56bf-4487-9a72-1299b2c55e65 \
+        '{"source": "package"}' \
+        --package ~/qinling_test/qinling_test.zip
+      +------------+--------------------------------------+
+      | Field      | Value                                |
+      +------------+--------------------------------------+
+      | id         | 352e4c02-3c6b-4860-9b85-f72344b1f986 |
+      | name       | github_test                          |
+      | count      | 0                                    |
+      | code       | {u'source': u'package'}              |
+      | runtime_id | c1d78623-56bf-4487-9a72-1299b2c55e65 |
+      | entry      | main.main                            |
+      | created_at | 2017-05-12 04:49:59.659345           |
+      | updated_at |                                      |
+      +------------+--------------------------------------+
 
    .. end
 
@@ -237,6 +281,26 @@ runtime/function/execution in Qinling.
           "sync": true,
           "updated_at": "2017-05-12 04:51:23"
       }
+
+   .. end
+
+   Using CLI:
+
+   .. code-block:: console
+
+      $ openstack function execution create 352e4c02-3c6b-4860-9b85-f72344b1f986
+      +-------------+------------------------------------------------------------+
+      | Field       | Value                                                      |
+      +-------------+------------------------------------------------------------+
+      | id          | 80cd55be-d369-49b8-8bd5-e0bfc1d20d25                       |
+      | function_id | 352e4c02-3c6b-4860-9b85-f72344b1f986                       |
+      | input       | {}                                                         |
+      | output      | {"result": {"duration": 1.2511260509490967, "output": 30}} |
+      | status      | success                                                    |
+      | sync        | True                                                       |
+      | created_at  | 2017-05-12 04:51:10                                        |
+      | updated_at  | 2017-05-12 04:51:23                                        |
+      +-------------+------------------------------------------------------------+
 
    .. end
 

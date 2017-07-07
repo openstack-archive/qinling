@@ -94,7 +94,7 @@ engine_opts = [
     cfg.IntOpt(
         'function_service_expiration',
         default=300,
-        help='Maximum service time for function in orchestrator.'
+        help='Maximum service time in seconds for function in orchestrator.'
     )
 ]
 
@@ -135,20 +135,9 @@ kubernetes_opts = [
 ]
 
 CONF = cfg.CONF
-
 CLI_OPTS = [launch_opt]
-
-CONF.register_opts(api_opts, group=API_GROUP)
-CONF.register_opts(pecan_opts, group=PECAN_GROUP)
-CONF.register_opts(engine_opts, group=ENGINE_GROUP)
-CONF.register_opts(storage_opts, group=STORAGE_GROUP)
-CONF.register_opts(kubernetes_opts, group=KUBERNETES_GROUP)
 CONF.register_cli_opts(CLI_OPTS)
-
-default_group_opts = itertools.chain(
-    CLI_OPTS,
-    []
-)
+default_group_opts = itertools.chain(CLI_OPTS, [])
 
 
 def list_opts():
@@ -161,6 +150,9 @@ def list_opts():
         (None, default_group_opts)
     ]
 
+
+for group, options in list_opts():
+    CONF.register_opts(list(options), group)
 
 _DEFAULT_LOG_LEVELS = [
     'eventlet.wsgi.server=WARN',
@@ -175,7 +167,6 @@ def parse_args(args=None, usage=None, default_config_files=None):
     default_log_levels = log.get_default_log_levels()
     default_log_levels.extend(_DEFAULT_LOG_LEVELS)
     log.set_defaults(default_log_levels=default_log_levels)
-
     log.register_options(CONF)
 
     CONF(

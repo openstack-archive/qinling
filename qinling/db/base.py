@@ -15,7 +15,7 @@
 import functools
 
 from oslo_config import cfg
-from oslo_db import options
+from oslo_db import options as db_options
 from oslo_db.sqlalchemy import session as db_session
 
 from qinling.db.sqlalchemy import sqlite_lock
@@ -23,10 +23,8 @@ from qinling import exceptions as exc
 from qinling.utils import thread_local
 
 # Note(dzimine): sqlite only works for basic testing.
-options.set_defaults(cfg.CONF, connection="sqlite:///qinling.sqlite")
-
+db_options.set_defaults(cfg.CONF, connection="sqlite:///qinling.sqlite")
 _FACADE = None
-
 _DB_SESSION_THREAD_LOCAL_NAME = "db_sql_alchemy_session"
 
 

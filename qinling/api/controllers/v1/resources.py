@@ -214,7 +214,7 @@ class Functions(ResourceList):
 class Runtime(Resource):
     id = wtypes.text
     name = wtypes.text
-    image = wsme.wsattr(wtypes.text, mandatory=True)
+    image = wtypes.text
     description = wtypes.text
     status = wsme.wsattr(wtypes.text, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)

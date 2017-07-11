@@ -89,7 +89,7 @@ def upgrade():
         sa.Column('image', sa.String(length=255), nullable=False),
         sa.Column('status', sa.String(length=32), nullable=False),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('name'),
+        sa.UniqueConstraint('image', 'project_id'),
         info={"check_ifexists": True}
     )
 

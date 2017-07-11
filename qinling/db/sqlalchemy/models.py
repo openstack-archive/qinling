@@ -53,12 +53,14 @@ class FunctionServiceMapping(model_base.QinlingModelBase):
 class Runtime(model_base.QinlingSecureModelBase):
     __tablename__ = 'runtime'
 
+    __table_args__ = (
+        sa.UniqueConstraint('image', 'project_id'),
+    )
+
     name = sa.Column(sa.String(255))
     description = sa.Column(sa.String(255))
     image = sa.Column(sa.String(255), nullable=False)
     status = sa.Column(sa.String(32), nullable=False)
-
-    sa.UniqueConstraint('name')
 
 
 class Execution(model_base.QinlingSecureModelBase):

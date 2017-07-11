@@ -26,6 +26,7 @@ from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
 
+POST_REQUIRED = set(['image'])
 UPDATE_ALLOWED = set(['name', 'description', 'image'])
 
 
@@ -62,6 +63,11 @@ class RuntimesController(rest.RestController):
     )
     def post(self, runtime):
         params = runtime.to_dict()
+
+        if not POST_REQUIRED.issubset(set(params.keys())):
+            raise exc.InputException(
+                'Required param is missing. Required: %s' % POST_REQUIRED
+            )
 
         LOG.info("Creating runtime. [runtime=%s]", params)
 

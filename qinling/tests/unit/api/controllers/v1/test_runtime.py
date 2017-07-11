@@ -12,6 +12,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import mock
+
 from qinling.db import api as db_api
 from qinling import status
 from qinling.tests.unit.api import base
@@ -22,16 +24,19 @@ class TestRuntimeController(base.APITest):
     def setUp(self):
         super(TestRuntimeController, self).setUp()
 
-        # Insert a runtime record in db. The data will be removed in clean up.
-        db_runtime = db_api.create_runtime(
+        # Insert a runtime record in db. The data will be removed in db clean
+        # up.
+        self.db_runtime = db_api.create_runtime(
             {
                 'name': 'test_runtime',
                 'image': 'python2.7',
+                # 'auth_enable' is disabled by default, we create runtime for
+                # default tenant.
                 'project_id': test_base.DEFAULT_PROJECT_ID,
                 'status': status.AVAILABLE
             }
         )
-        self.runtime_id = db_runtime.id
+        self.runtime_id = self.db_runtime.id
 
     def test_get(self):
         resp = self.app.get('/v1/runtimes/%s' % self.runtime_id)
@@ -46,3 +51,110 @@ class TestRuntimeController(base.APITest):
 
         self.assertEqual(200, resp.status_int)
         self._assertDictContainsSubset(resp.json, expected)
+
+    def test_get_all(self):
+        resp = self.app.get('/v1/runtimes')
+
+        expected = {
+            'id': self.runtime_id,
+            "image": "python2.7",
+            "name": "test_runtime",
+            "project_id": test_base.DEFAULT_PROJECT_ID,
+            "status": status.AVAILABLE
+        }
+
+        self.assertEqual(200, resp.status_int)
+        actual = self._assert_single_item(
+            resp.json['runtimes'], id=self.runtime_id
+        )
+        self._assertDictContainsSubset(actual, expected)
+
+    @mock.patch('qinling.rpc.EngineClient.create_runtime')
+    def test_post(self, mock_create_time):
+        body = {
+            'name': self.rand_name('runtime', prefix='APITest'),
+            'image': self.rand_name('image', prefix='APITest'),
+        }
+        resp = self.app.post_json('/v1/runtimes', body)
+
+        self.assertEqual(201, resp.status_int)
+        self._assertDictContainsSubset(resp.json, body)
+        mock_create_time.assert_called_once_with(resp.json['id'])
+
+    @mock.patch('qinling.rpc.EngineClient.delete_runtime')
+    def test_delete(self, mock_delete_runtime):
+        db_runtime = db_api.create_runtime(
+            {
+                'name': self.rand_name('runtime', prefix='APITest'),
+                'image': self.rand_name('image', prefix='APITest'),
+                # 'auth_enable' is disabled by default, we create runtime for
+                # default tenant.
+                'project_id': test_base.DEFAULT_PROJECT_ID,
+                'status': status.AVAILABLE
+            }
+        )
+        runtime_id = db_runtime.id
+
+        resp = self.app.delete('/v1/runtimes/%s' % runtime_id)
+
+        self.assertEqual(204, resp.status_int)
+        mock_delete_runtime.assert_called_once_with(runtime_id)
+
+    def test_delete_runtime_with_function_associated(self):
+        db_api.create_function(
+            {
+                'name': self.rand_name('function', prefix='APITest'),
+                'runtime_id': self.runtime_id,
+                'code': {},
+                'entry': 'main.main',
+                # 'auth_enable' is disabled by default, we create runtime for
+                # default tenant.
+                'project_id': test_base.DEFAULT_PROJECT_ID,
+            }
+        )
+
+        resp = self.app.delete(
+            '/v1/runtimes/%s' % self.runtime_id, expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)
+
+    def test_put_name(self):
+        resp = self.app.put_json(
+            '/v1/runtimes/%s' % self.runtime_id, {'name': 'new_name'}
+        )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual('new_name', resp.json['name'])
+
+    def test_put_image_runtime_not_available(self):
+        db_runtime = db_api.create_runtime(
+            {
+                'name': self.rand_name('runtime', prefix='APITest'),
+                'image': self.rand_name('image', prefix='APITest'),
+                'project_id': test_base.DEFAULT_PROJECT_ID,
+                'status': status.CREATING
+            }
+        )
+        runtime_id = db_runtime.id
+
+        resp = self.app.put_json(
+            '/v1/runtimes/%s' % runtime_id, {'image': 'new_image'},
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)
+
+    @mock.patch('qinling.rpc.EngineClient.update_runtime')
+    def test_put_image(self, mock_update_runtime):
+        resp = self.app.put_json(
+            '/v1/runtimes/%s' % self.runtime_id, {'image': 'new_image'}
+        )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual('new_image', resp.json['image'])
+        mock_update_runtime.assert_called_once_with(
+            self.runtime_id,
+            image='new_image',
+            pre_image=self.db_runtime.image
+        )

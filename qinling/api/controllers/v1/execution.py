@@ -67,7 +67,7 @@ class ExecutionsController(rest.RestController):
                 pass
 
             if func_url:
-                r = requests.post(func_url, data=params.get('input'))
+                r = requests.post(func_url, json=params.get('input'))
                 params.update(
                     {'status': 'success', 'output': {'result': r.json()}}
                 )

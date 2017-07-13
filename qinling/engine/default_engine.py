@@ -79,8 +79,8 @@ class DefaultEngine(object):
                          input=None):
         LOG.info(
             'Creating execution. execution_id=%s, function_id=%s, '
-            'runtime_id=%s',
-            execution_id, function_id, runtime_id
+            'runtime_id=%s, input=%s',
+            execution_id, function_id, runtime_id, input
         )
 
         with db_api.transaction():

@@ -1,9 +1,9 @@
-FROM alpine:3.5
+FROM phusion/baseimage:0.9.22
+MAINTAINER lingxian.kong@gmail.com
 
-RUN apk update
-RUN apk add --no-cache linux-headers python2 python2-dev build-base py2-pip py2-pbr
-RUN pip install --upgrade pip
-RUN rm -r /root/.cache
+RUN apt-get update
+RUN apt-get -y install python-dev python-setuptools libffi-dev libxslt1-dev libxml2-dev libyaml-dev libssl-dev python-pip
+RUN pip install -U pip setuptools
 
 COPY . /app
 WORKDIR /app

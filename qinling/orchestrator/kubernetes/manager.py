@@ -298,7 +298,7 @@ class KubernetesManager(base.OrchestratorBase):
         # new connection' error for some reason. Needs to find a better
         # solution.
         time.sleep(1)
-        r = requests.post(request_url, data=data)
+        r = requests.post(request_url, json=data)
 
         if r.status_code != requests.codes.ok:
             raise exc.OrchestratorException(
@@ -355,7 +355,7 @@ class KubernetesManager(base.OrchestratorBase):
             func_url = '%s/execute' % service_url
             LOG.info('Invoke function %s, url: %s', function_id, func_url)
 
-            r = requests.post(func_url, data=input)
+            r = requests.post(func_url, json=input)
 
             return {'result': r.json()}
         else:

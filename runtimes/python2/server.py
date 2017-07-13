@@ -12,12 +12,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import importlib
 import json
 import logging
 import sys
 import time
+import traceback
 import zipfile
-import zipimport
 
 from flask import abort
 from flask import Flask
@@ -36,11 +37,12 @@ openstack_session = None
 
 @app.route('/download', methods=['POST'])
 def download():
-    download_url = request.form['download_url']
-    function_id = request.form['function_id']
-    entry = request.form['entry']
-    token = request.form.get('token')
-    auth_url = request.form.get('auth_url')
+    params = request.get_json() or {}
+    download_url = params.get('download_url')
+    function_id = params.get('function_id')
+    entry = params.get('entry')
+    token = params.get('token')
+    auth_url = params.get('auth_url')
 
     headers = {}
     if token:
@@ -60,14 +62,12 @@ def download():
     )
 
     r = requests.get(download_url, headers=headers, stream=True)
-
     with open(zip_file, 'wb') as fd:
         for chunk in r.iter_content(chunk_size=65535):
             fd.write(chunk)
 
     if not zipfile.is_zipfile(zip_file):
         abort(500)
-
     app.logger.info('Code package downloaded to %s' % zip_file)
 
     global function_module
@@ -85,33 +85,24 @@ def execute():
     global openstack_session
 
     context = {'os_session': openstack_session}
-
-    try:
-        importer = zipimport.zipimporter(zip_file)
-        module = importer.load_module(function_module)
-    except Exception as e:
-        return Response(
-            response=json.dumps({'output': str(e), 'duration': 0}),
-            status=200,
-            mimetype='application/json'
-        )
-
-    input = {}
-    if request.form:
-        # Refer to:
-        # http://werkzeug.pocoo.org/docs/0.12/datastructures/#werkzeug.datastructures.MultiDict
-        input = request.form.to_dict()
-
+    input = request.get_json() or {}
     app.logger.debug('Invoking function with input: %s' % input)
 
     start = time.time()
     try:
+        sys.path.insert(0, zip_file)
+        module = importlib.import_module(function_module)
         func = getattr(module, function_method)
         result = func(context=context, **input)
     except Exception as e:
         result = str(e)
-    duration = time.time() - start
 
+        # Print stacktrace
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        app.logger.debug(''.join(line for line in lines))
+
+    duration = time.time() - start
     return Response(
         response=json.dumps({'output': result, 'duration': duration}),
         status=200,

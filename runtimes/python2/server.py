@@ -86,8 +86,15 @@ def execute():
 
     context = {'os_session': openstack_session}
 
-    importer = zipimport.zipimporter(zip_file)
-    module = importer.load_module(function_module)
+    try:
+        importer = zipimport.zipimporter(zip_file)
+        module = importer.load_module(function_module)
+    except Exception as e:
+        return Response(
+            response=json.dumps({'output': str(e), 'duration': 0}),
+            status=200,
+            mimetype='application/json'
+        )
 
     input = {}
     if request.form:

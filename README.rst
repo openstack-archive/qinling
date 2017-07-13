@@ -89,9 +89,17 @@ host.
 
    .. code-block:: console
 
+      $ vagrant --version
+      Vagrant 1.9.1
       $ vagrant up
+      ...
+      ==> default: INFO  [alembic.runtime.migration] Context impl MySQLImpl.
+      ==> default: INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+      ==> default: INFO  [alembic.runtime.migration] Running upgrade  -> 001, Pike release
 
    .. end
+
+   If you see message like the above, congratulations!
 
 Getting started with Qinling
 ----------------------------

@@ -107,3 +107,22 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
         info={"check_ifexists": True}
     )
+
+    op.create_table(
+        'job',
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('project_id', sa.String(length=80), nullable=False),
+        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('function_id', sa.String(length=36), nullable=False),
+        sa.Column('function_input', st.JsonLongDictType(), nullable=True),
+        sa.Column('name', sa.String(length=255), nullable=True),
+        sa.Column('pattern', sa.String(length=32), nullable=False),
+        sa.Column('first_execution_time', sa.DateTime(), nullable=True),
+        sa.Column('next_execution_time', sa.DateTime(), nullable=False),
+        sa.Column('count', sa.Integer(), nullable=True),
+        sa.Column('trust_id', sa.String(length=80), nullable=True),
+        sa.PrimaryKeyConstraint('id'),
+        sa.ForeignKeyConstraint(['function_id'], [u'function.id']),
+        info={"check_ifexists": True}
+    )

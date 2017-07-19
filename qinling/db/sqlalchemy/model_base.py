@@ -12,8 +12,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import six
-
 from oslo_db.sqlalchemy import models as oslo_models
 import sqlalchemy as sa
 from sqlalchemy.ext import declarative
@@ -76,8 +74,8 @@ class _QinlingModelBase(oslo_models.ModelBase, oslo_models.TimestampMixin):
             if col.name not in unloaded and hasattr(self, col.name):
                 d[col.name] = getattr(self, col.name)
 
-        datetime_to_str(d, 'created_at')
-        datetime_to_str(d, 'updated_at')
+        common.datetime_to_str(d, 'created_at')
+        common.datetime_to_str(d, 'updated_at')
 
         return d
 
@@ -99,12 +97,6 @@ class _QinlingModelBase(oslo_models.ModelBase, oslo_models.TimestampMixin):
 
     def __repr__(self):
         return '%s %s' % (type(self).__name__, self.to_dict().__repr__())
-
-
-def datetime_to_str(dct, attr_name):
-    if (dct.get(attr_name) is not None and
-            not isinstance(dct.get(attr_name), six.string_types)):
-        dct[attr_name] = dct[attr_name].isoformat(' ')
 
 
 QinlingModelBase = declarative.declarative_base(cls=_QinlingModelBase)

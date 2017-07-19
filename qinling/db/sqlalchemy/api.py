@@ -366,3 +366,34 @@ def delete_function_service_mapping(id, session=None):
         return
 
     session.delete(mapping)
+
+
+@db_base.session_aware()
+def create_job(values, session=None):
+    job = models.Job()
+    job.update(values)
+
+    try:
+        job.save(session=session)
+    except oslo_db_exc.DBDuplicateEntry as e:
+        raise exc.DBError(
+            "Duplicate entry for Job: %s" % e.columns
+        )
+
+    return job
+
+
+@db_base.session_aware()
+def get_job(id, session=None):
+    job = _get_db_object_by_id(models.Job, id)
+    if not job:
+        raise exc.DBEntityNotFoundError("Job not found [id=%s]" % id)
+
+    return job
+
+
+@db_base.session_aware()
+def delete_job(id, session=None):
+    job = get_job(id)
+
+    session.delete(job)

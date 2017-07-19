@@ -15,12 +15,20 @@ import functools
 import warnings
 
 from oslo_utils import uuidutils
+import six
 
 
 def convert_dict_to_string(d):
     temp_list = ['%s=%s' % (k, v) for k, v in d.items()]
 
     return ','.join(temp_list)
+
+
+def datetime_to_str(dct, attr_name):
+    """Convert datetime object in dict to string."""
+    if (dct.get(attr_name) is not None and
+            not isinstance(dct.get(attr_name), six.string_types)):
+        dct[attr_name] = dct[attr_name].isoformat(' ')
 
 
 def generate_unicode_uuid(dashed=True):

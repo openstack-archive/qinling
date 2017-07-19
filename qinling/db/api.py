@@ -59,9 +59,6 @@ def delete_all():
     delete_runtimes(insecure=True)
 
 
-# Function
-
-
 def get_function(id):
     return IMPL.get_function(id)
 
@@ -90,9 +87,6 @@ def delete_function(id):
     IMPL.delete_function(id)
 
 
-# Function
-
-
 def create_runtime(values):
     return IMPL.create_runtime(values)
 
@@ -115,9 +109,6 @@ def update_runtime(id, values):
 
 def delete_runtimes(**kwargs):
     return IMPL.delete_runtimes(**kwargs)
-
-
-# Execution
 
 
 def create_execution(values):
@@ -154,3 +145,15 @@ def get_function_service_mappings(**kwargs):
 
 def delete_function_service_mapping(id):
     return IMPL.delete_function_service_mapping(id)
+
+
+def create_job(values):
+    return IMPL.create_job(values)
+
+
+def get_job(id):
+    return IMPL.get_job(id)
+
+
+def delete_job(id):
+    return IMPL.delete_job(id)

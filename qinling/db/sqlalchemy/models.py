@@ -13,9 +13,11 @@
 #    limitations under the License.
 
 import sqlalchemy as sa
+from sqlalchemy.orm import relationship
 
 from qinling.db.sqlalchemy import model_base
 from qinling.db.sqlalchemy import types as st
+from qinling.utils import common
 
 
 class Function(model_base.QinlingSecureModelBase):
@@ -71,3 +73,31 @@ class Execution(model_base.QinlingSecureModelBase):
     sync = sa.Column(sa.BOOLEAN, default=True)
     input = sa.Column(st.JsonLongDictType())
     output = sa.Column(st.JsonLongDictType())
+
+
+class Job(model_base.QinlingSecureModelBase):
+    __tablename__ = 'job'
+
+    name = sa.Column(sa.String(255), nullable=True)
+    pattern = sa.Column(
+        sa.String(32),
+        nullable=True,
+        # Set default to 'never'.
+        default='0 0 30 2 0'
+    )
+    first_execution_time = sa.Column(sa.DateTime, nullable=True)
+    next_execution_time = sa.Column(sa.DateTime, nullable=False)
+    count = sa.Column(sa.Integer)
+    function_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey(Function.id)
+    )
+    function = relationship('Function', lazy='joined')
+    function_input = sa.Column(st.JsonDictType())
+    trust_id = sa.Column(sa.String(80))
+
+    def to_dict(self):
+        d = super(Job, self).to_dict()
+        common.datetime_to_str(d, 'first_execution_time')
+        common.datetime_to_str(d, 'next_execution_time')
+        return d

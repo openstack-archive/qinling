@@ -159,7 +159,11 @@ _DEFAULT_LOG_LEVELS = [
     'oslo_service.periodic_task=INFO',
     'oslo_service.loopingcall=INFO',
     'oslo_db=WARN',
-    'oslo_concurrency.lockutils=WARN'
+    'oslo_concurrency.lockutils=WARN',
+    'kubernetes.client.rest=DEBUG',
+    'keystoneclient=INFO',
+    'requests.packages.urllib3.connectionpool=CRITICAL',
+    'urllib3.connectionpool=CRITICAL'
 ]
 
 

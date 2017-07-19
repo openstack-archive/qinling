@@ -170,6 +170,7 @@ class Function(Resource):
     code = types.jsontype
     entry = wtypes.text
     count = wsme.wsattr(int, readonly=True)
+    project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wtypes.text
     updated_at = wtypes.text
 
@@ -185,6 +186,7 @@ class Function(Resource):
             code={'zip': True},
             entry='main',
             count=10,
+            project_id='default',
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'
         )
@@ -263,6 +265,7 @@ class Execution(Resource):
     sync = bool
     input = types.jsontype
     output = wsme.wsattr(types.jsontype, readonly=True)
+    project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wsme.wsattr(wtypes.text, readonly=True)
     updated_at = wsme.wsattr(wtypes.text, readonly=True)
 
@@ -275,6 +278,7 @@ class Execution(Resource):
             sync=True,
             input={'data': 'hello, world'},
             output={'result': 'hello, world'},
+            project_id='default',
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'
         )
@@ -294,6 +298,57 @@ class Executions(ResourceList):
         sample.executions = [Execution.sample()]
         sample.next = (
             "http://localhost:7070/v1/executions?"
+            "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
+            "marker=123e4567-e89b-12d3-a456-426655440000"
+        )
+
+        return sample
+
+
+class Job(Resource):
+    id = types.uuid
+    name = wtypes.text
+    function_id = types.uuid
+    function_input = types.jsontype
+    pattern = wtypes.text
+    count = wtypes.IntegerType(minimum=1)
+    first_execution_time = wtypes.text
+    next_execution_time = wtypes.text
+    project_id = wsme.wsattr(wtypes.text, readonly=True)
+    created_at = wsme.wsattr(wtypes.text, readonly=True)
+    updated_at = wsme.wsattr(wtypes.text, readonly=True)
+
+    @classmethod
+    def sample(cls):
+        return cls(
+            id='123e4567-e89b-12d3-a456-426655440000',
+            name='my_job',
+            function_id='123e4567-e89b-12d3-a456-426655440000',
+            function_input={'data': 'hello, world'},
+            pattern='* * * * *',
+            count=42,
+            first_execution_time='',
+            next_execution_time='',
+            project_id='default',
+            created_at='1970-01-01T00:00:00.000000',
+            updated_at='1970-01-01T00:00:00.000000'
+        )
+
+
+class Jobs(ResourceList):
+    jobs = [Job]
+
+    def __init__(self, **kwargs):
+        self._type = 'jobs'
+
+        super(Jobs, self).__init__(**kwargs)
+
+    @classmethod
+    def sample(cls):
+        sample = cls()
+        sample.jobs = [Job.sample()]
+        sample.next = (
+            "http://localhost:7070/v1/jobs?"
             "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
             "marker=123e4567-e89b-12d3-a456-426655440000"
         )

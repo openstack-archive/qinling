@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 import random
 
 from oslo_config import cfg
@@ -22,6 +23,7 @@ from oslotest import base
 from qinling import context as auth_context
 from qinling.db import api as db_api
 from qinling.db.sqlalchemy import sqlite_lock
+from qinling import status
 from qinling.tests.unit import config as test_config
 
 test_config.parse_args()
@@ -151,3 +153,54 @@ class DbTestCase(BaseTest):
     def _clean_db(self):
         db_api.delete_all()
         sqlite_lock.cleanup()
+
+    def create_runtime(self, prefix=None):
+        runtime = db_api.create_runtime(
+            {
+                'name': self.rand_name('runtime', prefix=prefix),
+                'image': self.rand_name('image', prefix=prefix),
+                # 'auth_enable' is disabled by default, we create runtime for
+                # default tenant.
+                'project_id': DEFAULT_PROJECT_ID,
+                'status': status.AVAILABLE
+            }
+        )
+
+        return runtime
+
+    def create_function(self, runtime_id=None, prefix=None):
+        if not runtime_id:
+            runtime_id = self.create_runtime(prefix).id
+
+        function = db_api.create_function(
+            {
+                'name': self.rand_name('function', prefix=prefix),
+                'runtime_id': runtime_id,
+                'code': {"source": "package"},
+                'entry': 'main.main',
+                # 'auth_enable' is disabled by default, we create runtime for
+                # default tenant.
+                'project_id': DEFAULT_PROJECT_ID,
+            }
+        )
+
+        return function
+
+    def create_job(self, function_id=None, prefix=None):
+        if not function_id:
+            function_id = self.create_function(prefix=prefix).id
+
+        job = db_api.create_job(
+            {
+                'name': self.rand_name('job', prefix=prefix),
+                'function_id': function_id,
+                'first_execution_time': datetime.utcnow(),
+                'next_execution_time': datetime.utcnow(),
+                'count': 1,
+                # 'auth_enable' is disabled by default, we create runtime for
+                # default tenant.
+                'project_id': DEFAULT_PROJECT_ID,
+            }
+        )
+
+        return job

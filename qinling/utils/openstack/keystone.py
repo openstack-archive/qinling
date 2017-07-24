@@ -30,7 +30,7 @@ def _get_user_keystone_session():
     ctx = context.get_ctx()
 
     auth = generic.Token(
-        auth_url=CONF.keystone_authtoken.auth_url,
+        auth_url=CONF.keystone_authtoken.auth_uri,
         token=ctx.auth_token,
     )
 
@@ -47,9 +47,20 @@ def get_swiftclient():
 
 
 @common.disable_ssl_warnings
-def get_keystone_client():
-    session = _get_user_keystone_session()
-    keystone = ks_client.Client(session=session)
+def get_keystone_client(use_session=True):
+    if use_session:
+        session = _get_user_keystone_session()
+        keystone = ks_client.Client(session=session)
+    else:
+        ctx = context.get_ctx()
+        auth_url = CONF.keystone_authtoken.auth_uri
+        keystone = ks_client.Client(
+            user_id=ctx.user,
+            token=ctx.auth_token,
+            tenant_id=ctx.projectid,
+            auth_url=auth_url
+        )
+        keystone.management_url = auth_url
 
     return keystone
 
@@ -65,6 +76,20 @@ def _get_admin_user_id():
     )
 
     return client.user_id
+
+
+@common.disable_ssl_warnings
+def _get_trust_client(trust_id):
+    """Get project keystone client using admin credential."""
+    client = ks_client.Client(
+        username=CONF.keystone_authtoken.username,
+        password=CONF.keystone_authtoken.password,
+        auth_url=CONF.keystone_authtoken.auth_uri,
+        trust_id=trust_id
+    )
+    client.management_url = CONF.keystone_authtoken.auth_uri
+
+    return client
 
 
 @common.disable_ssl_warnings
@@ -84,11 +109,37 @@ def create_trust():
 
 @common.disable_ssl_warnings
 def delete_trust(trust_id):
+    """Delete trust from keystone.
+
+    The trust can only be deleted by original user(trustor)
+    """
     if not trust_id:
         return
 
-    client = get_keystone_client()
     try:
+        client = get_keystone_client()
         client.trusts.delete(trust_id)
-    except Exception as e:
-        LOG.warning("Failed to delete trust [id=%s]: %s" % (trust_id, e))
+        LOG.debug('Trust %s deleted.', trust_id)
+    except Exception:
+        LOG.exception("Failed to delete trust [id=%s]: %s", trust_id)
+
+
+def create_trust_context(trust_id, project_id):
+    """Creates Qinling context on behalf of the project."""
+    if CONF.pecan.auth_enable:
+        client = _get_trust_client(trust_id)
+
+        return context.Context(
+            user=client.user_id,
+            tenant=project_id,
+            auth_token=client.auth_token,
+            is_trust_scoped=True,
+            trust_id=trust_id,
+        )
+
+    return context.Context(
+        user=None,
+        tenant=context.DEFAULT_PROJECT_ID,
+        auth_token=None,
+        is_admin=True
+    )

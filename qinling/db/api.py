@@ -59,6 +59,10 @@ def delete_all():
     delete_runtimes(insecure=True)
 
 
+def conditional_update(model, values, expected_values, **kwargs):
+    return IMPL.conditional_update(model, values, expected_values, **kwargs)
+
+
 def get_function(id):
     return IMPL.get_function(id)
 
@@ -155,5 +159,13 @@ def get_job(id):
     return IMPL.get_job(id)
 
 
+def get_next_jobs(before):
+    return IMPL.get_next_jobs(before)
+
+
 def delete_job(id):
     return IMPL.delete_job(id)
+
+
+def get_jobs():
+    return IMPL.get_jobs()

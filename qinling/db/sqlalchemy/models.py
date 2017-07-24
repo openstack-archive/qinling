@@ -73,6 +73,7 @@ class Execution(model_base.QinlingSecureModelBase):
     sync = sa.Column(sa.BOOLEAN, default=True)
     input = sa.Column(st.JsonLongDictType())
     output = sa.Column(st.JsonLongDictType())
+    description = sa.Column(sa.String(255))
 
 
 class Job(model_base.QinlingSecureModelBase):
@@ -85,6 +86,7 @@ class Job(model_base.QinlingSecureModelBase):
         # Set default to 'never'.
         default='0 0 30 2 0'
     )
+    status = sa.Column(sa.String(32), nullable=False)
     first_execution_time = sa.Column(sa.DateTime, nullable=True)
     next_execution_time = sa.Column(sa.DateTime, nullable=False)
     count = sa.Column(sa.Integer)

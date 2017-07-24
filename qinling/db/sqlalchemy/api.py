@@ -28,6 +28,7 @@ from qinling.db.sqlalchemy import filters as db_filters
 from qinling.db.sqlalchemy import model_base
 from qinling.db.sqlalchemy import models
 from qinling import exceptions as exc
+from qinling import status
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -188,6 +189,21 @@ def _delete_all(model, insecure=False, **kwargs):
     # http://docs.sqlalchemy.org/en/rel_1_0/orm/query.html#sqlalchemy.orm.query.Query.delete
     query = db_base.model_query(model) if insecure else _secure_query(model)
     query.filter_by(**kwargs).delete(synchronize_session=False)
+
+
+@db_base.session_aware()
+def conditional_update(model, values, expected_values, insecure=False,
+                       filters={}, session=None):
+    """Compare-and-swap conditional update SQLAlchemy implementation."""
+    filters.update(expected_values)
+    query = (db_base.model_query(model) if insecure else _secure_query(model))
+    query = db_filters.apply_filters(query, model, **filters)
+    update_args = {'synchronize_session': False}
+
+    # Return True if we were able to change any DB entry, False otherwise
+    result = query.update(values, **update_args)
+
+    return 0 != result
 
 
 @db_base.session_aware()
@@ -394,6 +410,24 @@ def get_job(id, session=None):
 
 @db_base.session_aware()
 def delete_job(id, session=None):
-    job = get_job(id)
+    get_job(id)
 
-    session.delete(job)
+    # Delete the job by ID and get the affected row count.
+    table = models.Job.__table__
+    result = session.execute(table.delete().where(table.c.id == id))
+
+    return result.rowcount
+
+
+@db_base.session_aware()
+def get_next_jobs(before, session=None):
+    return _get_collection(
+        models.Job, insecure=True, sort_keys=['next_execution_time'],
+        sort_dirs=['asc'], next_execution_time={'lt': before},
+        status={'neq': status.DONE}
+    )
+
+
+@db_base.session_aware()
+def get_jobs(session=None, **kwargs):
+    return _get_collection_sorted_by_time(models.Job, **kwargs)

@@ -12,10 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-CREATING = 'creating'
-AVAILABLE = 'available'
-UPGRADING = 'upgrading'
-ERROR = 'error'
-DELETING = 'deleting'
-RUNNING = 'running'
-DONE = 'done'
+EXECUTION_BY_JOB = 'Created by Job %s'
+
+PERIODIC_JOB_HANDLER = 'job_handler'
+PERIODIC_FUNC_MAPPING_HANDLER = 'function_mapping_handler'

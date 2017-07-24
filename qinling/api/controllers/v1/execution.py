@@ -14,15 +14,13 @@
 
 from oslo_log import log as logging
 from pecan import rest
-import requests
 import wsmeext.pecan as wsme_pecan
 
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
 from qinling.db import api as db_api
-from qinling import exceptions as exc
 from qinling import rpc
-from qinling import status
+from qinling.utils import executions
 from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
@@ -42,55 +40,10 @@ class ExecutionsController(rest.RestController):
     )
     def post(self, execution):
         params = execution.to_dict()
-
         LOG.info("Creating execution. [execution=%s]", params)
 
-        function_id = params['function_id']
-        is_sync = params.get('sync', True)
-        func_url = None
-
-        with db_api.transaction():
-            func_db = db_api.get_function(function_id)
-
-            # Increase function invoke count, the updated_at field will be also
-            # updated.
-            func_db.count = func_db.count + 1
-
-            try:
-                # Check if the service url is existing.
-                mapping_db = db_api.get_function_service_mapping(function_id)
-                LOG.info('Found Service url for function: %s', function_id)
-
-                func_url = '%s/execute' % mapping_db.service_url
-                LOG.info('Invoke function %s, url: %s', function_id, func_url)
-            except exc.DBEntityNotFoundError:
-                pass
-
-            if func_url:
-                r = requests.post(func_url, json=params.get('input'))
-                params.update(
-                    {'status': 'success', 'output': {'result': r.json()}}
-                )
-            else:
-                runtime_id = func_db.runtime_id
-                runtime_db = db_api.get_runtime(runtime_id)
-                if runtime_db.status != status.AVAILABLE:
-                    raise exc.RuntimeNotAvailableException(
-                        'Runtime %s is not available.' % runtime_id
-                    )
-
-                params.update({'status': status.RUNNING})
-
-            db_model = db_api.create_execution(params)
-
-        if not func_url:
-            self.engine_client.create_execution(
-                db_model.id, function_id, runtime_id,
-                input=params.get('input'),
-                is_sync=is_sync
-            )
-
-        if is_sync:
+        db_model = executions.create_execution(self.engine_client, params)
+        if params.get('sync', True):
             db_model = db_api.get_execution(db_model.id)
 
         return resources.Execution.from_dict(db_model.to_dict())

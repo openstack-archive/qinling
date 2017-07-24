@@ -200,6 +200,7 @@ class DbTestCase(BaseTest):
                 # 'auth_enable' is disabled by default, we create runtime for
                 # default tenant.
                 'project_id': DEFAULT_PROJECT_ID,
+                'status': status.RUNNING
             }
         )
 

@@ -261,6 +261,7 @@ class Runtimes(ResourceList):
 class Execution(Resource):
     id = types.uuid
     function_id = wsme.wsattr(types.uuid, mandatory=True)
+    description = wtypes.text
     status = wsme.wsattr(wtypes.text, readonly=True)
     sync = bool
     input = types.jsontype
@@ -274,6 +275,7 @@ class Execution(Resource):
         return cls(
             id='123e4567-e89b-12d3-a456-426655440000',
             function_id='123e4567-e89b-12d3-a456-426655440000',
+            description='this is the first execution.',
             status='success',
             sync=True,
             input={'data': 'hello, world'},
@@ -310,8 +312,9 @@ class Job(Resource):
     name = wtypes.text
     function_id = types.uuid
     function_input = types.jsontype
+    status = wsme.wsattr(wtypes.text, readonly=True)
     pattern = wtypes.text
-    count = wtypes.IntegerType(minimum=1)
+    count = int
     first_execution_time = wtypes.text
     next_execution_time = wtypes.text
     project_id = wsme.wsattr(wtypes.text, readonly=True)
@@ -325,8 +328,9 @@ class Job(Resource):
             name='my_job',
             function_id='123e4567-e89b-12d3-a456-426655440000',
             function_input={'data': 'hello, world'},
+            status='done',
             pattern='* * * * *',
-            count=42,
+            count=0,
             first_execution_time='',
             next_execution_time='',
             project_id='default',

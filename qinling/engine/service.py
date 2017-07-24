@@ -40,7 +40,7 @@ class EngineService(service.Service):
         db_api.setup_db()
 
         LOG.info('Starting periodic tasks...')
-        periodics.start(orchestrator)
+        periodics.start_function_mapping_handler(orchestrator)
 
         topic = CONF.engine.topic
         server = CONF.engine.host

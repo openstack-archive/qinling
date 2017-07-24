@@ -80,9 +80,11 @@ def set_ctx(new_ctx):
 
 
 class Context(oslo_context.RequestContext):
-    _session = None
+    def __init__(self, is_trust_scoped=False, trust_id=None, is_admin=False,
+                 **kwargs):
+        self.is_trust_scoped = is_trust_scoped
+        self.trust_id = trust_id
 
-    def __init__(self, is_admin=False, **kwargs):
         super(Context, self).__init__(is_admin=is_admin, **kwargs)
 
     @property
@@ -91,6 +93,40 @@ class Context(oslo_context.RequestContext):
             return self.project_id
         else:
             return DEFAULT_PROJECT_ID
+
+    def convert_to_dict(self):
+        """Return a dictionary of context attributes.
+
+        Use get_logging_values() instead of to_dict() from parent class to get
+        more information from the context. This method is not named "to_dict"
+        to avoid recursive calling.
+        """
+        ctx_dict = self.get_logging_values()
+        ctx_dict.update(
+            {
+                'is_trust_scoped': self.is_trust_scoped,
+                'trust_id': self.trust_id,
+            }
+        )
+
+        return ctx_dict
+
+    @classmethod
+    def from_dict(cls, values, **kwargs):
+        """Construct a context object from a provided dictionary."""
+        kwargs.setdefault(
+            'is_trust_scoped', values.get('is_trust_scoped', False)
+        )
+        kwargs.setdefault('trust_id', values.get('trust_id'))
+
+        return super(Context, cls).from_dict(values, **kwargs)
+
+    @classmethod
+    def from_environ(cls, env):
+        context = super(Context, cls).from_environ(env)
+        context.is_admin = True if 'admin' in context.roles else False
+
+        return context
 
 
 class ContextHook(hooks.PecanHook):

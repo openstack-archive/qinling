@@ -12,21 +12,17 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import croniter
-import datetime
-
-from dateutil import parser
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import timeutils
 from pecan import rest
-import six
 import wsmeext.pecan as wsme_pecan
 
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
 from qinling.db import api as db_api
 from qinling import exceptions as exc
+from qinling import status
+from qinling.utils import jobs
 from qinling.utils.openstack import keystone as keystone_util
 from qinling.utils import rest_utils
 
@@ -51,52 +47,7 @@ class JobsController(rest.RestController):
                 'Required param is missing. Required: %s' % POST_REQUIRED
             )
 
-        first_time = params.get('first_execution_time')
-        pattern = params.get('pattern')
-        count = params.get('count')
-        start_time = timeutils.utcnow()
-
-        if isinstance(first_time, six.string_types):
-            try:
-                # We need naive datetime object.
-                first_time = parser.parse(first_time, ignoretz=True)
-            except ValueError as e:
-                raise exc.InputException(e.message)
-
-        if not (first_time or pattern):
-            raise exc.InputException(
-                'Pattern or first_execution_time must be specified.'
-            )
-
-        if first_time:
-            # first_time is assumed to be UTC time.
-            valid_min_time = timeutils.utcnow() + datetime.timedelta(0, 60)
-            if valid_min_time > first_time:
-                raise exc.InputException(
-                    'first_execution_time must be at least 1 minute in the '
-                    'future.'
-                )
-            if not pattern and count and count > 1:
-                raise exc.InputException(
-                    'Pattern must be provided if count is greater than 1.'
-                )
-
-            next_time = first_time
-            if not (pattern or count):
-                count = 1
-        if pattern:
-            try:
-                croniter.croniter(pattern)
-            except (ValueError, KeyError):
-                raise exc.InputException(
-                    'The specified pattern is not valid: {}'.format(pattern)
-                )
-
-            if not first_time:
-                next_time = croniter.croniter(pattern, start_time).get_next(
-                    datetime.datetime
-                )
-
+        first_time, next_time, count = jobs.validate_job(params)
         LOG.info("Creating job. [job=%s]", params)
 
         with db_api.transaction():
@@ -104,12 +55,13 @@ class JobsController(rest.RestController):
 
             values = {
                 'name': params.get('name'),
-                'pattern': pattern,
+                'pattern': params.get('pattern'),
                 'first_execution_time': first_time,
                 'next_execution_time': next_time,
                 'count': count,
                 'function_id': params['function_id'],
-                'function_input': params.get('function_input') or {}
+                'function_input': params.get('function_input') or {},
+                'status': status.RUNNING
             }
 
             if cfg.CONF.pecan.auth_enable:
@@ -129,9 +81,22 @@ class JobsController(rest.RestController):
     def delete(self, id):
         """Delete job."""
         LOG.info("Delete job [id=%s]" % id)
+        jobs.delete_job(id)
 
-        job = db_api.get_job(id)
-        trust_id = job.trust_id
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(resources.Job, types.uuid)
+    def get(self, id):
+        LOG.info("Fetch job [id=%s]", id)
+        job_db = db_api.get_job(id)
 
-        keystone_util.delete_trust(trust_id)
-        db_api.delete_job(id)
+        return resources.Job.from_dict(job_db.to_dict())
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(resources.Jobs)
+    def get_all(self):
+        LOG.info("Get all jobs.")
+
+        jobs = [resources.Job.from_dict(db_model.to_dict())
+                for db_model in db_api.get_jobs()]
+
+        return resources.Jobs(jobs=jobs)

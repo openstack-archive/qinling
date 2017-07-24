@@ -18,14 +18,21 @@ from datetime import timedelta
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_service import threadgroup
+from oslo_utils import timeutils
 
 from qinling import context
 from qinling.db import api as db_api
+from qinling.db.sqlalchemy import models
 from qinling import rpc
+from qinling import status
+from qinling.utils import constants
+from qinling.utils import executions
+from qinling.utils import jobs
+from qinling.utils.openstack import keystone as keystone_utils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
-_THREAD_GROUP = None
+_periodic_tasks = {}
 
 
 def handle_function_service_expiration(ctx, engine_client, orchestrator):
@@ -60,23 +67,119 @@ def handle_function_service_expiration(ctx, engine_client, orchestrator):
             db_api.delete_function_service_mapping(m.function_id)
 
 
-def start(orchestrator):
-    global _THREAD_GROUP
-    _THREAD_GROUP = threadgroup.ThreadGroup()
+def handle_job(engine_client):
+    for job in db_api.get_next_jobs(timeutils.utcnow() + timedelta(seconds=3)):
+        LOG.debug("Processing job: %s, function: %s", job.id, job.function_id)
 
+        try:
+            # Setup context before schedule job.
+            ctx = keystone_utils.create_trust_context(
+                job.trust_id, job.project_id
+            )
+            context.set_ctx(ctx)
+
+            if (job.count is not None and job.count > 0):
+                job.count -= 1
+
+            # Job delete/update is done using UPDATE ... FROM ... WHERE
+            # non-locking clause.
+            if job.count == 0:
+                modified = db_api.conditional_update(
+                    models.Job,
+                    {
+                        'status': status.DONE,
+                        'trust_id': '',
+                        'count': 0
+                    },
+                    {
+                        'id': job.id,
+                        'status': status.RUNNING
+                    },
+                    insecure=True,
+                )
+            else:
+                next_time = jobs.get_next_execution_time(
+                    job.pattern,
+                    job.next_execution_time
+                )
+
+                modified = db_api.conditional_update(
+                    models.Job,
+                    {
+                        'next_execution_time': next_time,
+                        'count': job.count
+                    },
+                    {
+                        'id': job.id,
+                        'next_execution_time': job.next_execution_time
+                    },
+                    insecure=True,
+                )
+
+            if not modified:
+                LOG.warning(
+                    'Job %s has been already handled by another periodic '
+                    'task.', job.id
+                )
+                continue
+
+            LOG.debug(
+                "Starting to execute function %s by job %s",
+                job.function_id, job.id
+            )
+
+            exe_param = {
+                'function_id': job.function_id,
+                'input': job.function_input,
+                'sync': False,
+                'description': constants.EXECUTION_BY_JOB % job.id
+            }
+            executions.create_execution(engine_client, exe_param)
+        except Exception:
+            LOG.exception("Failed to process job %s", job.id)
+        finally:
+            context.set_ctx(None)
+
+
+def start_function_mapping_handler(orchestrator):
+    tg = threadgroup.ThreadGroup(1)
     engine_client = rpc.get_engine_client()
 
-    _THREAD_GROUP.add_timer(
+    tg.add_timer(
         300,
         handle_function_service_expiration,
         ctx=context.Context(),
         engine_client=engine_client,
         orchestrator=orchestrator
     )
+    _periodic_tasks[constants.PERIODIC_FUNC_MAPPING_HANDLER] = tg
+
+    LOG.info('Function mapping handler started.')
 
 
-def stop():
-    global _THREAD_GROUP
+def start_job_handler():
+    tg = threadgroup.ThreadGroup(1)
+    engine_client = rpc.get_engine_client()
 
-    if _THREAD_GROUP:
-        _THREAD_GROUP.stop()
+    tg.add_timer(
+        3,
+        handle_job,
+        engine_client=engine_client,
+    )
+    _periodic_tasks[constants.PERIODIC_JOB_HANDLER] = tg
+
+    LOG.info('Job handler started.')
+
+
+def stop(task=None):
+    if not task:
+        for name, tg in _periodic_tasks.items():
+            LOG.info('Stopping periodic task: %s', name)
+            tg.stop()
+            del _periodic_tasks[name]
+    else:
+        tg = _periodic_tasks.get(task)
+        if tg:
+            LOG.info('Stopping periodic task: %s', task)
+            tg.stop()
+            del _periodic_tasks[task]

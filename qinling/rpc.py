@@ -101,7 +101,7 @@ class ContextSerializer(messaging.Serializer):
         return self._base.deserialize_entity(context, entity)
 
     def serialize_context(self, context):
-        return context.to_dict()
+        return context.convert_to_dict()
 
     def deserialize_context(self, context):
         qinling_ctx = ctx.Context.from_dict(context)

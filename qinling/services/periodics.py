@@ -88,7 +88,6 @@ def handle_job(engine_client):
                     models.Job,
                     {
                         'status': status.DONE,
-                        'trust_id': '',
                         'count': 0
                     },
                     {

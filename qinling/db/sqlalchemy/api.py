@@ -193,8 +193,9 @@ def _delete_all(model, insecure=False, **kwargs):
 
 @db_base.session_aware()
 def conditional_update(model, values, expected_values, insecure=False,
-                       filters={}, session=None):
+                       filters=None, session=None):
     """Compare-and-swap conditional update SQLAlchemy implementation."""
+    filters = filters or {}
     filters.update(expected_values)
     query = (db_base.model_query(model) if insecure else _secure_query(model))
     query = db_filters.apply_filters(query, model, **filters)

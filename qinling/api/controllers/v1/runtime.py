@@ -33,13 +33,14 @@ UPDATE_ALLOWED = set(['name', 'description', 'image'])
 class RuntimesController(rest.RestController):
     def __init__(self, *args, **kwargs):
         self.engine_client = rpc.get_engine_client()
+        self.type = 'runtime'
 
         super(RuntimesController, self).__init__(*args, **kwargs)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Runtime, types.uuid)
     def get(self, id):
-        LOG.info("Fetch runtime [id=%s]", id)
+        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
 
         runtime_db = db_api.get_runtime(id)
 
@@ -48,7 +49,7 @@ class RuntimesController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Runtimes)
     def get_all(self):
-        LOG.info("Get all runtimes.")
+        LOG.info("Get all %ss.", self.type)
 
         runtimes = [resources.Runtime.from_dict(db_model.to_dict())
                     for db_model in db_api.get_runtimes()]
@@ -69,7 +70,7 @@ class RuntimesController(rest.RestController):
                 'Required param is missing. Required: %s' % POST_REQUIRED
             )
 
-        LOG.info("Creating runtime. [runtime=%s]", params)
+        LOG.info("Creating %s, params: %s", self.type, params)
 
         params.update({'status': status.CREATING})
 
@@ -81,9 +82,7 @@ class RuntimesController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
-        """Delete runtime."""
-
-        LOG.info("Delete runtime [id=%s]", id)
+        LOG.info("Delete resource.", resource={'type': self.type, 'id': id})
 
         with db_api.transaction():
             runtime_db = db_api.get_runtime(id)
@@ -117,7 +116,8 @@ class RuntimesController(rest.RestController):
             if key in runtime.to_dict():
                 values.update({key: runtime.to_dict().get(key)})
 
-        LOG.info('Update runtime [id=%s, values=%s]' % (id, values))
+        LOG.info('Update resource, params: %s', values,
+                 resource={'type': self.type, 'id': id})
 
         with db_api.transaction():
             if 'image' in values:

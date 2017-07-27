@@ -53,6 +53,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     git clone https://github.com/LingxianKong/qinling.git
     cd qinling
     sudo pip install -e .
+    cd ..
+
+    # Install python-qinlingclient
+    git clone https://github.com/LingxianKong/python-qinlingclient.git
+    cd python-qinlingclient
+    sudo pip install -e .
+    cd ..
 
     # Initialize Qinling configuration.
     sudo mkdir -p /vagrant/etc/qinling
@@ -65,7 +72,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     qinling-db-manage --config-file /vagrant/etc/qinling/qinling.conf upgrade head
 
     # Start Qinling service.
-    python qinling/cmd/launch.py --server api,engine --config-file /vagrant/etc/qinling/qinling.conf &
+    qinling-server --server api,engine --config-file /vagrant/etc/qinling/qinling.conf &
 
   SHELL
 end

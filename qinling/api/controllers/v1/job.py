@@ -33,6 +33,8 @@ POST_REQUIRED = set(['function_id'])
 
 
 class JobsController(rest.RestController):
+    type = 'job'
+
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(
         resources.Job,
@@ -48,7 +50,7 @@ class JobsController(rest.RestController):
             )
 
         first_time, next_time, count = jobs.validate_job(params)
-        LOG.info("Creating job. [job=%s]", params)
+        LOG.info("Creating %s, params: %s", self.type, params)
 
         with db_api.transaction():
             db_api.get_function(params['function_id'])
@@ -79,14 +81,13 @@ class JobsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
-        """Delete job."""
-        LOG.info("Delete job [id=%s]" % id)
+        LOG.info("Delete resource.", resource={'type': self.type, 'id': id})
         jobs.delete_job(id)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Job, types.uuid)
     def get(self, id):
-        LOG.info("Fetch job [id=%s]", id)
+        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
         job_db = db_api.get_job(id)
 
         return resources.Job.from_dict(job_db.to_dict())
@@ -94,7 +95,7 @@ class JobsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Jobs)
     def get_all(self):
-        LOG.info("Get all jobs.")
+        LOG.info("Get all %ss.", self.type)
 
         jobs = [resources.Job.from_dict(db_model.to_dict())
                 for db_model in db_api.get_jobs()]

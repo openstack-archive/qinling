@@ -27,7 +27,8 @@ class DefaultEngine(object):
         self.orchestrator = orchestrator
 
     def create_runtime(self, ctx, runtime_id):
-        LOG.info('Start to create runtime, id=%s', runtime_id)
+        LOG.info('Start to create.',
+                 resource={'type': 'runtime', 'id': runtime_id})
 
         with db_api.transaction():
             runtime = db_api.get_runtime(runtime_id)
@@ -49,16 +50,18 @@ class DefaultEngine(object):
                 runtime.status = status.ERROR
 
     def delete_runtime(self, ctx, runtime_id):
-        LOG.info('Start to delete runtime, id=%s', runtime_id)
+        resource = {'type': 'runtime', 'id': runtime_id}
+        LOG.info('Start to delete.', resource=resource)
 
         labels = {'runtime_id': runtime_id}
         self.orchestrator.delete_pool(runtime_id, labels=labels)
         db_api.delete_runtime(runtime_id)
 
-        LOG.info('Runtime %s deleted.', runtime_id)
+        LOG.info('Deleted.', resource=resource)
 
     def update_runtime(self, ctx, runtime_id, image=None, pre_image=None):
-        LOG.info('Start to update runtime, id=%s, image=%s', runtime_id, image)
+        resource = {'type': 'runtime', 'id': runtime_id}
+        LOG.info('Start to update, image=%s', image, resource=resource)
 
         labels = {'runtime_id': runtime_id}
         ret = self.orchestrator.update_pool(
@@ -69,12 +72,12 @@ class DefaultEngine(object):
             values = {'status': status.AVAILABLE}
             db_api.update_runtime(runtime_id, values)
 
-            LOG.info('Runtime %s updated.', runtime_id)
+            LOG.info('Updated.', resource=resource)
         else:
             values = {'status': status.AVAILABLE, 'image': pre_image}
             db_api.update_runtime(runtime_id, values)
 
-            LOG.info('Runtime %s rollbacked.', runtime_id)
+            LOG.info('Rollbacked.', resource=resource)
 
     def create_execution(self, ctx, execution_id, function_id, runtime_id,
                          input=None):
@@ -148,8 +151,10 @@ class DefaultEngine(object):
                 db_api.create_function_service_mapping(mapping)
 
     def delete_function(self, ctx, function_id):
-        LOG.info('Start to delete function, id=%s', function_id)
+        resource = {'type': 'function', 'id': function_id}
+        LOG.info('Start to delete.', resource=resource)
 
         labels = {'function_id': function_id}
-
         self.orchestrator.delete_function(function_id, labels=labels)
+
+        LOG.info('Deleted.', resource=resource)

@@ -29,6 +29,7 @@ LOG = logging.getLogger(__name__)
 class ExecutionsController(rest.RestController):
     def __init__(self, *args, **kwargs):
         self.engine_client = rpc.get_engine_client()
+        self.type = 'execution'
 
         super(ExecutionsController, self).__init__(*args, **kwargs)
 
@@ -38,9 +39,9 @@ class ExecutionsController(rest.RestController):
         body=resources.Execution,
         status_code=201
     )
-    def post(self, execution):
-        params = execution.to_dict()
-        LOG.info("Creating execution. [params=%s]", params)
+    def post(self, body):
+        params = body.to_dict()
+        LOG.info("Creating %s. [params=%s]", self.type, params)
 
         db_model = executions.create_execution(self.engine_client, params)
 
@@ -49,7 +50,7 @@ class ExecutionsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Executions)
     def get_all(self):
-        LOG.info("Get all executions.")
+        LOG.info("Get all %ss.", self.type)
 
         executions = [resources.Execution.from_dict(db_model.to_dict())
                       for db_model in db_api.get_executions()]
@@ -59,7 +60,7 @@ class ExecutionsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Execution, types.uuid)
     def get(self, id):
-        LOG.info("Fetch execution [id=%s]", id)
+        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
 
         execution_db = db_api.get_execution(id)
 
@@ -69,6 +70,6 @@ class ExecutionsController(rest.RestController):
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
         """Delete the specified Execution."""
-        LOG.info("Delete execution [id=%s]", id)
+        LOG.info("Delete resource.", resource={'type': self.type, 'id': id})
 
         return db_api.delete_execution(id)

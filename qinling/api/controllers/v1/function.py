@@ -46,13 +46,14 @@ class FunctionsController(rest.RestController):
     def __init__(self, *args, **kwargs):
         self.storage_provider = storage_base.load_storage_provider(CONF)
         self.engine_client = rpc.get_engine_client()
+        self.type = 'function'
 
         super(FunctionsController, self).__init__(*args, **kwargs)
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose()
     def get(self, id):
-        LOG.info("Fetch function [id=%s]", id)
+        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
 
         download = strutils.bool_from_string(
             pecan.request.GET.get('download', False)
@@ -90,7 +91,7 @@ class FunctionsController(rest.RestController):
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose('json')
     def post(self, **kwargs):
-        LOG.info("Creating function, params=%s", kwargs)
+        LOG.info("Creating %s, params: %s", self.type, kwargs)
 
         # When using image to create function, runtime_id is not a required
         # param.
@@ -169,7 +170,7 @@ class FunctionsController(rest.RestController):
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
         """Delete the specified function."""
-        LOG.info("Delete function [id=%s]", id)
+        LOG.info("Delete resource.", resource={'type': self.type, 'id': id})
 
         with db_api.transaction():
             func_db = db_api.get_function(id)
@@ -200,7 +201,8 @@ class FunctionsController(rest.RestController):
             if key in func.to_dict():
                 values.update({key: func.to_dict().get(key)})
 
-        LOG.info('Update function [id=%s, values=%s]' % (id, values))
+        LOG.info('Update resource, params: %s', values,
+                 resource={'type': self.type, 'id': id})
 
         with db_api.transaction():
             func_db = db_api.update_function(id, values)

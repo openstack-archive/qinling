@@ -54,8 +54,11 @@ def transaction():
         yield
 
 
-# A helper function for test.
 def delete_all():
+    """A helper function for testing."""
+    delete_jobs(insecure=True)
+    delete_executions(insecure=True)
+    delete_functions(insecure=True)
     delete_runtimes(insecure=True)
 
 
@@ -88,7 +91,11 @@ def update_function(id, values):
 
 
 def delete_function(id):
-    IMPL.delete_function(id)
+    return IMPL.delete_function(id)
+
+
+def delete_functions(**kwargs):
+    return IMPL.delete_functions(**kwargs)
 
 
 def create_runtime(values):
@@ -135,6 +142,10 @@ def update_execution(id, values):
     return IMPL.update_execution(id, values)
 
 
+def delete_executions(**kwargs):
+    return IMPL.delete_executions(**kwargs)
+
+
 def create_function_service_mapping(values):
     return IMPL.create_function_service_mapping(values)
 
@@ -169,3 +180,7 @@ def delete_job(id):
 
 def get_jobs():
     return IMPL.get_jobs()
+
+
+def delete_jobs(**kwargs):
+    return IMPL.delete_jobs(**kwargs)

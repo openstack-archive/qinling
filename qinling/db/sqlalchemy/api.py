@@ -253,6 +253,11 @@ def delete_function(id, session=None):
 
 
 @db_base.session_aware()
+def delete_functions(session=None, insecure=False, **kwargs):
+    return _delete_all(models.Function, insecure=insecure, **kwargs)
+
+
+@db_base.session_aware()
 def create_runtime(values, session=None):
     runtime = models.Runtime()
     runtime.update(values.copy())
@@ -337,6 +342,11 @@ def delete_execution(id, session=None):
     execution = get_execution(id)
 
     session.delete(execution)
+
+
+@db_base.session_aware()
+def delete_executions(session=None, insecure=False, **kwargs):
+    return _delete_all(models.Execution, insecure=insecure, **kwargs)
 
 
 @db_base.session_aware()
@@ -432,3 +442,8 @@ def get_next_jobs(before, session=None):
 @db_base.session_aware()
 def get_jobs(session=None, **kwargs):
     return _get_collection_sorted_by_time(models.Job, **kwargs)
+
+
+@db_base.session_aware()
+def delete_jobs(session=None, insecure=False, **kwargs):
+    return _delete_all(models.Job, insecure=insecure, **kwargs)

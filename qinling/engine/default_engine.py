@@ -13,6 +13,7 @@
 #    under the License.
 
 from oslo_log import log as logging
+import requests
 
 from qinling.db import api as db_api
 from qinling import status
@@ -87,6 +88,18 @@ class DefaultEngine(object):
             execution = db_api.get_execution(execution_id)
             function = db_api.get_function(function_id)
 
+            if function.service:
+                func_url = '%s/execute' % function.service.service_url
+                LOG.debug(
+                    'Found service url for function: %s, url: %s',
+                    function_id, func_url
+                )
+
+                r = requests.post(func_url, json=input)
+                execution.status = status.SUCCESS
+                execution.output = {'result': r.json()}
+                return
+
             source = function.code['source']
             image = None
             identifier = None
@@ -111,7 +124,6 @@ class DefaultEngine(object):
                 input=input,
                 entry=function.entry
             )
-
             output = self.orchestrator.run_execution(
                 function_id,
                 input=input,
@@ -124,10 +136,10 @@ class DefaultEngine(object):
                 execution_id,
                 output
             )
-
             execution.output = output
-            execution.status = 'success'
+            execution.status = status.SUCCESS
 
+            # No service is created in orchestrator for single container.
             if not image:
                 mapping = {
                     'function_id': function_id,

@@ -40,11 +40,9 @@ class ExecutionsController(rest.RestController):
     )
     def post(self, execution):
         params = execution.to_dict()
-        LOG.info("Creating execution. [execution=%s]", params)
+        LOG.info("Creating execution. [params=%s]", params)
 
         db_model = executions.create_execution(self.engine_client, params)
-        if params.get('sync', True):
-            db_model = db_api.get_execution(db_model.id)
 
         return resources.Execution.from_dict(db_model.to_dict())
 

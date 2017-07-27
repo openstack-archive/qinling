@@ -20,6 +20,19 @@ from qinling.db.sqlalchemy import types as st
 from qinling.utils import common
 
 
+class Runtime(model_base.QinlingSecureModelBase):
+    __tablename__ = 'runtime'
+
+    __table_args__ = (
+        sa.UniqueConstraint('image', 'project_id'),
+    )
+
+    name = sa.Column(sa.String(255))
+    description = sa.Column(sa.String(255))
+    image = sa.Column(sa.String(255), nullable=False)
+    status = sa.Column(sa.String(32), nullable=False)
+
+
 class Function(model_base.QinlingSecureModelBase):
     __tablename__ = 'function'
 
@@ -29,7 +42,10 @@ class Function(model_base.QinlingSecureModelBase):
 
     name = sa.Column(sa.String(255), nullable=False)
     description = sa.Column(sa.String(255))
-    runtime_id = sa.Column(sa.String(36), nullable=True)
+    runtime_id = sa.Column(
+        sa.String(36), sa.ForeignKey(Runtime.id), nullable=True
+    )
+    runtime = relationship('Runtime', back_populates="functions")
     memory_size = sa.Column(sa.Integer)
     timeout = sa.Column(sa.Integer)
     code = sa.Column(st.JsonLongDictType(), nullable=False)
@@ -49,20 +65,10 @@ class FunctionServiceMapping(model_base.QinlingModelBase):
         sa.String(36),
         sa.ForeignKey(Function.id, ondelete='CASCADE'),
     )
-    service_url = sa.Column(sa.String(255), nullable=False)
-
-
-class Runtime(model_base.QinlingSecureModelBase):
-    __tablename__ = 'runtime'
-
-    __table_args__ = (
-        sa.UniqueConstraint('image', 'project_id'),
+    function = relationship(
+        'Function', uselist=False, back_populates="service"
     )
-
-    name = sa.Column(sa.String(255))
-    description = sa.Column(sa.String(255))
-    image = sa.Column(sa.String(255), nullable=False)
-    status = sa.Column(sa.String(32), nullable=False)
+    service_url = sa.Column(sa.String(255), nullable=False)
 
 
 class Execution(model_base.QinlingSecureModelBase):
@@ -94,7 +100,7 @@ class Job(model_base.QinlingSecureModelBase):
         sa.String(36),
         sa.ForeignKey(Function.id)
     )
-    function = relationship('Function', lazy='joined')
+    function = relationship('Function', back_populates="jobs")
     function_input = sa.Column(st.JsonDictType())
     trust_id = sa.Column(sa.String(80))
 
@@ -103,3 +109,10 @@ class Job(model_base.QinlingSecureModelBase):
         common.datetime_to_str(d, 'first_execution_time')
         common.datetime_to_str(d, 'next_execution_time')
         return d
+
+
+Function.service = relationship("FunctionServiceMapping",
+                                uselist=False,
+                                back_populates="function")
+Runtime.functions = relationship("Function", back_populates="runtime")
+Function.jobs = relationship("Job", back_populates="function")

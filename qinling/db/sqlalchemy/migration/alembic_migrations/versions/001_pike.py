@@ -60,6 +60,7 @@ def upgrade():
         sa.Column('count', sa.Integer, nullable=False),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('name', 'project_id'),
+        sa.ForeignKeyConstraint(['runtime_id'], [u'runtime.id']),
         info={"check_ifexists": True}
     )
 

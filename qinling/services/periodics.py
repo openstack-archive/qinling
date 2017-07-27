@@ -127,13 +127,13 @@ def handle_job(engine_client):
                 job.function_id, job.id
             )
 
-            exe_param = {
+            params = {
                 'function_id': job.function_id,
                 'input': job.function_input,
                 'sync': False,
                 'description': constants.EXECUTION_BY_JOB % job.id
             }
-            executions.create_execution(engine_client, exe_param)
+            executions.create_execution(engine_client, params)
         except Exception:
             LOG.exception("Failed to process job %s", job.id)
         finally:

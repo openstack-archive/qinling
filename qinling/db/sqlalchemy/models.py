@@ -65,9 +65,6 @@ class FunctionServiceMapping(model_base.QinlingModelBase):
         sa.String(36),
         sa.ForeignKey(Function.id, ondelete='CASCADE'),
     )
-    function = relationship(
-        'Function', uselist=False, back_populates="service"
-    )
     service_url = sa.Column(sa.String(255), nullable=False)
 
 
@@ -111,8 +108,8 @@ class Job(model_base.QinlingSecureModelBase):
         return d
 
 
-Function.service = relationship("FunctionServiceMapping",
-                                uselist=False,
-                                back_populates="function")
+# Delete service mapping automatically when deleting function.
+Function.service = relationship("FunctionServiceMapping", uselist=False,
+                                cascade="all, delete-orphan")
 Runtime.functions = relationship("Function", back_populates="runtime")
 Function.jobs = relationship("Job", back_populates="function")

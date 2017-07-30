@@ -32,7 +32,6 @@ app = Flask(__name__)
 zip_file = ''
 function_module = 'main'
 function_method = 'main'
-openstack_session = None
 
 
 @app.route('/download', methods=['POST'])
@@ -42,16 +41,10 @@ def download():
     function_id = params.get('function_id')
     entry = params.get('entry')
     token = params.get('token')
-    auth_url = params.get('auth_url')
 
     headers = {}
     if token:
         headers = {'X-Auth-Token': token}
-
-        # Get openstack session.
-        global openstack_session
-        auth = generic.Token(auth_url=auth_url, token=token)
-        openstack_session = session.Session(auth=auth, verify=False)
 
     global zip_file
     zip_file = '%s.zip' % function_id
@@ -61,6 +54,7 @@ def download():
         (download_url, headers, entry)
     )
 
+    # Get function code package from Qinling service.
     r = requests.get(download_url, headers=headers, stream=True)
     with open(zip_file, 'wb') as fd:
         for chunk in r.iter_content(chunk_size=65535):
@@ -82,10 +76,18 @@ def execute():
     global zip_file
     global function_module
     global function_method
-    global openstack_session
+    openstack_session = None
+
+    params = request.get_json() or {}
+    token = params.get('token')
+    auth_url = params.get('auth_url')
+    input = params.get('input') or {}
+
+    if token:
+        auth = generic.Token(auth_url=auth_url, token=token)
+        openstack_session = session.Session(auth=auth, verify=False)
 
     context = {'os_session': openstack_session}
-    input = request.get_json() or {}
     app.logger.debug('Invoking function with input: %s' % input)
 
     start = time.time()

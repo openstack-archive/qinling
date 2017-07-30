@@ -12,14 +12,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
 from oslo_log import log as logging
 import requests
 
+from qinling import context
 from qinling.db import api as db_api
 from qinling import status
 from qinling.utils import common
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 class DefaultEngine(object):
@@ -98,9 +101,15 @@ class DefaultEngine(object):
                     function_id, func_url
                 )
 
-                r = requests.post(func_url, json=input)
+                data = {
+                    'token': context.get_ctx().auth_token,
+                    'auth_url': CONF.keystone_authtoken.auth_url,
+                    'input': input
+                }
+
+                r = requests.post(func_url, json=data)
                 execution.status = status.SUCCESS
-                execution.output = {'result': r.json()}
+                execution.output = r.json()
                 return
 
             source = function.code['source']

@@ -353,11 +353,16 @@ class KubernetesManager(base.OrchestratorBase):
                       service_url=None):
         if service_url:
             func_url = '%s/execute' % service_url
+            data = {
+                'token': context.get_ctx().auth_token,
+                'auth_url': self.conf.keystone_authtoken.auth_url,
+                'input': input
+            }
+
             LOG.info('Invoke function %s, url: %s', function_id, func_url)
 
-            r = requests.post(func_url, json=input)
-
-            return {'result': r.json()}
+            r = requests.post(func_url, json=data)
+            return r.json()
         else:
             status = None
 
@@ -377,7 +382,7 @@ class KubernetesManager(base.OrchestratorBase):
                 self.conf.kubernetes.namespace,
             )
 
-            return {'result': output}
+            return output
 
     def delete_function(self, function_id, labels=None):
         selector = common.convert_dict_to_string(labels)

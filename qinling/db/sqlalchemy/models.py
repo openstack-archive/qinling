@@ -83,12 +83,7 @@ class Job(model_base.QinlingSecureModelBase):
     __tablename__ = 'job'
 
     name = sa.Column(sa.String(255), nullable=True)
-    pattern = sa.Column(
-        sa.String(32),
-        nullable=True,
-        # Set default to 'never'.
-        default='0 0 30 2 0'
-    )
+    pattern = sa.Column(sa.String(32), nullable=True)
     status = sa.Column(sa.String(32), nullable=False)
     first_execution_time = sa.Column(sa.DateTime, nullable=True)
     next_execution_time = sa.Column(sa.DateTime, nullable=False)

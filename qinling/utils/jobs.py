@@ -23,32 +23,46 @@ from qinling import exceptions as exc
 from qinling.utils.openstack import keystone as keystone_utils
 
 
+def validate_next_time(next_execution_time):
+    next_time = next_execution_time
+    if isinstance(next_execution_time, six.string_types):
+        try:
+            # We need naive datetime object.
+            next_time = parser.parse(next_execution_time, ignoretz=True)
+        except ValueError as e:
+            raise exc.InputException(str(e))
+
+    valid_min_time = timeutils.utcnow() + datetime.timedelta(0, 60)
+    if valid_min_time > next_time:
+        raise exc.InputException(
+            'Execution time must be at least 1 minute in the future.'
+        )
+
+    return next_time
+
+
+def validate_pattern(pattern):
+    try:
+        croniter.croniter(pattern)
+    except (ValueError, KeyError):
+        raise exc.InputException(
+            'The specified pattern is not valid: {}'.format(pattern)
+        )
+
+
 def validate_job(params):
     first_time = params.get('first_execution_time')
     pattern = params.get('pattern')
     count = params.get('count')
     start_time = timeutils.utcnow()
 
-    if isinstance(first_time, six.string_types):
-        try:
-            # We need naive datetime object.
-            first_time = parser.parse(first_time, ignoretz=True)
-        except ValueError as e:
-            raise exc.InputException(e.message)
-
     if not (first_time or pattern):
         raise exc.InputException(
             'Pattern or first_execution_time must be specified.'
         )
 
+    first_time = validate_next_time(first_time)
     if first_time:
-        # first_time is assumed to be UTC time.
-        valid_min_time = timeutils.utcnow() + datetime.timedelta(0, 60)
-        if valid_min_time > first_time:
-            raise exc.InputException(
-                'first_execution_time must be at least 1 minute in the '
-                'future.'
-            )
         if not pattern and count and count > 1:
             raise exc.InputException(
                 'Pattern must be provided if count is greater than 1.'
@@ -57,14 +71,9 @@ def validate_job(params):
         next_time = first_time
         if not (pattern or count):
             count = 1
-    if pattern:
-        try:
-            croniter.croniter(pattern)
-        except (ValueError, KeyError):
-            raise exc.InputException(
-                'The specified pattern is not valid: {}'.format(pattern)
-            )
 
+    if pattern:
+        validate_pattern(pattern)
         if not first_time:
             next_time = croniter.croniter(pattern, start_time).get_next(
                 datetime.datetime

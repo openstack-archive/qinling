@@ -312,7 +312,7 @@ class Job(Resource):
     name = wtypes.text
     function_id = types.uuid
     function_input = types.jsontype
-    status = wsme.wsattr(wtypes.text, readonly=True)
+    status = wtypes.text
     pattern = wtypes.text
     count = int
     first_execution_time = wtypes.text

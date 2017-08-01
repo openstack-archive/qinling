@@ -12,8 +12,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import datetime
+
+import croniter
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import timeutils
 from pecan import rest
 import wsmeext.pecan as wsme_pecan
 
@@ -30,6 +34,8 @@ LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 POST_REQUIRED = set(['function_id'])
+UPDATE_ALLOWED = set(['name', 'function_input', 'status', 'pattern',
+                      'next_execution_time'])
 
 
 class JobsController(rest.RestController):
@@ -49,6 +55,7 @@ class JobsController(rest.RestController):
                 'Required param is missing. Required: %s' % POST_REQUIRED
             )
 
+        # Check the input params.
         first_time, next_time, count = jobs.validate_job(params)
         LOG.info("Creating %s, params: %s", self.type, params)
 
@@ -101,3 +108,66 @@ class JobsController(rest.RestController):
                 for db_model in db_api.get_jobs()]
 
         return resources.Jobs(jobs=jobs)
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        resources.Job,
+        types.uuid,
+        body=resources.Job
+    )
+    def put(self, id, job):
+        """Update job definition.
+
+        1. Can not update a finished job.
+        2. Can not change job type.
+        3. Allow to pause a one-shot job and resume before its first execution
+           time.
+        """
+        values = {}
+        for key in UPDATE_ALLOWED:
+            if key in job.to_dict():
+                values.update({key: job.to_dict().get(key)})
+
+        LOG.info('Update resource, params: %s', values,
+                 resource={'type': self.type, 'id': id})
+
+        new_status = values.get('status')
+        pattern = values.get('pattern')
+        next_execution_time = values.get('next_execution_time')
+
+        job_db = db_api.get_job(id)
+
+        if job_db.status in [status.DONE, status.CANCELLED]:
+            raise exc.InputException('Can not update a finished job.')
+
+        if pattern:
+            if not job_db.pattern:
+                raise exc.InputException('Can not change job type.')
+            jobs.validate_pattern(pattern)
+        elif pattern == '' and job_db.pattern:
+            raise exc.InputException('Can not change job type.')
+
+        valid_states = [status.RUNNING, status.CANCELLED, status.PAUSED]
+        if new_status and new_status not in valid_states:
+            raise exc.InputException('Invalid status.')
+
+        if next_execution_time:
+            values['next_execution_time'] = jobs.validate_next_time(
+                next_execution_time
+            )
+        elif (job_db.status == status.PAUSED and
+              new_status == status.RUNNING):
+            p = job_db.pattern or pattern
+
+            if not p:
+                # Check if the next execution time for one-shot job is still
+                # valid.
+                jobs.validate_next_time(job_db.next_execution_time)
+            else:
+                # Update next_execution_time for recurring job.
+                values['next_execution_time'] = croniter.croniter(
+                    p, timeutils.utcnow()
+                ).get_next(datetime.datetime)
+
+        updated_job = db_api.update_job(id, values)
+        return resources.Job.from_dict(updated_job.to_dict())

@@ -125,8 +125,8 @@ class JobsController(rest.RestController):
         """
         values = {}
         for key in UPDATE_ALLOWED:
-            if key in job.to_dict():
-                values.update({key: job.to_dict().get(key)})
+            if job.to_dict().get(key) is not None:
+                values.update({key: job.to_dict()[key]})
 
         LOG.info('Update resource, params: %s', values,
                  resource={'type': self.type, 'id': id})

@@ -113,8 +113,8 @@ class RuntimesController(rest.RestController):
         """
         values = {}
         for key in UPDATE_ALLOWED:
-            if key in runtime.to_dict():
-                values.update({key: runtime.to_dict().get(key)})
+            if runtime.to_dict().get(key) is not None:
+                values.update({key: runtime.to_dict()[key]})
 
         LOG.info('Update resource, params: %s', values,
                  resource={'type': self.type, 'id': id})

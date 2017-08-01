@@ -198,8 +198,8 @@ class FunctionsController(rest.RestController):
         """
         values = {}
         for key in UPDATE_ALLOWED:
-            if key in func.to_dict():
-                values.update({key: func.to_dict().get(key)})
+            if func.to_dict().get(key) is not None:
+                values.update({key: func.to_dict()[key]})
 
         LOG.info('Update resource, params: %s', values,
                  resource={'type': self.type, 'id': id})

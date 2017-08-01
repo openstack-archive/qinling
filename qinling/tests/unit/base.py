@@ -14,7 +14,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
 import random
 
 from oslo_config import cfg
@@ -186,22 +185,18 @@ class DbTestCase(BaseTest):
 
         return function
 
-    def create_job(self, function_id=None, prefix=None):
+    def create_job(self, function_id=None, prefix=None, **kwargs):
         if not function_id:
             function_id = self.create_function(prefix=prefix).id
 
-        job = db_api.create_job(
-            {
-                'name': self.rand_name('job', prefix=prefix),
-                'function_id': function_id,
-                'first_execution_time': datetime.utcnow(),
-                'next_execution_time': datetime.utcnow(),
-                'count': 1,
-                # 'auth_enable' is disabled by default, we create runtime for
-                # default tenant.
-                'project_id': DEFAULT_PROJECT_ID,
-                'status': status.RUNNING
-            }
-        )
+        job_params = {
+            'name': self.rand_name('job', prefix=prefix),
+            'function_id': function_id,
+            # 'auth_enable' is disabled by default, we create runtime for
+            # default tenant.
+            'project_id': DEFAULT_PROJECT_ID,
+        }
+        job_params.update(kwargs)
+        job = db_api.create_job(job_params)
 
         return job

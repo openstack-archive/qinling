@@ -431,11 +431,19 @@ def delete_job(id, session=None):
 
 
 @db_base.session_aware()
+def update_job(id, values, session=None):
+    job = get_job(id)
+    job.update(values.copy())
+
+    return job
+
+
+@db_base.session_aware()
 def get_next_jobs(before, session=None):
     return _get_collection(
         models.Job, insecure=True, sort_keys=['next_execution_time'],
         sort_dirs=['asc'], next_execution_time={'lt': before},
-        status={'neq': status.DONE}
+        status=status.RUNNING
     )
 
 

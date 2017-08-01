@@ -178,6 +178,10 @@ def delete_job(id):
     return IMPL.delete_job(id)
 
 
+def update_job(id, values):
+    return IMPL.update_job(id, values)
+
+
 def get_jobs():
     return IMPL.get_jobs()
 

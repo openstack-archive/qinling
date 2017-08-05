@@ -121,7 +121,7 @@ def delete_trust(trust_id):
         client.trusts.delete(trust_id)
         LOG.debug('Trust %s deleted.', trust_id)
     except Exception:
-        LOG.exception("Failed to delete trust [id=%s]: %s", trust_id)
+        LOG.exception("Failed to delete trust [id=%s]", trust_id)
 
 
 def create_trust_context(trust_id, project_id):

@@ -286,7 +286,6 @@ class KubernetesManager(base.OrchestratorBase):
             'function_id': function_id,
             'entry': entry,
             'token': context.get_ctx().auth_token,
-            'auth_url': self.conf.keystone_authtoken.auth_url
         }
 
         LOG.debug(
@@ -353,11 +352,7 @@ class KubernetesManager(base.OrchestratorBase):
                       service_url=None):
         if service_url:
             func_url = '%s/execute' % service_url
-            data = {
-                'token': context.get_ctx().auth_token,
-                'auth_url': self.conf.keystone_authtoken.auth_url,
-                'input': input
-            }
+            data = {'input': input}
 
             LOG.info('Invoke function %s, url: %s', function_id, func_url)
 

@@ -16,7 +16,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import requests
 
-from qinling import context
 from qinling.db import api as db_api
 from qinling import status
 from qinling.utils import common
@@ -101,12 +100,7 @@ class DefaultEngine(object):
                     function_id, func_url
                 )
 
-                data = {
-                    'token': context.get_ctx().auth_token,
-                    'auth_url': CONF.keystone_authtoken.auth_url,
-                    'input': input
-                }
-
+                data = {'input': input}
                 r = requests.post(func_url, json=data)
                 execution.status = status.SUCCESS
                 execution.output = r.json()

@@ -24,8 +24,6 @@ from flask import abort
 from flask import Flask
 from flask import request
 from flask import Response
-from keystoneauth1.identity import generic
-from keystoneauth1 import session
 import requests
 
 app = Flask(__name__)
@@ -76,18 +74,9 @@ def execute():
     global zip_file
     global function_module
     global function_method
-    openstack_session = None
 
     params = request.get_json() or {}
-    token = params.get('token')
-    auth_url = params.get('auth_url')
     input = params.get('input') or {}
-
-    if token:
-        auth = generic.Token(auth_url=auth_url, token=token)
-        openstack_session = session.Session(auth=auth, verify=False)
-
-    context = {'os_session': openstack_session}
     app.logger.debug('Invoking function with input: %s' % input)
 
     start = time.time()
@@ -95,7 +84,7 @@ def execute():
         sys.path.insert(0, zip_file)
         module = importlib.import_module(function_module)
         func = getattr(module, function_method)
-        result = func(context=context, **input)
+        result = func(**input)
     except Exception as e:
         result = str(e)
 

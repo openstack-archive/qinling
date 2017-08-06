@@ -61,8 +61,8 @@ def validate_job(params):
             'Pattern or first_execution_time must be specified.'
         )
 
-    first_time = validate_next_time(first_time)
     if first_time:
+        first_time = validate_next_time(first_time)
         if not pattern and count and count > 1:
             raise exc.InputException(
                 'Pattern must be provided if count is greater than 1.'

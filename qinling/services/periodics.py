@@ -57,8 +57,6 @@ def handle_function_service_expiration(ctx, engine_client, orchestrator):
         function_id={'in': expiry_ids}
     )
 
-    LOG.info('Found %s total expiry function mappings', len(mappings))
-
     with db_api.transaction():
         for m in mappings:
             LOG.info('Deleting service mapping for function %s', m.function_id)

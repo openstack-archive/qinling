@@ -55,16 +55,15 @@ class BaseTest(base.BaseTestCase):
         cfg.CONF.set_override(name, override, group)
         self.addCleanup(cfg.CONF.clear_override, name, group)
 
-    def _assertDictContainsSubset(self, parent, child, msg=None):
+    def _assertDictContainsSubset(self, parent, child):
         """Checks whether child dict is a superset of parent.
 
         assertDictContainsSubset() in standard Python 2.7 has been deprecated
         since Python 3.2
+
+        Refer to https://goo.gl/iABb5c
         """
-        self.assertTrue(
-            set(child.items()).issubset(set(parent.items())),
-            msg=msg
-        )
+        self.assertEqual(parent, dict(parent, **child))
 
     def _assert_single_item(self, items, **props):
         return self._assert_multiple_items(items, 1, **props)[0]

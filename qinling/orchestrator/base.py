@@ -43,7 +43,11 @@ class OrchestratorBase(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def run_execution(self, function_id, **kwargs):
+    def run_execution(self, execution_id, function_id, **kwargs):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_execution_log(self, execution_id, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod

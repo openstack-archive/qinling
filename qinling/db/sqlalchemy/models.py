@@ -66,6 +66,7 @@ class FunctionServiceMapping(model_base.QinlingModelBase):
         sa.ForeignKey(Function.id, ondelete='CASCADE'),
     )
     service_url = sa.Column(sa.String(255), nullable=False)
+    worker_name = sa.Column(sa.String(255), nullable=False)
 
 
 class Execution(model_base.QinlingSecureModelBase):
@@ -77,6 +78,7 @@ class Execution(model_base.QinlingSecureModelBase):
     input = sa.Column(st.JsonLongDictType())
     output = sa.Column(st.JsonLongDictType())
     description = sa.Column(sa.String(255))
+    logs = sa.Column(sa.Text(), nullable=True)
 
 
 class Job(model_base.QinlingSecureModelBase):

@@ -15,6 +15,7 @@
 import importlib
 import json
 import logging
+import os
 import sys
 import time
 import traceback
@@ -30,6 +31,13 @@ app = Flask(__name__)
 zip_file = ''
 function_module = 'main'
 function_method = 'main'
+
+
+# By default sys.stdout is usually line buffered for tty devices and fully
+# buffered for other files. We need to change it to unbuffered to get execution
+# log properly.
+unbuffered = os.fdopen(sys.stdout.fileno(), 'w', 0)
+sys.stdout = unbuffered
 
 
 @app.route('/download', methods=['POST'])
@@ -77,6 +85,8 @@ def execute():
 
     params = request.get_json() or {}
     input = params.get('input') or {}
+    execution_id = params['execution_id']
+    print('Start execution: %s' % execution_id)
     app.logger.debug('Invoking function with input: %s' % input)
 
     start = time.time()
@@ -92,6 +102,8 @@ def execute():
         exc_type, exc_value, exc_traceback = sys.exc_info()
         lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
         app.logger.debug(''.join(line for line in lines))
+    finally:
+        print('Finished execution: %s' % execution_id)
 
     duration = time.time() - start
     return Response(

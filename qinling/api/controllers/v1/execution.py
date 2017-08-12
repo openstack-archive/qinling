@@ -13,6 +13,7 @@
 #    limitations under the License.
 
 from oslo_log import log as logging
+import pecan
 from pecan import rest
 import wsmeext.pecan as wsme_pecan
 
@@ -26,7 +27,19 @@ from qinling.utils import rest_utils
 LOG = logging.getLogger(__name__)
 
 
+class ExecutionLogController(rest.RestController):
+    @rest_utils.wrap_pecan_controller_exception
+    @pecan.expose(content_type='text/plain')
+    def get_all(self, execution_id):
+        LOG.info("Get logs for execution %s.", execution_id)
+        execution_db = db_api.get_execution(execution_id)
+
+        return execution_db.logs
+
+
 class ExecutionsController(rest.RestController):
+    log = ExecutionLogController()
+
     def __init__(self, *args, **kwargs):
         self.engine_client = rpc.get_engine_client()
         self.type = 'execution'

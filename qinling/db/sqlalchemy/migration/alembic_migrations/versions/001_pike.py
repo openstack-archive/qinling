@@ -71,6 +71,7 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('function_id', sa.String(length=36), nullable=False),
         sa.Column('service_url', sa.String(length=255), nullable=False),
+        sa.Column('worker_name', sa.String(length=255), nullable=False),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('function_id', 'service_url'),
         sa.ForeignKeyConstraint(
@@ -106,6 +107,7 @@ def upgrade():
         sa.Column('sync', sa.BOOLEAN, nullable=False),
         sa.Column('input', st.JsonLongDictType(), nullable=True),
         sa.Column('output', st.JsonLongDictType(), nullable=True),
+        sa.Column('logs', sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         info={"check_ifexists": True}
     )

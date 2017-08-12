@@ -100,10 +100,19 @@ class DefaultEngine(object):
                     function_id, func_url
                 )
 
-                data = {'input': input}
+                data = {'input': input, 'execution_id': execution_id}
                 r = requests.post(func_url, json=data)
+
+                logs = self.orchestrator.get_execution_log(
+                    execution_id,
+                    worker_name=function.service.worker_name,
+                )
+
+                LOG.debug('Finished execution %s', execution_id)
+
                 execution.status = status.SUCCESS
                 execution.output = r.json()
+                execution.logs = logs
                 return
 
             source = function.code['source']
@@ -122,7 +131,7 @@ class DefaultEngine(object):
                 identifier = runtime_id
                 labels = {'runtime_id': runtime_id}
 
-            service_url = self.orchestrator.prepare_execution(
+            worker_name, service_url = self.orchestrator.prepare_execution(
                 function_id,
                 image=image,
                 identifier=identifier,
@@ -131,11 +140,20 @@ class DefaultEngine(object):
                 entry=function.entry
             )
             output = self.orchestrator.run_execution(
+                execution_id,
                 function_id,
                 input=input,
                 identifier=identifier,
                 service_url=service_url,
             )
+
+            logs = ''
+            # Execution log is only available for non-image source execution.
+            if service_url:
+                logs = self.orchestrator.get_execution_log(
+                    execution_id,
+                    worker_name=worker_name,
+                )
 
             LOG.debug(
                 'Finished execution. execution_id=%s, output=%s',
@@ -143,13 +161,15 @@ class DefaultEngine(object):
                 output
             )
             execution.output = output
+            execution.logs = logs
             execution.status = status.SUCCESS
 
             # No service is created in orchestrator for single container.
             if not image:
                 mapping = {
                     'function_id': function_id,
-                    'service_url': service_url
+                    'service_url': service_url,
+                    'worker_name': worker_name
                 }
                 db_api.create_function_service_mapping(mapping)
 

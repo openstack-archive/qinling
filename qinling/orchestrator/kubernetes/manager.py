@@ -304,7 +304,7 @@ class KubernetesManager(base.OrchestratorBase):
                 'Failed to download function code package.'
             )
 
-        return pod_service_url
+        return name, pod_service_url
 
     def _create_pod(self, image, pod_name, labels, input):
         pod_body = self.pod_template.render(
@@ -339,7 +339,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         if image:
             self._create_pod(image, identifier, labels, input)
-            return None
+            return identifier, None
         else:
             pod = self._choose_available_pod(labels)
 
@@ -348,11 +348,11 @@ class KubernetesManager(base.OrchestratorBase):
 
         return self._prepare_pod(pod, identifier, function_id, labels, entry)
 
-    def run_execution(self, function_id, input=None, identifier=None,
-                      service_url=None):
+    def run_execution(self, execution_id, function_id, input=None,
+                      identifier=None, service_url=None):
         if service_url:
             func_url = '%s/execute' % service_url
-            data = {'input': input}
+            data = {'input': input, 'execution_id': execution_id}
 
             LOG.info('Invoke function %s, url: %s', function_id, func_url)
 
@@ -378,6 +378,21 @@ class KubernetesManager(base.OrchestratorBase):
             )
 
             return output
+
+    def get_execution_log(self, execution_id, worker_name=None):
+        logs = self.v1.read_namespaced_pod_log(
+            worker_name,
+            self.conf.kubernetes.namespace,
+        )
+
+        b_index = logs.index('Start execution: %s' % execution_id)
+        end_string = 'Finished execution: %s' % execution_id
+        e_index = logs.index(end_string)
+        e_index += len(end_string)
+
+        execution_log = logs[b_index:e_index]
+
+        return execution_log
 
     def delete_function(self, function_id, labels=None):
         selector = common.convert_dict_to_string(labels)

@@ -238,7 +238,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         LOG.debug('Labels updated for pod %s', name)
 
-        # Create service for the choosen pod.
+        # Create service for the chosen pod.
         service_name = "service-%s" % function_id
         labels.update({'function_id': function_id})
         service_body = self.service_template.render(
@@ -258,7 +258,7 @@ class KubernetesManager(base.OrchestratorBase):
             name, service_name, node_port
         )
 
-        # Get external ip address for an arbitary node.
+        # Get external ip address for an arbitrary node.
         ret = self.v1.list_node()
         addresses = ret.items[0].status.addresses
         node_ip = None

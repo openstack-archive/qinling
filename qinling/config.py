@@ -102,7 +102,7 @@ STORAGE_GROUP = 'storage'
 storage_opts = [
     cfg.StrOpt(
         'file_system_dir',
-        help='Directory to store funtion packages.'
+        help='Directory to store function packages.'
     ),
     cfg.StrOpt(
         'provider',

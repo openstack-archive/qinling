@@ -2,7 +2,7 @@ Qinling Installation Guide
 ==========================
 
 Prerequisites
--------------
+~~~~~~~~~~~~~
 
 It is necessary to install some specific system libs for installing Qinling.
 They can be installed on most popular operating system using their package
@@ -29,7 +29,7 @@ with OpenStack.** In case of OpenStack, it works **only on Keystone v3**, make
 sure **Keystone v3** is installed.
 
 Installation
-------------
+~~~~~~~~~~~~
 
 First of all, clone the repo and go to the repo directory::
 
@@ -68,7 +68,7 @@ that it doesn’t actually install anything. Instead, it creates a special
 source code.
 
 Before the first run
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 After installation you will see **qinling-server** and **qinling-db-manage** commands
 in your environment, either in system or virtual environment.
@@ -105,21 +105,21 @@ Please use sync_db script described below instead for database initialization.
     $ python tools/sync_db.py --config-file <path-to-qinling.conf>
 
 Running Qinling API server
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To run Qinling API server perform the following command in a shell::
 
     $ qinling-server --server api --config-file <path-to-qinling.conf>
 
 Running Qinling Engines
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 To run Qinling Engine perform the following command in a shell::
 
     $ qinling-server --server engine --config-file <path-to-qinling.conf>
 
 Running Qinling Task Executors
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To run Qinling Task Executor instance perform the following command in a shell::
 
     $ qinling-server --server executor --config-file <path-to-qinling.conf>
@@ -128,7 +128,7 @@ Note that at least one Engine instance and one Executor instance should be
 running so that workflow tasks are processed by Qinling.
 
 Running Multiple Qinling Servers Under the Same Process
--------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To run more than one server (API, Engine, or Task Executor) on the same process,
 perform the following command in a shell::
 
@@ -142,34 +142,7 @@ Qinling servers are launched on the same process. Otherwise, messages do not
 get delivered if the Qinling servers are launched on different processes
 because the "fake" transport is using an in process queue.
 
-Qinling And Docker
-------------------
-Please first refer `installation steps for docker <https://docs.docker.com/installation/>`_.
-To build the image from the qinling source, change directory to the root
-directory of the Qinling git repository and run::
-
-    $ docker build -t <Name of image> .
-
-In case you want pre-built image, you can download it from `openstack tarballs source <https://tarballs.openstack.org/qinling/images/qinling-docker.tar.gz>`_.
-
-To load this image to docker registry, please run following command::
-
-    $ docker load -i '<path of qinling-docker.tar.gz>'
-
-The Qinling Docker image is configured to store the database in the user's home
-directory. For persistence of these data, you may want to keep this directory
-outside of the container. This may be done by the following steps::
-
-    $ sudo mkdir '<user-defined-directory>'
-    $ docker run -it -v '<user-defined-directory>':/home/qinling <Name of image>
-
-More about docker: https://www.docker.com/
-
-**NOTE:** This docker image uses **SQLite** database. So, it cannot be used for
-production environment. If you want to use this for production environment,
-then put customized qinling.conf to '<user-defined-directory>'.
-
 Qinling Client Installation
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Please refer to :doc:`Qinling Client / CLI Guide </guides/mistralclient_guide>`

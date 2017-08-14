@@ -26,7 +26,8 @@ plugin mechanism.
 * Bug Track: http://bugs.launchpad.net/qinling
 * IRC channel on Freenode: #openstack-qinling
 
-Table of Contents:
+Table of Contents
+=================
 
 .. toctree::
    :maxdepth: 2

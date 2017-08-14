@@ -29,7 +29,7 @@ plugin mechanism.
 Table of Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    quick_start
    installation
@@ -39,6 +39,4 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
-

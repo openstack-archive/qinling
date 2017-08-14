@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime as dt
 import os
 import sys
 
@@ -37,8 +38,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'qinling'
-copyright = u'2016, OpenStack Foundation'
+project = u'Qinling'
+copyright = u"%d, OpenStack Foundation" % dt.datetime.now().year
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -54,9 +55,9 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-# html_theme_path = ["."]
-# html_theme = '_theme'
-# html_static_path = ['static']
+html_theme_path = []
+html_theme = "default"
+html_static_path = []
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project

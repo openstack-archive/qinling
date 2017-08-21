@@ -41,6 +41,17 @@ class TestJobController(base.APITest):
 
         self.assertEqual(201, resp.status_int)
 
+    def test_post_pattern(self):
+        body = {
+            'name': self.rand_name('job', prefix='TestJobController'),
+            'function_id': self.function_id,
+            'pattern': '0 21 * * *',
+            'count': 10
+        }
+        resp = self.app.post_json('/v1/jobs', body)
+
+        self.assertEqual(201, resp.status_int)
+
     def test_delete(self):
         job_id = self.create_job(
             self.function_id, prefix='TestJobController',

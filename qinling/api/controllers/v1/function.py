@@ -174,8 +174,12 @@ class FunctionsController(rest.RestController):
 
         with db_api.transaction():
             func_db = db_api.get_function(id)
-            source = func_db.code['source']
+            if len(func_db.jobs) > 0:
+                raise exc.NotAllowedException(
+                    'The function is still associated with running job(s).'
+                )
 
+            source = func_db.code['source']
             if source == 'package':
                 self.storage_provider.delete(context.get_ctx().projectid, id)
 

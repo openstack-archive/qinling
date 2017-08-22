@@ -5,8 +5,9 @@ Installation
 ~~~~~~~~~~~~
 
 A fast and simple way to try Qinling is to create a Vagrant VM including all
-related components and dependencies of Qinling service. For your convenience,
-Qinling team already provide a Vagrantfile in ``tools/vagrant`` folder.
+related components and dependencies of Qinling service. For quick installation,
+evaluation, and convenience, Qinling team provides a Vagrantfile in
+``tools/vagrant`` folder.
 
 Qinling is a FaaS implemented on top of container orchestration system such as
 Kubernetes, Swarm, etc. Particularly, Kubernetes is a reference backend
@@ -90,9 +91,9 @@ Getting started with Qinling
 Perform following commands on your local host, we will create
 runtime/function/execution during the process.
 
-1. (Optional) Prepare a docker image including development environment for a
-   specific programming language. For your convenience, I already build one
-   (``lingxiankong/python-runtime``) in my docker hub account that you could
+#. (Optional) Prepare a docker image including development environment for a
+   specific programming language. For your convenience, there is a pre-built
+   image ``openstackqinling/python-runtime`` that you could
    directly use to create runtime in Qinling. Only ``Python 2`` runtime is
    supported for now, but it is very easy to add another program language
    support. If you indeed want to build a new image, run the following commands
@@ -107,7 +108,7 @@ runtime/function/execution during the process.
 
    .. end
 
-2. Create runtime. ``runtime`` in Qinling is running environment for a
+#. Create runtime. ``runtime`` in Qinling is running environment for a
    specific language, this resource is supposed to be created/deleted/updated
    by cloud operator. After creation, check the runtime status until it's
    ``available`` before you execute any functions:
@@ -172,7 +173,7 @@ runtime/function/execution during the process.
 
    .. end
 
-3. Create a customized function package:
+#. Create a customized function package:
 
    .. code-block:: console
 
@@ -191,7 +192,7 @@ runtime/function/execution during the process.
 
    .. end
 
-4. Create function, ``runtime_id`` comes from the output of the above command:
+#. Create function, ``runtime_id`` comes from the output of the above command:
 
    .. code-block:: console
 
@@ -243,7 +244,7 @@ runtime/function/execution during the process.
 
    .. end
 
-5. Invoke the function by specifying ``function_id``:
+#. Invoke the function by specifying ``function_id``:
 
    .. code-block:: console
 

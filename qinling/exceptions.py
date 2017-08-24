@@ -64,8 +64,14 @@ class NotAllowedException(QinlingException):
     message = "Operation not allowed"
 
 
+class ConflictException(QinlingException):
+    http_code = 409
+    message = ("The request could not be completed due to a conflict with the "
+               "current state of the target resource")
+
+
 class RuntimeNotAvailableException(QinlingException):
-    http_code = 403
+    http_code = 409
     message = "Runtime not available"
 
 

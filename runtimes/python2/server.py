@@ -31,7 +31,7 @@ app = Flask(__name__)
 zip_file = ''
 function_module = 'main'
 function_method = 'main'
-
+zip_imported = False
 
 # By default sys.stdout is usually line buffered for tty devices and fully
 # buffered for other files. We need to change it to unbuffered to get execution
@@ -79,9 +79,14 @@ def download():
 
 @app.route('/execute', methods=['POST'])
 def execute():
+    global zip_imported
     global zip_file
     global function_module
     global function_method
+
+    if not zip_imported:
+        sys.path.insert(0, zip_file)
+        zip_imported = True
 
     params = request.get_json() or {}
     input = params.get('input') or {}
@@ -91,7 +96,6 @@ def execute():
 
     start = time.time()
     try:
-        sys.path.insert(0, zip_file)
         module = importlib.import_module(function_module)
         func = getattr(module, function_method)
         result = func(**input)
@@ -127,4 +131,4 @@ def setup_logger(loglevel):
 
 setup_logger(logging.DEBUG)
 app.logger.info("Starting server")
-app.run(host='0.0.0.0', port='9090')
+app.run(host='0.0.0.0', port='9090', threaded=True)

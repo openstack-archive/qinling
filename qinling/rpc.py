@@ -186,3 +186,12 @@ class EngineClient(object):
             'delete_function',
             function_id=id
         )
+
+    @wrap_messaging_exception
+    def scaleup_function(self, id, runtime_id):
+        return self._client.prepare(topic=self.topic, server=None).cast(
+            ctx.get_ctx(),
+            'scaleup_function',
+            function_id=id,
+            runtime_id=runtime_id,
+        )

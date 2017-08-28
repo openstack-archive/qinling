@@ -43,6 +43,11 @@ UPDATE_ALLOWED = set(['name', 'description', 'entry'])
 
 
 class FunctionsController(rest.RestController):
+    _custom_actions = {
+        'scale_up': ['POST'],
+        'scale_down': ['POST'],
+    }
+
     def __init__(self, *args, **kwargs):
         self.storage_provider = storage_base.load_storage_provider(CONF)
         self.engine_client = rpc.get_engine_client()
@@ -216,3 +221,21 @@ class FunctionsController(rest.RestController):
                 self.engine_client.delete_function(id)
 
         return resources.Function.from_dict(func_db.to_dict())
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        None,
+        types.uuid,
+        status_code=202
+    )
+    def scale_up(self, id):
+        """Scale up the containers for function execution.
+
+        This is admin only operation. The number of added containers is defined
+        in config file.
+        """
+        func_db = db_api.get_function(id)
+
+        LOG.info('Starting to scale up function %s', id)
+
+        self.engine_client.scaleup_function(id, runtime_id=func_db.runtime_id)

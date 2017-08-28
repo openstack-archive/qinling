@@ -89,6 +89,7 @@ class DefaultEngine(object):
             execution_id, function_id, runtime_id, input
         )
 
+        # FIXME(kong): Make the transaction range smaller.
         with db_api.transaction():
             execution = db_api.get_execution(execution_id)
             function = db_api.get_function(function_id)
@@ -102,17 +103,14 @@ class DefaultEngine(object):
 
                 data = {'input': input, 'execution_id': execution_id}
                 r = requests.post(func_url, json=data)
-
-                # logs = self.orchestrator.get_execution_log(
-                #     execution_id,
-                #     worker_name=function.service.worker_name,
-                # )
+                res = r.json()
 
                 LOG.debug('Finished execution %s', execution_id)
 
-                execution.status = status.SUCCESS
-                execution.output = r.json()
-                # execution.logs = logs
+                success = res.pop('success')
+                execution.status = status.SUCCESS if success else status.FAILED
+                execution.logs = res.pop('logs', '')
+                execution.output = res
                 return
 
             source = function.code['source']
@@ -150,10 +148,14 @@ class DefaultEngine(object):
             logs = ''
             # Execution log is only available for non-image source execution.
             if service_url:
-                logs = self.orchestrator.get_execution_log(
-                    execution_id,
-                    worker_name=worker_name,
-                )
+                logs = output.pop('logs', '')
+                success = output.pop('success')
+            else:
+                # If the function is created from docker image, the output is
+                # direct output, here we convert to a dict to fit into the db
+                # schema.
+                output = {'output': output}
+                success = True
 
             LOG.debug(
                 'Finished execution. execution_id=%s, output=%s',
@@ -162,7 +164,7 @@ class DefaultEngine(object):
             )
             execution.output = output
             execution.logs = logs
-            execution.status = status.SUCCESS
+            execution.status = status.SUCCESS if success else status.FAILED
 
             # No service is created in orchestrator for single container.
             if not image:

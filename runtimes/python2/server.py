@@ -15,6 +15,8 @@
 import importlib
 import json
 import logging
+from multiprocessing import Manager
+from multiprocessing import Process
 import os
 import sys
 import time
@@ -31,13 +33,6 @@ app = Flask(__name__)
 zip_file = ''
 function_module = 'main'
 function_method = 'main'
-zip_imported = False
-
-# By default sys.stdout is usually line buffered for tty devices and fully
-# buffered for other files. We need to change it to unbuffered to get execution
-# log properly.
-unbuffered = os.fdopen(sys.stdout.fileno(), 'w', 0)
-sys.stdout = unbuffered
 
 
 @app.route('/download', methods=['POST'])
@@ -77,41 +72,70 @@ def download():
     return 'success'
 
 
-@app.route('/execute', methods=['POST'])
-def execute():
-    global zip_imported
-    global zip_file
-    global function_module
-    global function_method
+def _invoke_function(execution_id, zip_file, module_name, method, input,
+                     return_dict):
+    """Thie function is supposed to be running in a child process."""
+    sys.path.insert(0, zip_file)
+    sys.stdout = open("%s.out" % execution_id, "w", 0)
 
-    if not zip_imported:
-        sys.path.insert(0, zip_file)
-        zip_imported = True
-
-    params = request.get_json() or {}
-    input = params.get('input') or {}
-    execution_id = params['execution_id']
     print('Start execution: %s' % execution_id)
-    app.logger.debug('Invoking function with input: %s' % input)
 
-    start = time.time()
     try:
-        module = importlib.import_module(function_module)
-        func = getattr(module, function_method)
-        result = func(**input)
+        module = importlib.import_module(module_name)
+        func = getattr(module, method)
+        return_dict['result'] = func(**input)
     except Exception as e:
-        result = str(e)
+        return_dict['result'] = str(e)
+        return_dict['success'] = False
 
         # Print stacktrace
         exc_type, exc_value, exc_traceback = sys.exc_info()
         lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-        app.logger.debug(''.join(line for line in lines))
+        print(''.join(line for line in lines))
     finally:
         print('Finished execution: %s' % execution_id)
 
-    duration = time.time() - start
+
+@app.route('/execute', methods=['POST'])
+def execute():
+    global zip_file
+    global function_module
+    global function_method
+
+    params = request.get_json() or {}
+    input = params.get('input') or {}
+    execution_id = params['execution_id']
+
+    manager = Manager()
+    return_dict = manager.dict()
+    return_dict['success'] = True
+    start = time.time()
+
+    # Run the function in a separate process to avoid messing up the log
+    p = Process(
+        target=_invoke_function,
+        args=(execution_id, zip_file, function_module, function_method,
+              input, return_dict)
+    )
+    p.start()
+    p.join()
+
+    duration = round(time.time() - start, 3)
+
+    with open('%s.out' % execution_id) as f:
+        logs = f.read()
+
+    os.remove('%s.out' % execution_id)
+
     return Response(
-        response=json.dumps({'output': result, 'duration': duration}),
+        response=json.dumps(
+            {
+                'output': return_dict.get('result'),
+                'duration': duration,
+                'logs': logs,
+                'success': return_dict['success']
+            }
+        ),
         status=200,
         mimetype='application/json'
     )
@@ -131,4 +155,6 @@ def setup_logger(loglevel):
 
 setup_logger(logging.DEBUG)
 app.logger.info("Starting server")
+
+# Just for testing purpose
 app.run(host='0.0.0.0', port='9090', threaded=True)

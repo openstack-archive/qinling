@@ -42,27 +42,26 @@ def handle_function_service_expiration(ctx, engine_client, orchestrator):
     expiry_time = datetime.utcnow() - delta
 
     results = db_api.get_functions(
-        fields=['id'],
         sort_keys=['updated_at'],
         insecure=True,
         updated_at={'lte': expiry_time}
     )
-
-    expiry_ids = [ret.id for ret in results]
-
-    if not expiry_ids:
+    if len(results) == 0:
         return
 
-    mappings = db_api.get_function_service_mappings(
-        function_id={'in': expiry_ids}
-    )
+    for func_db in results:
+        with db_api.transaction():
+            LOG.info(
+                'Deleting service mapping and workers for function %s',
+                func_db.id
+            )
 
-    with db_api.transaction():
-        for m in mappings:
-            LOG.info('Deleting service mapping for function %s', m.function_id)
+            # Delete resources related to the function
+            engine_client.delete_function(func_db.id)
 
-            engine_client.delete_function(m.function_id)
-            db_api.delete_function_service_mapping(m.function_id)
+            # Delete service mapping and worker records
+            db_api.delete_function_service_mapping(func_db.id)
+            db_api.delete_function_workers(func_db.id)
 
 
 def handle_job(engine_client):

@@ -411,6 +411,23 @@ def create_function_worker(values, session=None):
 
 
 @db_base.session_aware()
+def get_function_workers(function_id, session=None):
+    workers = db_base.model_query(
+        models.FunctionWorkers
+    ).filter_by(function_id=function_id).all()
+
+    return workers
+
+
+@db_base.session_aware()
+def delete_function_workers(id, session=None):
+    workers = get_function_workers(id)
+
+    for worker in workers:
+        session.delete(worker)
+
+
+@db_base.session_aware()
 def create_job(values, session=None):
     job = models.Job()
     job.update(values)

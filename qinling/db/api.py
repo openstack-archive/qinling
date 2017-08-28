@@ -162,6 +162,10 @@ def delete_function_service_mapping(id):
     return IMPL.delete_function_service_mapping(id)
 
 
+def create_function_worker(values):
+    return IMPL.create_function_worker(values)
+
+
 def create_job(values):
     return IMPL.create_job(values)
 

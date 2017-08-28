@@ -103,16 +103,16 @@ class DefaultEngine(object):
                 data = {'input': input, 'execution_id': execution_id}
                 r = requests.post(func_url, json=data)
 
-                logs = self.orchestrator.get_execution_log(
-                    execution_id,
-                    worker_name=function.service.worker_name,
-                )
+                # logs = self.orchestrator.get_execution_log(
+                #     execution_id,
+                #     worker_name=function.service.worker_name,
+                # )
 
                 LOG.debug('Finished execution %s', execution_id)
 
                 execution.status = status.SUCCESS
                 execution.output = r.json()
-                execution.logs = logs
+                # execution.logs = logs
                 return
 
             source = function.code['source']
@@ -169,9 +169,13 @@ class DefaultEngine(object):
                 mapping = {
                     'function_id': function_id,
                     'service_url': service_url,
-                    'worker_name': worker_name
                 }
                 db_api.create_function_service_mapping(mapping)
+                worker = {
+                    'function_id': function_id,
+                    'worker_name': worker_name
+                }
+                db_api.create_function_worker(worker)
 
     def delete_function(self, ctx, function_id):
         resource = {'type': 'function', 'id': function_id}
@@ -181,3 +185,22 @@ class DefaultEngine(object):
         self.orchestrator.delete_function(function_id, labels=labels)
 
         LOG.info('Deleted.', resource=resource)
+
+    def scaleup_function(self, ctx, function_id, runtime_id):
+        function = db_api.get_function(function_id)
+
+        worker_names = self.orchestrator.scaleup_function(
+            function_id,
+            identifier=runtime_id,
+            entry=function.entry
+        )
+
+        with db_api.transaction():
+            for name in worker_names:
+                worker = {
+                    'function_id': function_id,
+                    'worker_name': name
+                }
+                db_api.create_function_worker(worker)
+
+        LOG.info('Finished scaling up function %s.', function_id)

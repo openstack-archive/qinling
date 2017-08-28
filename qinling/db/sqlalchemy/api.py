@@ -396,6 +396,21 @@ def delete_function_service_mapping(id, session=None):
 
 
 @db_base.session_aware()
+def create_function_worker(values, session=None):
+    mapping = models.FunctionWorkers()
+    mapping.update(values.copy())
+
+    try:
+        mapping.save(session=session)
+    except oslo_db_exc.DBDuplicateEntry as e:
+        raise exc.DBError(
+            "Duplicate entry for FunctionWorkers: %s" % e.columns
+        )
+
+    return mapping
+
+
+@db_base.session_aware()
 def create_job(values, session=None):
     job = models.Job()
     job.update(values)

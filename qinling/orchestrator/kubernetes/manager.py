@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import copy
 import os
 import time
 
@@ -195,7 +196,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         return True
 
-    def _choose_available_pod(self, labels):
+    def _choose_available_pod(self, labels, count=1):
         selector = common.convert_dict_to_string(labels)
 
         ret = self.v1.list_namespaced_pod(
@@ -206,18 +207,17 @@ class KubernetesManager(base.OrchestratorBase):
         if len(ret.items) == 0:
             return None
 
-        # Choose the last available one by default.
-        pod = ret.items[-1]
+        return ret.items[-count:]
 
-        return pod
-
-    def _prepare_pod(self, pod, deployment_name, function_id, labels, entry):
+    def _prepare_pod(self, pod, deployment_name, function_id, labels=None,
+                     entry=None, actual_function=None):
         """Pod preparation.
 
         1. Update pod labels.
         2. Expose service and trigger package download.
         """
         name = pod.metadata.name
+        actual_function = actual_function or function_id
 
         LOG.info(
             'Prepare pod %s in deployment %s for function %s',
@@ -225,18 +225,7 @@ class KubernetesManager(base.OrchestratorBase):
         )
 
         # Update pod label.
-        pod_labels = pod.metadata.labels or {}
-        pod_labels.update({'function_id': function_id})
-        body = {
-            'metadata': {
-                'labels': pod_labels
-            }
-        }
-        self.v1.patch_namespaced_pod(
-            name, self.conf.kubernetes.namespace, body
-        )
-
-        LOG.debug('Labels updated for pod %s', name)
+        pod_labels = self._update_pod_label(pod, {'function_id': function_id})
 
         # Create service for the choosen pod.
         service_name = "service-%s" % function_id
@@ -278,12 +267,12 @@ class KubernetesManager(base.OrchestratorBase):
         download_url = (
             'http://%s:%s/v1/functions/%s?download=true' %
             (self.conf.kubernetes.qinling_service_address,
-             self.conf.api.port, function_id)
+             self.conf.api.port, actual_function)
         )
 
         data = {
             'download_url': download_url,
-            'function_id': function_id,
+            'function_id': actual_function,
             'entry': entry,
             'token': context.get_ctx().auth_token,
         }
@@ -325,6 +314,24 @@ class KubernetesManager(base.OrchestratorBase):
             body=yaml.safe_load(pod_body),
         )
 
+    def _update_pod_label(self, pod, new_label=None):
+        name = pod.metadata.name
+
+        pod_labels = copy.deepcopy(pod.metadata.labels) or {}
+        pod_labels.update(new_label)
+        body = {
+            'metadata': {
+                'labels': pod_labels
+            }
+        }
+        self.v1.patch_namespaced_pod(
+            name, self.conf.kubernetes.namespace, body
+        )
+
+        LOG.debug('Labels updated for pod %s', name)
+
+        return pod_labels
+
     def prepare_execution(self, function_id, image=None, identifier=None,
                           labels=None, input=None, entry='main.main'):
         """Prepare service URL for function.
@@ -346,7 +353,8 @@ class KubernetesManager(base.OrchestratorBase):
         if not pod:
             raise exc.OrchestratorException('No pod available.')
 
-        return self._prepare_pod(pod, identifier, function_id, labels, entry)
+        return self._prepare_pod(pod[0], identifier, function_id, labels,
+                                 entry)
 
     def run_execution(self, execution_id, function_id, input=None,
                       identifier=None, service_url=None):
@@ -415,3 +423,41 @@ class KubernetesManager(base.OrchestratorBase):
         )
 
         LOG.info("Pod for function %s deleted.", function_id)
+
+    def scaleup_function(self, function_id, identifier=None,
+                         entry='main.main'):
+        pod_names = []
+        labels = {'runtime_id': identifier}
+        pods = self._choose_available_pod(
+            labels, count=self.conf.kubernetes.scale_step
+        )
+
+        if not pods:
+            raise exc.OrchestratorException('Not enough pods available.')
+
+        temp_function = '%s-temp' % function_id
+        for pod in pods:
+            self._prepare_pod(pod, identifier, temp_function, labels, entry,
+                              actual_function=function_id)
+
+            # Delete temporary service
+            selector = common.convert_dict_to_string(
+                {'function_id': temp_function}
+            )
+            ret = self.v1.list_namespaced_service(
+                self.conf.kubernetes.namespace, label_selector=selector
+            )
+            svc_names = [i.metadata.name for i in ret.items]
+            for svc_name in svc_names:
+                self.v1.delete_namespaced_service(
+                    svc_name,
+                    self.conf.kubernetes.namespace,
+                )
+
+            # Modify pod labels to fit into correct service
+            self._update_pod_label(pod, {'function_id': function_id})
+
+            pod_names.append(pod.metadata.name)
+
+        LOG.info('Pods scaled up for function %s: %s', function_id, pod_names)
+        return pod_names

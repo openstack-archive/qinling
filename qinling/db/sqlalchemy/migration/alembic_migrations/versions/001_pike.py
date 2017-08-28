@@ -45,43 +45,7 @@ def _add_if_not_exists(element, compiler, **kw):
 
 def upgrade():
     op.create_table(
-        'function',
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('updated_at', sa.DateTime(), nullable=True),
-        sa.Column('project_id', sa.String(length=80), nullable=False),
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('name', sa.String(length=255), nullable=True),
-        sa.Column('description', sa.String(length=255), nullable=True),
-        sa.Column('runtime_id', sa.String(length=36), nullable=True),
-        sa.Column('memory_size', sa.Integer, nullable=True),
-        sa.Column('timeout', sa.Integer, nullable=True),
-        sa.Column('code', st.JsonLongDictType(), nullable=False),
-        sa.Column('entry', sa.String(length=80), nullable=False),
-        sa.Column('count', sa.Integer, nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('name', 'project_id'),
-        sa.ForeignKeyConstraint(['runtime_id'], [u'runtime.id']),
-        info={"check_ifexists": True}
-    )
-
-    op.create_table(
-        'function_service_mapping',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('updated_at', sa.DateTime(), nullable=True),
-        sa.Column('function_id', sa.String(length=36), nullable=False),
-        sa.Column('service_url', sa.String(length=255), nullable=False),
-        sa.Column('worker_name', sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('function_id', 'service_url'),
-        sa.ForeignKeyConstraint(
-            ['function_id'], [u'function.id'], ondelete='CASCADE'
-        ),
-        info={"check_ifexists": True}
-    )
-
-    op.create_table(
-        'runtime',
+        'runtimes',
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('project_id', sa.String(length=80), nullable=False),
@@ -96,7 +60,56 @@ def upgrade():
     )
 
     op.create_table(
-        'execution',
+        'functions',
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('project_id', sa.String(length=80), nullable=False),
+        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('name', sa.String(length=255), nullable=True),
+        sa.Column('description', sa.String(length=255), nullable=True),
+        sa.Column('runtime_id', sa.String(length=36), nullable=True),
+        sa.Column('memory_size', sa.Integer, nullable=True),
+        sa.Column('timeout', sa.Integer, nullable=True),
+        sa.Column('code', st.JsonLongDictType(), nullable=False),
+        sa.Column('entry', sa.String(length=80), nullable=False),
+        sa.Column('count', sa.Integer, nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('name', 'project_id'),
+        sa.ForeignKeyConstraint(['runtime_id'], [u'runtimes.id']),
+        info={"check_ifexists": True}
+    )
+
+    op.create_table(
+        'function_service_mappings',
+        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('function_id', sa.String(length=36), nullable=False),
+        sa.Column('service_url', sa.String(length=255), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('function_id', 'service_url'),
+        sa.ForeignKeyConstraint(
+            ['function_id'], [u'functions.id'], ondelete='CASCADE'
+        ),
+        info={"check_ifexists": True}
+    )
+
+    op.create_table(
+        'function_workers',
+        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('function_id', sa.String(length=36), nullable=False),
+        sa.Column('worker_name', sa.String(length=255), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.ForeignKeyConstraint(
+            ['function_id'], [u'functions.id'], ondelete='CASCADE'
+        ),
+        info={"check_ifexists": True}
+    )
+
+    op.create_table(
+        'executions',
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('project_id', sa.String(length=80), nullable=False),
@@ -113,7 +126,7 @@ def upgrade():
     )
 
     op.create_table(
-        'job',
+        'jobs',
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('project_id', sa.String(length=80), nullable=False),
@@ -128,6 +141,6 @@ def upgrade():
         sa.Column('count', sa.Integer(), nullable=True),
         sa.Column('trust_id', sa.String(length=80), nullable=True),
         sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['function_id'], [u'function.id']),
+        sa.ForeignKeyConstraint(['function_id'], [u'functions.id']),
         info={"check_ifexists": True}
     )

@@ -21,7 +21,7 @@ from qinling.utils import common
 
 
 class Runtime(model_base.QinlingSecureModelBase):
-    __tablename__ = 'runtime'
+    __tablename__ = 'runtimes'
 
     __table_args__ = (
         sa.UniqueConstraint('image', 'project_id'),
@@ -34,7 +34,7 @@ class Runtime(model_base.QinlingSecureModelBase):
 
 
 class Function(model_base.QinlingSecureModelBase):
-    __tablename__ = 'function'
+    __tablename__ = 'functions'
 
     __table_args__ = (
         sa.UniqueConstraint('name', 'project_id'),
@@ -54,7 +54,7 @@ class Function(model_base.QinlingSecureModelBase):
 
 
 class FunctionServiceMapping(model_base.QinlingModelBase):
-    __tablename__ = 'function_service_mapping'
+    __tablename__ = 'function_service_mappings'
 
     __table_args__ = (
         sa.UniqueConstraint('function_id', 'service_url'),
@@ -66,11 +66,21 @@ class FunctionServiceMapping(model_base.QinlingModelBase):
         sa.ForeignKey(Function.id, ondelete='CASCADE'),
     )
     service_url = sa.Column(sa.String(255), nullable=False)
+
+
+class FunctionWorkers(model_base.QinlingModelBase):
+    __tablename__ = 'function_workers'
+
+    id = model_base.id_column()
+    function_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey(Function.id, ondelete='CASCADE'),
+    )
     worker_name = sa.Column(sa.String(255), nullable=False)
 
 
 class Execution(model_base.QinlingSecureModelBase):
-    __tablename__ = 'execution'
+    __tablename__ = 'executions'
 
     function_id = sa.Column(sa.String(36), nullable=False)
     status = sa.Column(sa.String(32), nullable=False)
@@ -82,7 +92,7 @@ class Execution(model_base.QinlingSecureModelBase):
 
 
 class Job(model_base.QinlingSecureModelBase):
-    __tablename__ = 'job'
+    __tablename__ = 'jobs'
 
     name = sa.Column(sa.String(255), nullable=True)
     pattern = sa.Column(sa.String(32), nullable=True)
@@ -109,6 +119,11 @@ class Job(model_base.QinlingSecureModelBase):
 Function.service = relationship(
     "FunctionServiceMapping",
     uselist=False,
+    cascade="all, delete-orphan"
+)
+# Delete workers automatically when deleting function.
+Function.workers = relationship(
+    "FunctionWorkers",
     cascade="all, delete-orphan"
 )
 

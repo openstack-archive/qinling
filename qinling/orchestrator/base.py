@@ -47,10 +47,6 @@ class OrchestratorBase(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_execution_log(self, execution_id, **kwargs):
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def delete_function(self, function_id, **kwargs):
         raise NotImplementedError
 

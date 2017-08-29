@@ -34,7 +34,6 @@ host.
    .. code-block:: console
 
       $ kubectl proxy --accept-hosts='.*' --address='0.0.0.0'
-
       Starting to serve on [::]:8001
 
    .. end
@@ -43,7 +42,7 @@ host.
 
    .. code-block:: console
 
-      $ git clone https://github.com/LingxianKong/qinling.git
+      $ git clone https://github.com/openstack/qinling.git
       $ cd qinling/tools/vagrant
 
    .. end
@@ -75,23 +74,23 @@ host.
 
    .. end
 
-   If you see message like the above, congratulations!
+   If you see message like the above, congratulations, your own Qinling service
+   is up and running!
 
 Getting started with Qinling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Currently, you can interact with Qinling using python-qinlingclient or
-sending RESTful API directly. Both ways are described in this guide.**
+.. note::
 
-``httpie`` is a convenient tool to send HTTP request, make sure you installed
-``httpie`` via ``pip install httpie`` before playing with Qinling.
+   Currently, you can interact with Qinling using python-qinlingclient or
+   sending RESTful API directly. Both ways are described in this guide.
+   ``httpie`` is a convenient tool to send HTTP request, it has been installed
+   automatically inside the vagrnat VM.
 
-If you prefer to use CLI, please make sure python-qinlingclient is installed.
+Perform following commands on your local host, we will create
+runtime/function/execution during the process.
 
-Perform following commands on your local host, the process will create
-runtime/function/execution in Qinling.
-
-#. (Optional) Prepare a docker image including development environment for a
+1. (Optional) Prepare a docker image including development environment for a
    specific programming language. For your convenience, I already build one
    (``lingxiankong/python-runtime``) in my docker hub account that you could
    directly use to create runtime in Qinling. Only ``Python 2`` runtime is
@@ -108,9 +107,10 @@ runtime/function/execution in Qinling.
 
    .. end
 
-#. Create runtime. A runtime in Qinling is running environment for a specific
-   language, this resource is supposed to be created/deleted/updated by cloud
-   operator. After creation, check the runtime status is ``available``:
+2. Create runtime. ``runtime`` in Qinling is running environment for a
+   specific language, this resource is supposed to be created/deleted/updated
+   by cloud operator. After creation, check the runtime status until it's
+   ``available`` before you execute any functions:
 
    .. code-block:: console
 
@@ -172,14 +172,14 @@ runtime/function/execution in Qinling.
 
    .. end
 
-#. Create a customized function package:
+3. Create a customized function package:
 
    .. code-block:: console
 
       $ mkdir ~/qinling_test
       $ cat <<EOF > ~/qinling_test/main.py
         import requests
-        def main():
+        def main(*args, **kwargs):
             r = requests.get('https://api.github.com/events')
             return len(r.json())
         if __name__ == '__main__':
@@ -191,14 +191,14 @@ runtime/function/execution in Qinling.
 
    .. end
 
-#. Create function, ``runtime_id`` comes from the output of above command:
+4. Create function, ``runtime_id`` comes from the output of the above command:
 
    .. code-block:: console
 
       $ http -f POST http://192.168.33.18:7070/v1/functions name=github_test \
-        runtime_id=c1d78623-56bf-4487-9a72-1299b2c55e65 \
-        code='{"package": "true"}' \
-        package@~/qinling_test/qinling_test.zip
+          runtime_id=c1d78623-56bf-4487-9a72-1299b2c55e65 \
+          code='{"package": "true"}' \
+          package@~/qinling_test/qinling_test.zip
 
       HTTP/1.1 201 Created
       Connection: keep-alive
@@ -225,9 +225,9 @@ runtime/function/execution in Qinling.
    .. code-block:: console
 
       $ openstack function create github_test \
-        c1d78623-56bf-4487-9a72-1299b2c55e65 \
-        '{"source": "package"}' \
-        --package ~/qinling_test/qinling_test.zip
+          c1d78623-56bf-4487-9a72-1299b2c55e65 \
+          '{"source": "package"}' \
+          --package ~/qinling_test/qinling_test.zip
       +------------+--------------------------------------+
       | Field      | Value                                |
       +------------+--------------------------------------+
@@ -243,12 +243,12 @@ runtime/function/execution in Qinling.
 
    .. end
 
-#. Invoke the function by specifying ``function_id``:
+5. Invoke the function by specifying ``function_id``:
 
    .. code-block:: console
 
       $ http POST http://192.168.33.18:7070/v1/executions \
-        function_id=352e4c02-3c6b-4860-9b85-f72344b1f986
+          function_id=352e4c02-3c6b-4860-9b85-f72344b1f986
 
       HTTP/1.1 201 Created
       Connection: keep-alive
@@ -290,4 +290,4 @@ runtime/function/execution in Qinling.
    .. end
 
    If you invoke the same function again, you will find it is much faster
-   thanks to Qinling cache mechanism.
+   due to Qinling cache mechanism.

@@ -106,7 +106,20 @@ class Job(model_base.QinlingSecureModelBase):
 
 
 # Delete service mapping automatically when deleting function.
-Function.service = relationship("FunctionServiceMapping", uselist=False,
-                                cascade="all, delete-orphan")
+Function.service = relationship(
+    "FunctionServiceMapping",
+    uselist=False,
+    cascade="all, delete-orphan"
+)
+
 Runtime.functions = relationship("Function", back_populates="runtime")
-Function.jobs = relationship("Job", back_populates="function")
+
+# Only get jobs
+Function.jobs = relationship(
+    "Job",
+    back_populates="function",
+    primaryjoin=(
+        "and_(Function.id==Job.function_id, "
+        "~Job.status.in_(['done', 'cancelled']))"
+    )
+)

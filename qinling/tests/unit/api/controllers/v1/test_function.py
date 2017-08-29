@@ -12,11 +12,13 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from datetime import datetime
 import json
 import tempfile
 
 import mock
 
+from qinling import status
 from qinling.tests.unit.api import base
 from qinling.tests.unit import base as unit_base
 
@@ -118,3 +120,23 @@ class TestFunctionController(base.APITest):
             unit_base.DEFAULT_PROJECT_ID, db_func.id
         )
         mock_delete_func.assert_called_once_with(db_func.id)
+
+    def test_delete_with_running_job(self):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+        self.create_job(
+            function_id=db_func.id,
+            prefix=TEST_CASE_NAME,
+            status=status.AVAILABLE,
+            first_execution_time=datetime.utcnow(),
+            next_execution_time=datetime.utcnow(),
+            count=1
+        )
+
+        resp = self.app.delete(
+            '/v1/functions/%s' % db_func.id,
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)

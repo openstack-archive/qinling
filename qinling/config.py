@@ -130,6 +130,7 @@ kubernetes_opts = [
     ),
     cfg.IPOpt(
         'qinling_service_address',
+        default='127.0.0.1',
         help='Qinling API service ip address.'
     ),
     cfg.IntOpt(

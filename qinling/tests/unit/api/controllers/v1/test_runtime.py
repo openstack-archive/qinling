@@ -113,7 +113,7 @@ class TestRuntimeController(base.APITest):
             expect_errors=True
         )
 
-        self.assertEqual(403, resp.status_int)
+        self.assertEqual(409, resp.status_int)
 
     @mock.patch('qinling.rpc.EngineClient.update_runtime')
     def test_put_image(self, mock_update_runtime):

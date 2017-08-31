@@ -36,3 +36,8 @@ net_hosts_pre_kube
 
 # Setup the K8s Cluster
 bash ${WORK_DIR}/tools/gate/kubeadm_aio.sh
+
+# Starts a proxy to the Kubernetes API server in a screen session
+sudo screen -S kube_proxy -X quit || true
+sudo screen -dmS kube_proxy && screen -S kube_proxy -X screen -t kube_proxy
+sudo screen -S kube_proxy -p kube_proxy -X stuff 'kubectl proxy --accept-hosts=".*" --address="0.0.0.0"\n'

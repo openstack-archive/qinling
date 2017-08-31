@@ -126,7 +126,9 @@ kubernetes_opts = [
     ),
     cfg.StrOpt(
         'kube_host',
-        help='Kubernetes server address.'
+        default='127.0.0.1:8001',
+        help='Kubernetes server address, e.g. you can start a proxy to the '
+             'Kubernetes API server by using "kubectl proxy" command.'
     ),
     cfg.IPOpt(
         'qinling_service_address',

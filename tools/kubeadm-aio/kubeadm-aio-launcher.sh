@@ -61,7 +61,7 @@ sudo docker run \
 
 echo "Waiting for kubeconfig"
 set +x
-end=$(($(date +%s) + 240))
+end=$(($(date +%s) + 600))
 READY="False"
 while true; do
   if [ -f ${HOME}/.kubeadm-aio/admin.conf ]; then
@@ -82,7 +82,7 @@ export KUBECONFIG=${HOME}/.kubeadm-aio/admin.conf
 
 echo "Waiting for node to be ready before continuing"
 set +x
-end=$(($(date +%s) + 240))
+end=$(($(date +%s) + 600))
 READY="False"
 while true; do
   READY=$(kubectl get nodes --no-headers=true | awk "{ print \$2 }" | head -1)
@@ -94,9 +94,3 @@ while true; do
     sudo docker logs kubeadm-aio && exit -1
 done
 set -x
-
-: ${PVC_BACKEND:="nfs"}
-if [ "$PVC_BACKEND" == "nfs" ]; then
-  # Deploy NFS provisioner into enviromment
-  sudo docker exec kubeadm-aio openstack-helm-nfs-prep
-fi

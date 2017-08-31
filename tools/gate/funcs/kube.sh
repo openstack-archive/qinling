@@ -37,7 +37,7 @@ function kube_wait_for_pods {
           break || true
       sleep 1
       now=$(date +%s)
-      [ $now -gt $end ] && echo containers failed to start. && \
+      [ $now -gt $end ] && echo "containers failed to start." && \
           kubectl get pods --namespace $1 -o wide && exit -1
   done
   set -x
@@ -72,7 +72,6 @@ function kube_wait_for_nodes {
 
 function kubeadm_aio_reqs_install {
   if [ "x$HOST_OS" == "xubuntu" ]; then
-    sudo apt-get update -y
     sudo apt-get install -y --no-install-recommends -qq \
             docker.io \
             jq

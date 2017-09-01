@@ -188,13 +188,14 @@ class DefaultEngine(object):
 
         LOG.info('Deleted.', resource=resource)
 
-    def scaleup_function(self, ctx, function_id, runtime_id):
+    def scaleup_function(self, ctx, function_id, runtime_id, count=1):
         function = db_api.get_function(function_id)
 
         worker_names = self.orchestrator.scaleup_function(
             function_id,
             identifier=runtime_id,
-            entry=function.entry
+            entry=function.entry,
+            count=count
         )
 
         with db_api.transaction():
@@ -204,5 +205,22 @@ class DefaultEngine(object):
                     'worker_name': name
                 }
                 db_api.create_function_worker(worker)
+
+        LOG.info('Finished scaling up function %s.', function_id)
+
+    def scaledown_function(self, ctx, function_id, count=1):
+        func_db = db_api.get_function(function_id)
+        worker_deleted_num = (
+            count if len(func_db.workers) > count else len(func_db.workers) - 1
+        )
+        workers = func_db.workers[:worker_deleted_num]
+
+        with db_api.transaction():
+            for worker in workers:
+                LOG.debug('Removing worker %s', worker.worker_name)
+                self.orchestrator.delete_worker(
+                    worker.worker_name,
+                )
+                db_api.delete_function_worker(worker.worker_name)
 
         LOG.info('Finished scaling up function %s.', function_id)

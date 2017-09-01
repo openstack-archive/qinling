@@ -358,3 +358,7 @@ class Jobs(ResourceList):
         )
 
         return sample
+
+
+class ScaleInfo(Resource):
+    count = wtypes.IntegerType(minimum=1)

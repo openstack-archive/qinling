@@ -119,11 +119,14 @@ class Job(model_base.QinlingSecureModelBase):
 Function.service = relationship(
     "FunctionServiceMapping",
     uselist=False,
+    lazy='subquery',
     cascade="all, delete-orphan"
 )
 # Delete workers automatically when deleting function.
 Function.workers = relationship(
     "FunctionWorkers",
+    order_by="FunctionWorkers.created_at",
+    lazy='subquery',
     cascade="all, delete-orphan"
 )
 

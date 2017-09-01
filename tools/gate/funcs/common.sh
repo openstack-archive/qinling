@@ -20,7 +20,8 @@ function base_install {
       iptables \
       ipcalc \
       nmap \
-      lshw
+      lshw \
+      screen
   elif [ "x$HOST_OS" == "xcentos" ]; then
     sudo yum install -y \
       epel-release

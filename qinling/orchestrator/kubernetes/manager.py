@@ -407,14 +407,14 @@ class KubernetesManager(base.OrchestratorBase):
             label_selector=selector
         )
 
-        LOG.info("Pod for function %s deleted.", function_id)
+        LOG.info("Pod(s) for function %s deleted.", function_id)
 
     def scaleup_function(self, function_id, identifier=None,
-                         entry='main.main'):
+                         entry='main.main', count=1):
         pod_names = []
         labels = {'runtime_id': identifier}
         pods = self._choose_available_pod(
-            labels, count=self.conf.kubernetes.scale_step
+            labels, count=count
         )
 
         if not pods:
@@ -446,3 +446,10 @@ class KubernetesManager(base.OrchestratorBase):
 
         LOG.info('Pods scaled up for function %s: %s', function_id, pod_names)
         return pod_names
+
+    def delete_worker(self, worker_name, **kwargs):
+        self.v1.delete_namespaced_pod(
+            worker_name,
+            self.conf.kubernetes.namespace,
+            {}
+        )

@@ -188,10 +188,20 @@ class EngineClient(object):
         )
 
     @wrap_messaging_exception
-    def scaleup_function(self, id, runtime_id):
+    def scaleup_function(self, id, runtime_id, count=1):
         return self._client.prepare(topic=self.topic, server=None).cast(
             ctx.get_ctx(),
             'scaleup_function',
             function_id=id,
             runtime_id=runtime_id,
+            count=count
+        )
+
+    @wrap_messaging_exception
+    def scaledown_function(self, id, count=1):
+        return self._client.prepare(topic=self.topic, server=None).cast(
+            ctx.get_ctx(),
+            'scaledown_function',
+            function_id=id,
+            count=count
         )

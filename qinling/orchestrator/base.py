@@ -54,6 +54,10 @@ class OrchestratorBase(object):
     def scaleup_function(self, function_id, **kwargs):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def delete_worker(self, worker_name, **kwargs):
+        raise NotImplementedError
+
 
 def load_orchestrator(conf):
     global ORCHESTRATOR

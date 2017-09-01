@@ -166,8 +166,12 @@ def create_function_worker(values):
     return IMPL.create_function_worker(values)
 
 
-def delete_function_workers(id):
-    return IMPL.delete_function_workers(id)
+def delete_function_worker(name):
+    return IMPL.delete_function_worker(name)
+
+
+def delete_function_workers(function_id):
+    return IMPL.delete_function_workers(function_id)
 
 
 def get_function_workers(function_id):

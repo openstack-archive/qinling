@@ -50,6 +50,9 @@ def handle_function_service_expiration(ctx, engine_client, orchestrator):
         return
 
     for func_db in results:
+        if not func_db.service:
+            continue
+
         with db_api.transaction():
             LOG.info(
                 'Deleting service mapping and workers for function %s',

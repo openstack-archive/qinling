@@ -226,16 +226,45 @@ class FunctionsController(rest.RestController):
     @wsme_pecan.wsexpose(
         None,
         types.uuid,
+        body=resources.ScaleInfo,
         status_code=202
     )
-    def scale_up(self, id):
+    def scale_up(self, id, scale):
         """Scale up the containers for function execution.
 
-        This is admin only operation. The number of added containers is defined
-        in config file.
+        This is admin only operation. The load monitoring of function execution
+        depends on the monitoring solution of underlying orchestrator.
         """
         func_db = db_api.get_function(id)
+        params = scale.to_dict()
 
-        LOG.info('Starting to scale up function %s', id)
+        LOG.info('Starting to scale up function %s, params: %s', id, params)
 
-        self.engine_client.scaleup_function(id, runtime_id=func_db.runtime_id)
+        self.engine_client.scaleup_function(
+            id,
+            runtime_id=func_db.runtime_id,
+            count=params['count']
+        )
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        None,
+        types.uuid,
+        body=resources.ScaleInfo,
+        status_code=202
+    )
+    def scale_down(self, id, scale):
+        """Scale down the containers for function execution.
+
+        This is admin only operation. The load monitoring of function execution
+        depends on the monitoring solution of underlying orchestrator.
+        """
+        func_db = db_api.get_function(id)
+        params = scale.to_dict()
+        if len(func_db.workers) <= 1:
+            LOG.info('No need to scale down function %s', id)
+            return
+
+        LOG.info('Starting to scale down function %s, params: %s', id, params)
+
+        self.engine_client.scaledown_function(id, count=params['count'])

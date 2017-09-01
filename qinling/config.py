@@ -135,11 +135,6 @@ kubernetes_opts = [
         default='127.0.0.1',
         help='Qinling API service ip address.'
     ),
-    cfg.IntOpt(
-        'scale_step',
-        default=1,
-        help='Number of pods for function scale up.'
-    ),
 ]
 
 CONF = cfg.CONF

@@ -20,7 +20,9 @@ export localconf=$BASE/new/devstack/local.conf
 export QINLING_CONF=/etc/qinling/qinling.conf
 
 # Install k8s cluster
-bash $BASE/new/qinling/tools/gate/setup_gate.sh
+pushd $BASE/new/qinling/
+bash tools/gate/setup_gate.sh
+popd
 
-echo -e '[[post-config|$QINLING_CONF]]\n[kubernetes]\n' >> $localconf
-echo -e 'qinling_service_address=${DEFAULT_HOST_IP}\n' >> $localconf
+echo -e "[[post-config|$QINLING_CONF]]\n[kubernetes]\n" >> $localconf
+echo -e "qinling_service_address=${DEFAULT_HOST_IP}\n" >> $localconf

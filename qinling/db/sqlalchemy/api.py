@@ -420,8 +420,22 @@ def get_function_workers(function_id, session=None):
 
 
 @db_base.session_aware()
-def delete_function_workers(id, session=None):
-    workers = get_function_workers(id)
+def delete_function_worker(worker_name, session=None):
+    worker = db_base.model_query(
+        models.FunctionWorkers
+    ).filter_by(worker_name=worker_name).first()
+
+    if not worker:
+        raise exc.DBEntityNotFoundError(
+            "FunctionWorker not found [worker_name=%s]" % worker_name
+        )
+
+    session.delete(worker)
+
+
+@db_base.session_aware()
+def delete_function_workers(function_id, session=None):
+    workers = get_function_workers(function_id)
 
     for worker in workers:
         session.delete(worker)

@@ -16,7 +16,10 @@
 
 import os
 
+from tempest import config
 from tempest.test_discover import plugins
+
+from qinling_tempest_plugin import config as qinling_config
 
 
 class QinlingTempestPlugin(plugins.TempestPlugin):
@@ -29,7 +32,26 @@ class QinlingTempestPlugin(plugins.TempestPlugin):
         return full_test_dir, base_path
 
     def register_opts(self, conf):
-        pass
+        conf.register_opt(
+            qinling_config.service_option, group='service_available'
+        )
+
+        conf.register_group(qinling_config.qingling_group)
+        conf.register_opts(qinling_config.QinlingGroup, group='qinling')
 
     def get_opt_lists(self):
-        pass
+        return [
+            ('service_available', [qinling_config.service_option]),
+            (qinling_config.qingling_group.name, qinling_config.QinlingGroup)
+        ]
+
+    def get_service_clients(self):
+        qinling_config = config.service_client_config('qinling')
+        params = {
+            'name': 'qinling',
+            'service_version': 'qinling',
+            'module_path': 'qinling_tempest_plugin.services.qinling_client',
+            'client_names': ['QinlingClient'],
+        }
+        params.update(qinling_config)
+        return [params]

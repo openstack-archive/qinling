@@ -13,5 +13,34 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-if __name__ == '__main__':
-    pass
+from oslo_config import cfg
+
+service_option = cfg.BoolOpt(
+    'qinling',
+    default=True,
+    help="Whether or not Qinling is expected to be"
+         "available"
+)
+
+
+qingling_group = cfg.OptGroup(name="qingling", title="Qinling Service Options")
+
+QinlingGroup = [
+    cfg.StrOpt("region",
+               default="",
+               help="The region name to use. If empty, the value "
+                    "of identity.region is used instead. If no such region "
+                    "is found in the service catalog, the first found one is "
+                    "used."),
+    cfg.StrOpt("catalog_type",
+               default="function",
+               help="Catalog type of the Qinling service."),
+    cfg.StrOpt('endpoint_type',
+               default='publicURL',
+               choices=['public', 'admin', 'internal',
+                        'publicURL', 'adminURL', 'internalURL'],
+               help="The endpoint type to use for the qinling service."),
+    cfg.StrOpt('kube_host',
+               default='127.0.0.1:8001',
+               help="The Kubernetes service address."),
+]

@@ -14,15 +14,4 @@
 
 # This script is executed inside pre_test_hook function in devstack gate.
 
-set -ex
-
-export localconf=$BASE/new/devstack/local.conf
-export QINLING_CONF=/etc/qinling/qinling.conf
-
-# Install k8s cluster
-pushd $BASE/new/qinling/
-bash tools/gate/setup_gate.sh
-popd
-
-echo -e "[[post-config|$QINLING_CONF]]\n[kubernetes]\n" >> $localconf
-echo -e "qinling_service_address=${DEFAULT_HOST_IP}\n" >> $localconf
+echo "Pass"

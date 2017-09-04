@@ -19,6 +19,13 @@ function install_qinlingclient {
 }
 
 
+function install_k8s {
+    pushd $QINLING_DIR
+    source tools/gate/setup_gate.sh
+    popd
+}
+
+
 function create_qinling_accounts {
     create_service_user "qinling" "admin"
 
@@ -60,6 +67,7 @@ function configure_qinling {
     iniset $QINLING_CONF_FILE DEFAULT debug $QINLING_DEBUG
     iniset $QINLING_CONF_FILE DEFAULT server all
     iniset $QINLING_CONF_FILE storage file_system_dir $QINLING_FUNCTION_STORAGE_DIR
+    iniset $QINLING_CONF_FILE kubernetes qinling_service_address $DEFAULT_HOST_IP
 
     # Setup keystone_authtoken section
     configure_auth_token_middleware $QINLING_CONF_FILE qinling $QINLING_AUTH_CACHE_DIR
@@ -116,6 +124,10 @@ if is_service_enabled qinling; then
         if is_service_enabled key; then
             create_qinling_accounts
         fi
+
+        echo_summary "Installing kubernetes cluster"
+        install_k8s
+
         configure_qinling
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then

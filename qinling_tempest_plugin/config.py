@@ -33,7 +33,7 @@ QinlingGroup = [
                     "is found in the service catalog, the first found one is "
                     "used."),
     cfg.StrOpt("catalog_type",
-               default="function",
+               default="function-engine",
                help="Catalog type of the Qinling service."),
     cfg.StrOpt('endpoint_type',
                default='publicURL',

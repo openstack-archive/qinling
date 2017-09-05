@@ -22,23 +22,26 @@ class QinlingClientBase(rest_client.RestClient):
         super(QinlingClientBase, self).__init__(auth_provider, **kwargs)
 
         self.runtimes = []
+        self.functions = []
 
-    def get_list_objs(self, url_path):
-        resp, body = self.get(url_path)
+    def get_list_objs(self, obj):
+        resp, body = self.get('/v1/%s' % obj)
 
         return resp, json.loads(body)
 
     def delete_obj(self, obj, id):
-        return self.delete('{obj}/{id}'.format(obj=obj, id=id))
+        return self.delete('/v1/{obj}/{id}'.format(obj=obj, id=id))
 
     def get_obj(self, obj, id):
-        resp, body = self.get('{obj}/{id}'.format(obj=obj, id=id))
+        resp, body = self.get('/v1/{obj}/{id}'.format(obj=obj, id=id))
 
         return resp, json.loads(body)
 
-    def post_json(self, url_path, obj, extra_headers={}):
+    def post_json(self, obj, req_body, extra_headers={}):
         headers = {"Content-Type": "application/json"}
         headers = dict(headers, **extra_headers)
-        resp, body = self.post(url_path, json.dumps(obj), headers=headers)
+        url_path = '/v1/%s' % obj
+
+        resp, body = self.post(url_path, json.dumps(req_body), headers=headers)
 
         return resp, json.loads(body)

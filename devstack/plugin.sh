@@ -32,8 +32,8 @@ function install_k8s {
 function create_qinling_accounts {
     create_service_user "qinling" "admin"
 
-    local qinling_service=$(get_or_create_service "qinling" "function" "Function Service")
-    qinling_api_url="$QINLING_SERVICE_PROTOCOL://$QINLING_SERVICE_HOST:$QINLING_SERVICE_PORT/v1"
+    local qinling_service=$(get_or_create_service "qinling" "function-engine" "Function Service")
+    qinling_api_url="$QINLING_SERVICE_PROTOCOL://$QINLING_SERVICE_HOST:$QINLING_SERVICE_PORT"
 
     get_or_create_endpoint $qinling_service \
         "$REGION_NAME" \
@@ -41,7 +41,7 @@ function create_qinling_accounts {
         "$qinling_api_url" \
         "$qinling_api_url"
 
-    # get or adds 'service' role to 'qinling' on 'demo' project
+    # get or adds 'service' role to 'qinling' user on 'demo' project
     get_or_add_user_project_role "service" "qinling" "demo"
 }
 

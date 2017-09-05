@@ -13,11 +13,11 @@ Welcome to Qinling's documentation!
    North and South China and support a huge variety of plant and wildlife, some
    of which is found nowhere else on Earth.
 
-Qinling is Function as a Service for OpenStack. This project aims to provide a
-platform to support serverless functions (like AWS Lambda). Qinling supports
-different container orchestration platforms (Kubernetes/Swarm, etc.) and
-different function package storage backends (local/Swift/S3) by nature using
-plugin mechanism.
+Qinling is an OpenStack project to provide "Function as a service". This
+project aims to provide a platform to support serverless functions (like AWS
+Lambda). Qinling supports different container orchestration platforms
+(Kubernetes/Swarm, etc.) and different function package storage backends
+(local/Swift/S3) by nature using plugin mechanism.
 
 * Free software: Apache license
 * Documentation: http://qinling.readthedocs.io/
@@ -26,6 +26,7 @@ plugin mechanism.
 * Bug Track: http://bugs.launchpad.net/qinling
 * IRC channel on Freenode: #openstack-qinling
 
+
 Table of Contents
 =================
 
@@ -33,8 +34,14 @@ Table of Contents
    :maxdepth: 1
 
    quick_start
-   installation
-   contributing
+
+Contributor/Developer Docs
+==========================
+
+.. toctree::
+   :maxdepth: 1
+
+   contributor/index
 
 Indices and tables
 ==================

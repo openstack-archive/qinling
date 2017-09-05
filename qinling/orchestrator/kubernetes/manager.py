@@ -20,6 +20,7 @@ import jinja2
 from kubernetes import client
 from oslo_log import log as logging
 import requests
+import tenacity
 import yaml
 
 from qinling import context
@@ -77,6 +78,22 @@ class KubernetesManager(base.OrchestratorBase):
 
             LOG.info('Namespace %s created.', self.conf.kubernetes.namespace)
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(2),
+        stop=tenacity.stop_after_delay(600),
+        retry=tenacity.retry_if_result(lambda result: not result)
+    )
+    def _wait_deployment_available(self, name):
+        ret = self.v1extention.read_namespaced_deployment(
+            name,
+            self.conf.kubernetes.namespace
+        )
+
+        if not ret.status.replicas:
+            return False
+
+        return ret.status.replicas == ret.status.available_replicas
+
     def create_pool(self, name, image, labels=None):
         deployment_body = self.deployment_template.render(
             {
@@ -96,6 +113,8 @@ class KubernetesManager(base.OrchestratorBase):
             body=yaml.safe_load(deployment_body),
             namespace=self.conf.kubernetes.namespace
         )
+
+        self._wait_deployment_available(name)
 
         LOG.info("Deployment for runtime %s created.", name)
 

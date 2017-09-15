@@ -37,7 +37,7 @@ from qinling.utils import rest_utils
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
-POST_REQUIRED = set(['name', 'code'])
+POST_REQUIRED = set(['code'])
 CODE_SOURCE = set(['package', 'swift', 'image'])
 UPDATE_ALLOWED = set(['name', 'description', 'entry'])
 
@@ -106,7 +106,7 @@ class FunctionsController(rest.RestController):
             )
 
         values = {
-            'name': kwargs['name'],
+            'name': kwargs.get('name'),
             'description': kwargs.get('description'),
             'runtime_id': kwargs.get('runtime_id'),
             'code': json.loads(kwargs['code']),

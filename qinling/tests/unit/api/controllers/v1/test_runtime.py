@@ -37,7 +37,8 @@ class TestRuntimeController(base.APITest):
             "image": self.db_runtime.image,
             "name": self.db_runtime.name,
             "project_id": test_base.DEFAULT_PROJECT_ID,
-            "status": status.AVAILABLE
+            "status": status.AVAILABLE,
+            "is_public": True,
         }
 
         self.assertEqual(200, resp.status_int)
@@ -51,7 +52,8 @@ class TestRuntimeController(base.APITest):
             "image": self.db_runtime.image,
             "name": self.db_runtime.name,
             "project_id": test_base.DEFAULT_PROJECT_ID,
-            "status": status.AVAILABLE
+            "status": status.AVAILABLE,
+            "is_public": True,
         }
 
         self.assertEqual(200, resp.status_int)

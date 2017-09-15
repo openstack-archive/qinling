@@ -109,7 +109,15 @@ def _secure_query(model, *columns):
     if not issubclass(model, model_base.QinlingSecureModelBase):
         return query
 
-    query = query.filter(model.project_id == context.get_ctx().projectid)
+    if model == models.Runtime:
+        query_criterion = sa.or_(
+            model.project_id == context.get_ctx().projectid,
+            model.is_public
+        )
+    else:
+        query_criterion = model.project_id == context.get_ctx().projectid
+
+    query = query.filter(query_criterion)
 
     return query
 
@@ -274,7 +282,13 @@ def create_runtime(values, session=None):
 
 @db_base.session_aware()
 def get_runtime(id, session=None):
-    runtime = _get_db_object_by_id(models.Runtime, id)
+    model = models.Runtime
+    filters = sa.and_(
+        model.id == id,
+        sa.or_(model.project_id == context.get_ctx().projectid,
+               model.is_public),
+    )
+    runtime = db_base.model_query(model).filter(filters).first()
 
     if not runtime:
         raise exc.DBEntityNotFoundError("Runtime not found [id=%s]" % id)

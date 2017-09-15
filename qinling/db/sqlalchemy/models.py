@@ -23,24 +23,17 @@ from qinling.utils import common
 class Runtime(model_base.QinlingSecureModelBase):
     __tablename__ = 'runtimes'
 
-    __table_args__ = (
-        sa.UniqueConstraint('image', 'project_id'),
-    )
-
     name = sa.Column(sa.String(255))
     description = sa.Column(sa.String(255))
     image = sa.Column(sa.String(255), nullable=False)
     status = sa.Column(sa.String(32), nullable=False)
+    is_public = sa.Column(sa.BOOLEAN, default=True)
 
 
 class Function(model_base.QinlingSecureModelBase):
     __tablename__ = 'functions'
 
-    __table_args__ = (
-        sa.UniqueConstraint('name', 'project_id'),
-    )
-
-    name = sa.Column(sa.String(255), nullable=False)
+    name = sa.Column(sa.String(255), nullable=True)
     description = sa.Column(sa.String(255))
     runtime_id = sa.Column(
         sa.String(36), sa.ForeignKey(Runtime.id), nullable=True

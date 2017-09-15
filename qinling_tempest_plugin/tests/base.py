@@ -11,17 +11,16 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-
 from kubernetes import client as k8s_client
 from tempest import config
 from tempest import test
+import tenacity
 
 CONF = config.CONF
 
 
 class BaseQinlingTest(test.BaseTestCase):
-    credentials = ('primary',)
-    force_tenant_isolation = False
+    credentials = ('admin', 'primary', 'alt')
 
     @classmethod
     def skip_checks(cls):
@@ -34,19 +33,23 @@ class BaseQinlingTest(test.BaseTestCase):
     def setup_clients(cls):
         super(BaseQinlingTest, cls).setup_clients()
 
-        # os here is tempest.lib.services.clients.ServiceClients object
-        os = getattr(cls, 'os_%s' % cls.credentials[0])
-        cls.qinling_client = os.qinling.QinlingClient()
-
-        if CONF.identity.auth_version == 'v3':
-            project_id = os.auth_provider.auth_data[1]['project']['id']
-        else:
-            project_id = os.auth_provider.auth_data[1]['token']['tenant']['id']
-        cls.tenant_id = project_id
-        cls.user_id = os.auth_provider.auth_data[1]['user']['id']
+        cls.client = cls.os_primary.qinling.QinlingClient()
+        cls.alt_client = cls.os_alt.qinling.QinlingClient()
+        cls.admin_client = cls.os_admin.qinling.QinlingClient()
 
         # Initilize k8s client
         k8s_client.Configuration().host = CONF.qinling.kube_host
         cls.k8s_v1 = k8s_client.CoreV1Api()
         cls.k8s_v1extention = k8s_client.ExtensionsV1beta1Api()
         cls.namespace = 'qinling'
+
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(2),
+        stop=tenacity.stop_after_delay(10),
+        retry=tenacity.retry_if_exception_type(AssertionError)
+    )
+    def await_runtime_available(self, id):
+        resp, body = self.client.get_resource('runtimes', id)
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual('available', body['status'])

@@ -54,8 +54,8 @@ def upgrade():
         sa.Column('description', sa.String(length=255), nullable=True),
         sa.Column('image', sa.String(length=255), nullable=False),
         sa.Column('status', sa.String(length=32), nullable=False),
+        sa.Column('is_public', sa.BOOLEAN, nullable=False),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('image', 'project_id'),
         info={"check_ifexists": True}
     )
 
@@ -74,7 +74,6 @@ def upgrade():
         sa.Column('entry', sa.String(length=80), nullable=False),
         sa.Column('count', sa.Integer, nullable=False),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('name', 'project_id'),
         sa.ForeignKeyConstraint(['runtime_id'], [u'runtimes.id']),
         info={"check_ifexists": True}
     )

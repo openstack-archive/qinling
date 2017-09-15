@@ -56,10 +56,14 @@ def enforce(action, context, target=None, do_raise=True,
     :return: returns True if authorized and False if not authorized and
              do_raise is False.
     """
+    if not cfg.CONF.pecan.auth_enable:
+        return
+
+    ctx_dict = context.to_policy_values()
 
     target_obj = {
-        'project_id': context.project_id,
-        'user_id': context.user_id,
+        'project_id': ctx_dict['project_id'],
+        'user_id': ctx_dict['user_id'],
     }
 
     target_obj.update(target or {})
@@ -68,7 +72,7 @@ def enforce(action, context, target=None, do_raise=True,
     return _ENFORCER.enforce(
         action,
         target_obj,
-        context.to_dict(),
+        ctx_dict,
         do_raise=do_raise,
         exc=exc
     )

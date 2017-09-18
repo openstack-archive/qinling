@@ -23,4 +23,3 @@ QINLING_POLICY_FILE=${QINLING_CONF_DIR}/policy.json
 QINLING_AUTH_CACHE_DIR=${QINLING_AUTH_CACHE_DIR:-/var/cache/qinling}
 QINLING_FUNCTION_STORAGE_DIR=${QINLING_FUNCTION_STORAGE_DIR:-/opt/qinling/funtion/packages}
 QINLING_PYTHON_RUNTIME_IMAGE=${QINLING_PYTHON_RUNTIME_IMAGE:-openstackqinling/python-runtime}
-QINLING_LOG_FORMAT=${QINLING_LOG_FORMAT:-"%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s %(resource)s"}

@@ -44,8 +44,8 @@ class BaseQinlingTest(test.BaseTestCase):
         cls.namespace = 'qinling'
 
     @tenacity.retry(
-        wait=tenacity.wait_fixed(2),
-        stop=tenacity.stop_after_delay(10),
+        wait=tenacity.wait_fixed(3),
+        stop=tenacity.stop_after_attempt(10),
         retry=tenacity.retry_if_exception_type(AssertionError)
     )
     def await_runtime_available(self, id):

@@ -21,11 +21,34 @@ from tempest.lib import decorators
 from qinling_tempest_plugin.tests import base
 
 
-class BasicOpsTest(base.BaseQinlingTest):
-    name_prefix = 'BasicOpsTest'
+class FunctionsTest(base.BaseQinlingTest):
+    name_prefix = 'FunctionsTest'
+
+    @classmethod
+    def resource_setup(cls):
+        super(FunctionsTest, cls).resource_setup()
+
+        cls.runtime_id = None
+
+        # Create runtime for function tests
+        name = data_utils.rand_name('runtime', prefix=cls.name_prefix)
+        _, body = cls.admin_client.create_runtime(
+            'openstackqinling/python-runtime', name
+        )
+        cls.runtime_id = body['id']
+
+    @classmethod
+    def resource_cleanup(cls):
+        if cls.runtime_id:
+            cls.admin_client.delete_resource('runtimes', cls.runtime_id)
+
+        super(FunctionsTest, cls).resource_cleanup()
 
     def setUp(self):
-        super(BasicOpsTest, self).setUp()
+        super(FunctionsTest, self).setUp()
+
+        # Wait until runtime is available
+        self.await_runtime_available(self.runtime_id)
 
         python_file_path = os.path.abspath(
             os.path.join(
@@ -55,37 +78,15 @@ class BasicOpsTest(base.BaseQinlingTest):
             finally:
                 zf.close()
 
-    @decorators.idempotent_id('205fd749-2468-4d9f-9c05-45558d6d8f9e')
-    def test_basic_ops(self):
-        """Basic qinling operations test case, including following steps:
-
-        1. Admin user creates a runtime.
-        2. Normal user creates function.
-        3. Normal user creates execution(invoke function).
-        4. Check result and execution log.
-        """
-        name = data_utils.rand_name('runtime', prefix=self.name_prefix)
-
-        resp, body = self.admin_client.create_runtime(
-            'openstackqinling/python-runtime', name
-        )
-
-        self.assertEqual(201, resp.status)
-        self.assertEqual(name, body['name'])
-
-        # Wait for runtime to be available
-        runtime_id = body['id']
-        self.await_runtime_available(runtime_id)
-        self.addCleanup(self.admin_client.delete_resource, 'runtimes',
-                        runtime_id)
-
+    @decorators.idempotent_id('9c36ac64-9a44-4c44-9e44-241dcc6b0933')
+    def test_create_list_get_delete_function(self):
         # Create function
         function_name = data_utils.rand_name('function',
                                              prefix=self.name_prefix)
         with open(self.python_zip_file, 'rb') as package_data:
             resp, body = self.client.create_function(
                 {"source": "package"},
-                runtime_id,
+                self.runtime_id,
                 name=function_name,
                 package_data=package_data,
                 entry='%s.main' % self.base_name
@@ -94,21 +95,23 @@ class BasicOpsTest(base.BaseQinlingTest):
 
         self.assertEqual(201, resp.status_code)
         self.addCleanup(self.client.delete_resource, 'functions',
-                        function_id)
+                        function_id, ignore_notfound=True)
 
-        # Invoke function
-        resp, body = self.client.create_execution(function_id,
-                                                  input={'name': 'Qinling'})
-
-        self.assertEqual(201, resp.status)
-        self.assertEqual('success', body['status'])
-
-        execution_id = body['id']
-        self.addCleanup(self.client.delete_resource, 'executions',
-                        execution_id)
-
-        # Get execution log
-        resp, body = self.client.get_execution_log(execution_id)
+        # Get functions
+        resp, body = self.client.get_resources('functions')
 
         self.assertEqual(200, resp.status)
-        self.assertIn('Hello, Qinling', body)
+        self.assertIn(
+            function_id,
+            [function['id'] for function in body['functions']]
+        )
+
+        # Download function package
+        resp, data = self.client.download_function(function_id)
+        self.assertEqual(200, resp.status)
+        self.assertEqual(os.path.getsize(self.python_zip_file), len(data))
+
+        # Delete function
+        resp = self.client.delete_resource('functions', function_id)
+
+        self.assertEqual(204, resp.status)

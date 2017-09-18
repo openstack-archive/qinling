@@ -15,6 +15,7 @@
 import json
 
 import requests
+from tempest.lib import exceptions
 
 from qinling_tempest_plugin.services import base as client_base
 
@@ -22,10 +23,15 @@ from qinling_tempest_plugin.services import base as client_base
 class QinlingClient(client_base.QinlingClientBase):
     """Tempest REST client for Qinling."""
 
-    def delete_resource(self, res, id):
-        resp, _ = self.delete_obj(res, id)
-
-        return resp
+    def delete_resource(self, res, id, ignore_notfound=False):
+        try:
+            resp, _ = self.delete_obj(res, id)
+            return resp
+        except exceptions.NotFound:
+            if ignore_notfound:
+                pass
+            else:
+                raise
 
     def get_resource(self, res, id):
         resp, body = self.get_obj(res, id)
@@ -37,8 +43,8 @@ class QinlingClient(client_base.QinlingClientBase):
 
         return resp, body
 
-    def create_runtime(self, image, name=None):
-        req_body = {"image": image}
+    def create_runtime(self, image, name=None, is_public=True):
+        req_body = {"image": image, "is_public": is_public}
 
         if name:
             req_body.update({'name': name})
@@ -74,6 +80,10 @@ class QinlingClient(client_base.QinlingClientBase):
         resp = requests.post(url_path, **req_kwargs)
 
         return resp, json.loads(resp.text)
+
+    def download_function(self, function_id):
+        return self.get('/v1/functions/%s?download=true' % function_id,
+                        headers={})
 
     def create_execution(self, function_id, input=None, sync=True):
         req_body = {'function_id': function_id, 'sync': sync, 'input': input}

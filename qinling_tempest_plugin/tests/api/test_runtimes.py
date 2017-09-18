@@ -32,6 +32,8 @@ class RuntimesTest(base.BaseQinlingTest):
         self.assertEqual(name, body['name'])
 
         runtime_id = body['id']
+        self.addCleanup(self.admin_client.delete_resource, 'runtimes',
+                        runtime_id, ignore_notfound=True)
 
         # Get runtimes
         resp, body = self.client.get_resources('runtimes')
@@ -60,3 +62,32 @@ class RuntimesTest(base.BaseQinlingTest):
         resp = self.admin_client.delete_resource('runtimes', runtime_id)
 
         self.assertEqual(204, resp.status)
+
+    @decorators.idempotent_id('c1db56bd-c3a8-4ca6-9482-c362fd492db0')
+    def test_create_private_runtime(self):
+        """Private runtime test.
+
+        Admin user creates a private runtime which can not be used by other
+        projects.
+        """
+        name = data_utils.rand_name('runtime', prefix=self.name_prefix)
+        resp, body = self.admin_client.create_runtime(
+            'openstackqinling/python-runtime', name, is_public=False
+        )
+
+        self.assertEqual(201, resp.status)
+        self.assertEqual(name, body['name'])
+        self.assertFalse(body['is_public'])
+
+        runtime_id = body['id']
+        self.addCleanup(self.admin_client.delete_resource, 'runtimes',
+                        runtime_id, ignore_notfound=True)
+
+        # Get runtimes
+        resp, body = self.client.get_resources('runtimes')
+
+        self.assertEqual(200, resp.status)
+        self.assertNotIn(
+            runtime_id,
+            [runtime['id'] for runtime in body['runtimes']]
+        )

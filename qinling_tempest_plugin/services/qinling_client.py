@@ -14,19 +14,73 @@
 
 import json
 
+import requests
+
 from qinling_tempest_plugin.services import base as client_base
 
 
 class QinlingClient(client_base.QinlingClientBase):
     """Tempest REST client for Qinling."""
 
+    def delete_resource(self, res, id):
+        resp, _ = self.delete_obj(res, id)
+
+        return resp
+
+    def get_resource(self, res, id):
+        resp, body = self.get_obj(res, id)
+
+        return resp, body
+
+    def get_resources(self, res):
+        resp, body = self.get_list_objs(res)
+
+        return resp, body
+
     def create_runtime(self, image, name=None):
-        body = {"image": image}
+        req_body = {"image": image}
 
         if name:
-            body.update({'name': name})
+            req_body.update({'name': name})
 
-        resp, body = self.post('runtimes', json.dumps(body))
-        self.runtimes.append(json.loads(body)['id'])
+        resp, body = self.post_json('runtimes', req_body)
 
-        return resp, json.loads(body)
+        return resp, body
+
+    def create_function(self, code, runtime_id, name='', package_data=None,
+                        entry=None):
+        """Create function.
+
+        Tempest rest client doesn't support multipart upload, so use requests
+        lib instead.
+        """
+        headers = {'X-Auth-Token': self.auth_provider.get_token()}
+        req_body = {
+            'name': name,
+            'runtime_id': runtime_id,
+            'code': json.dumps(code)
+        }
+        if entry:
+            req_body['entry'] = entry
+
+        req_kwargs = {
+            'headers': headers,
+            'data': req_body
+        }
+        if package_data:
+            req_kwargs.update({'files': {'package': package_data}})
+
+        url_path = '%s/v1/functions' % (self.base_url)
+        resp = requests.post(url_path, **req_kwargs)
+
+        return resp, json.loads(resp.text)
+
+    def create_execution(self, function_id, input=None, sync=True):
+        req_body = {'function_id': function_id, 'sync': sync, 'input': input}
+        resp, body = self.post_json('executions', req_body)
+
+        return resp, body
+
+    def get_execution_log(self, execution_id):
+        return self.get('/v1/executions/%s/log' % execution_id,
+                        headers={'Accept': 'text/plain'})

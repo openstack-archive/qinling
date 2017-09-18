@@ -1,0 +1,10 @@
+{
+    "context_is_admin": "role:admin or is_admin:1",
+    "owner" : "project_id:%(project_id)s",
+    "admin_or_owner": "rule:context_is_admin or rule:owner",
+    "default": "rule:admin_or_owner",
+
+    "runtime:create": "rule:context_is_admin",
+    "runtime:update": "rule:context_is_admin",
+    "runtime:delete": "rule:context_is_admin",
+}

@@ -16,8 +16,10 @@ from oslo_log import log as logging
 from pecan import rest
 import wsmeext.pecan as wsme_pecan
 
+from qinling.api import access_control as acl
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
+from qinling import context
 from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import rpc
@@ -63,6 +65,8 @@ class RuntimesController(rest.RestController):
         status_code=201
     )
     def post(self, runtime):
+        acl.enforce('runtime:create', context.get_ctx())
+
         params = runtime.to_dict()
 
         if not POST_REQUIRED.issubset(set(params.keys())):
@@ -82,13 +86,15 @@ class RuntimesController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
+        acl.enforce('runtime:delete', context.get_ctx())
+
         LOG.info("Delete resource.", resource={'type': self.type, 'id': id})
 
         with db_api.transaction():
             runtime_db = db_api.get_runtime(id)
 
             # Runtime can not be deleted if still associate with functions.
-            funcs = db_api.get_functions(runtime_id={'eq': id})
+            funcs = db_api.get_functions(insecure=True, runtime_id={'eq': id})
             if len(funcs):
                 raise exc.NotAllowedException(
                     'Runtime %s is still in use.' % id
@@ -111,6 +117,8 @@ class RuntimesController(rest.RestController):
         Currently, we only support update name, description, image. When
         updating image, send message to engine for asynchronous handling.
         """
+        acl.enforce('runtime:update', context.get_ctx())
+
         values = {}
         for key in UPDATE_ALLOWED:
             if runtime.to_dict().get(key) is not None:

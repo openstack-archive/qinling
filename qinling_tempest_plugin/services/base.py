@@ -21,9 +21,6 @@ class QinlingClientBase(rest_client.RestClient):
     def __init__(self, auth_provider, **kwargs):
         super(QinlingClientBase, self).__init__(auth_provider, **kwargs)
 
-        self.runtimes = []
-        self.functions = []
-
     def get_list_objs(self, obj):
         resp, body = self.get('/v1/%s' % obj)
 

@@ -218,6 +218,7 @@ class Runtime(Resource):
     name = wtypes.text
     image = wtypes.text
     description = wtypes.text
+    is_public = wsme.wsattr(bool, default=True)
     status = wsme.wsattr(wtypes.text, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wsme.wsattr(wtypes.text, readonly=True)
@@ -230,6 +231,7 @@ class Runtime(Resource):
             name='python2.7',
             image='lingxiankong/python',
             status='available',
+            is_public=True,
             project_id='default',
             description='Python 2.7 environment.',
             created_at='1970-01-01T00:00:00.000000',

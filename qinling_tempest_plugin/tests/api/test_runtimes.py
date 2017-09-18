@@ -13,7 +13,6 @@
 #    limitations under the License.
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
-import tenacity
 
 from qinling_tempest_plugin.tests import base
 
@@ -21,33 +20,21 @@ from qinling_tempest_plugin.tests import base
 class RuntimesTest(base.BaseQinlingTest):
     name_prefix = 'RuntimesTest'
 
-    @tenacity.retry(
-        wait=tenacity.wait_fixed(2),
-        stop=tenacity.stop_after_delay(10),
-        retry=tenacity.retry_if_exception_type(AssertionError)
-    )
-    def _await_runtime_available(self, id):
-        resp, body = self.qinling_client.get_obj('runtimes', id)
-
-        self.assertEqual(200, resp.status)
-        self.assertEqual('available', body['status'])
-
     @decorators.idempotent_id('fdc2f07f-dd1d-4981-86d3-5bc7908d9a9b')
     def test_create_list_get_delete_runtime(self):
         name = data_utils.rand_name('runtime', prefix=self.name_prefix)
 
-        req_body = {
-            'name': name,
-            'image': 'openstackqinling/python-runtime'
-        }
-        resp, body = self.qinling_client.post_json('runtimes', req_body)
-        runtime_id = body['id']
+        resp, body = self.admin_client.create_runtime(
+            'openstackqinling/python-runtime', name
+        )
 
         self.assertEqual(201, resp.status)
         self.assertEqual(name, body['name'])
 
+        runtime_id = body['id']
+
         # Get runtimes
-        resp, body = self.qinling_client.get_list_objs('runtimes')
+        resp, body = self.client.get_resources('runtimes')
 
         self.assertEqual(200, resp.status)
         self.assertIn(
@@ -56,7 +43,7 @@ class RuntimesTest(base.BaseQinlingTest):
         )
 
         # Wait for runtime to be available
-        self._await_runtime_available(runtime_id)
+        self.await_runtime_available(runtime_id)
 
         # Check k8s resource
         deploy = self.k8s_v1extention.read_namespaced_deployment(
@@ -70,6 +57,6 @@ class RuntimesTest(base.BaseQinlingTest):
         )
 
         # Delete runtime
-        resp, _ = self.qinling_client.delete_obj('runtimes', runtime_id)
+        resp = self.admin_client.delete_resource('runtimes', runtime_id)
 
         self.assertEqual(204, resp.status)

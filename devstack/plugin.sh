@@ -64,11 +64,15 @@ function configure_qinling {
     mkdir_chown_stack "$QINLING_FUNCTION_STORAGE_DIR"
     rm -f "$QINLING_FUNCTION_STORAGE_DIR"/*
 
+    cp $QINLING_DIR/etc/policy.json.sample $QINLING_POLICY_FILE
+
     # Generate Qinling configuration file and configure common parameters.
     oslo-config-generator --config-file $QINLING_DIR/tools/config/config-generator.qinling.conf --output-file $QINLING_CONF_FILE
 
+    iniset $QINLING_CONF_FILE oslo_policy policy_file $QINLING_POLICY_FILE
     iniset $QINLING_CONF_FILE DEFAULT debug $QINLING_DEBUG
     iniset $QINLING_CONF_FILE DEFAULT server all
+    iniset $QINLING_CONF_FILE DEFAULT logging_default_format_string $QINLING_LOG_FORMAT
     iniset $QINLING_CONF_FILE storage file_system_dir $QINLING_FUNCTION_STORAGE_DIR
     iniset $QINLING_CONF_FILE kubernetes qinling_service_address $DEFAULT_HOST_IP
 

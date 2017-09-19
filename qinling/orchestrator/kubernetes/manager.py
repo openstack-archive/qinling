@@ -20,6 +20,7 @@ import jinja2
 from kubernetes import client
 from oslo_log import log as logging
 import requests
+import six
 import tenacity
 import yaml
 
@@ -55,6 +56,10 @@ class KubernetesManager(base.OrchestratorBase):
         self.deployment_template = jinja_env.get_template('deployment.j2')
         self.service_template = jinja_env.get_template('service.j2')
         self.pod_template = jinja_env.get_template('pod.j2')
+
+        # Refer to
+        # http://docs.python-requests.org/en/master/user/advanced/#session-objects
+        self.session = requests.Session()
 
     def _ensure_namespace(self):
         ret = self.v1.list_namespace()
@@ -301,18 +306,24 @@ class KubernetesManager(base.OrchestratorBase):
             name, request_url, data
         )
 
-        # TODO(kong): Here we sleep some time to avoid 'Failed to establish a
-        # new connection' error for some reason. Needs to find a better
-        # solution.
-        time.sleep(1)
-        r = requests.post(request_url, json=data)
+        exception = None
+        for a in six.moves.xrange(10):
+            try:
+                r = self.session.post(request_url, json=data)
+                if r.status_code != requests.codes.ok:
+                    raise exc.OrchestratorException(
+                        'Failed to download function code package.'
+                    )
 
-        if r.status_code != requests.codes.ok:
-            raise exc.OrchestratorException(
-                'Failed to download function code package.'
-            )
+                return name, pod_service_url
+            except (requests.ConnectionError, requests.Timeout) as e:
+                exception = e
+                LOG.warning("Could not connect to service. Retrying.")
+                time.sleep(1)
 
-        return name, pod_service_url
+        raise exc.OrchestratorException(
+            'Could not connect to service. Reason: %s', exception
+        )
 
     def _create_pod(self, image, pod_name, labels, input):
         pod_body = self.pod_template.render(
@@ -383,7 +394,7 @@ class KubernetesManager(base.OrchestratorBase):
 
             LOG.info('Invoke function %s, url: %s', function_id, func_url)
 
-            r = requests.post(func_url, json=data)
+            r = self.session.post(func_url, json=data)
             return r.json()
         else:
             status = None

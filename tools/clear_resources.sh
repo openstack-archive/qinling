@@ -23,12 +23,15 @@ function delete_resources(){
       openstack function delete $id
     done
 
-    # Delete runtimes
-    ids=$(openstack runtime list -f yaml -c Id | awk '{print $3}')
-    for id in $ids
-    do
-      openstack runtime delete $id
-    done
+    if [ "$1" = "admin" ]
+    then
+        # Delete runtimes
+        ids=$(openstack runtime list -f yaml -c Id | awk '{print $3}')
+        for id in $ids
+        do
+          openstack runtime delete $id
+        done
+    fi
 }
 
 delete_resources

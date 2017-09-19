@@ -27,6 +27,7 @@ CONF = cfg.CONF
 class DefaultEngine(object):
     def __init__(self, orchestrator):
         self.orchestrator = orchestrator
+        self.session = requests.Session()
 
     def create_runtime(self, ctx, runtime_id):
         LOG.info('Start to create.',
@@ -102,7 +103,7 @@ class DefaultEngine(object):
                 )
 
                 data = {'input': input, 'execution_id': execution_id}
-                r = requests.post(func_url, json=data)
+                r = self.session.post(func_url, json=data)
                 res = r.json()
 
                 LOG.debug('Finished execution %s', execution_id)

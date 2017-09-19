@@ -53,3 +53,14 @@ class BaseQinlingTest(test.BaseTestCase):
 
         self.assertEqual(200, resp.status)
         self.assertEqual('available', body['status'])
+
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(3),
+        stop=tenacity.stop_after_attempt(10),
+        retry=tenacity.retry_if_exception_type(AssertionError)
+    )
+    def await_execution_success(self, id):
+        resp, body = self.client.get_resource('executions', id)
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual('success', body['status'])

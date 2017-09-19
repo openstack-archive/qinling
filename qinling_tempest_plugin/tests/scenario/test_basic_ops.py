@@ -65,7 +65,6 @@ class BasicOpsTest(base.BaseQinlingTest):
         4. Check result and execution log.
         """
         name = data_utils.rand_name('runtime', prefix=self.name_prefix)
-
         resp, body = self.admin_client.create_runtime(
             'openstackqinling/python-runtime', name
         )
@@ -77,7 +76,7 @@ class BasicOpsTest(base.BaseQinlingTest):
         runtime_id = body['id']
         self.await_runtime_available(runtime_id)
         self.addCleanup(self.admin_client.delete_resource, 'runtimes',
-                        runtime_id)
+                        runtime_id, ignore_notfound=True)
 
         # Create function
         function_name = data_utils.rand_name('function',
@@ -94,7 +93,7 @@ class BasicOpsTest(base.BaseQinlingTest):
 
         self.assertEqual(201, resp.status_code)
         self.addCleanup(self.client.delete_resource, 'functions',
-                        function_id)
+                        function_id, ignore_notfound=True)
 
         # Invoke function
         resp, body = self.client.create_execution(function_id,
@@ -105,7 +104,7 @@ class BasicOpsTest(base.BaseQinlingTest):
 
         execution_id = body['id']
         self.addCleanup(self.client.delete_resource, 'executions',
-                        execution_id)
+                        execution_id, ignore_notfound=True)
 
         # Get execution log
         resp, body = self.client.get_execution_log(execution_id)

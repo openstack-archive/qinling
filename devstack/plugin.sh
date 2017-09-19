@@ -72,7 +72,7 @@ function configure_qinling {
     iniset $QINLING_CONF_FILE oslo_policy policy_file $QINLING_POLICY_FILE
     iniset $QINLING_CONF_FILE DEFAULT debug $QINLING_DEBUG
     iniset $QINLING_CONF_FILE DEFAULT server all
-    iniset $QINLING_CONF_FILE DEFAULT logging_context_format_string "%(asctime)s.%(msecs)03d %(process)d %(levelname)s %(name)s [%(request_id)s %(user_identity)s] %(instance)s%(message)s %(resource)s"
+    iniset $QINLING_CONF_FILE DEFAULT logging_context_format_string "%(asctime)s %(process)d %(color)s %(levelname)s [%(request_id)s] %(message)s %(resource)s (%(name)s)"
     iniset $QINLING_CONF_FILE storage file_system_dir $QINLING_FUNCTION_STORAGE_DIR
     iniset $QINLING_CONF_FILE kubernetes qinling_service_address $DEFAULT_HOST_IP
 

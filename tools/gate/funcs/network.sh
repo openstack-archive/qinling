@@ -38,7 +38,7 @@ function net_resolv_post_kube {
 
 function net_hosts_pre_kube {
   sudo cp -f /etc/hosts /etc/hosts-pre-kube
-  sudo sed -i "/$(hostname)/d" /etc/hosts
+  # sudo sed -i "/$(hostname)/d" /etc/hosts
 
   # The var will be used in qinling pre_test_hook.sh
   export DEFAULT_HOST_IP=$(net_default_host_ip)

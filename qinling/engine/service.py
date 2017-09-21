@@ -55,7 +55,8 @@ class EngineService(service.Service):
             executor='eventlet',
             access_policy=access_policy,
             serializer=rpc.ContextSerializer(
-                messaging.serializer.JsonPayloadSerializer())
+                messaging.serializer.JsonPayloadSerializer()
+            )
         )
 
         LOG.info('Starting engine...')

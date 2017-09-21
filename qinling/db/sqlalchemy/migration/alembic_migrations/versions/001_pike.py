@@ -134,7 +134,7 @@ def upgrade():
         sa.Column('function_input', st.JsonLongDictType(), nullable=True),
         sa.Column('status', sa.String(length=32), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=True),
-        sa.Column('pattern', sa.String(length=32), nullable=False),
+        sa.Column('pattern', sa.String(length=32), nullable=True),
         sa.Column('first_execution_time', sa.DateTime(), nullable=True),
         sa.Column('next_execution_time', sa.DateTime(), nullable=False),
         sa.Column('count', sa.Integer(), nullable=True),

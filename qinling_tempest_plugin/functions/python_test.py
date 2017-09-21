@@ -13,5 +13,5 @@
 #    limitations under the License.
 
 
-def main(name='World'):
+def main(name='World', **kwargs):
     print('Hello, %s' % name)

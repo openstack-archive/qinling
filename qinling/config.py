@@ -11,16 +11,14 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-
-"""
-Configuration options registration and useful routines.
-"""
-import itertools
-
+from keystoneauth1 import loading
+from keystonemiddleware import auth_token
 from oslo_config import cfg
 from oslo_log import log
 
 from qinling import version
+
+CONF = cfg.CONF
 
 launch_opt = cfg.ListOpt(
     'server',
@@ -137,25 +135,24 @@ kubernetes_opts = [
     ),
 ]
 
-CONF = cfg.CONF
-CLI_OPTS = [launch_opt]
-CONF.register_cli_opts(CLI_OPTS)
-default_group_opts = itertools.chain(CLI_OPTS, [])
-
 
 def list_opts():
-    return [
+    keystone_middleware_opts = auth_token.list_opts()
+    keystone_loading_opts = [(
+        'keystone_authtoken', loading.get_auth_plugin_conf_options('password')
+    )]
+
+    qinling_opts = [
         (API_GROUP, api_opts),
         (PECAN_GROUP, pecan_opts),
         (ENGINE_GROUP, engine_opts),
         (STORAGE_GROUP, storage_opts),
         (KUBERNETES_GROUP, kubernetes_opts),
-        (None, default_group_opts)
+        (None, [launch_opt])
     ]
 
+    return keystone_middleware_opts + keystone_loading_opts + qinling_opts
 
-for group, options in list_opts():
-    CONF.register_opts(list(options), group)
 
 _DEFAULT_LOG_LEVELS = [
     'eventlet.wsgi.server=WARN',
@@ -175,6 +172,12 @@ def parse_args(args=None, usage=None, default_config_files=None):
     default_log_levels.extend(_DEFAULT_LOG_LEVELS)
     log.set_defaults(default_log_levels=default_log_levels)
     log.register_options(CONF)
+
+    CLI_OPTS = [launch_opt]
+    CONF.register_cli_opts(CLI_OPTS)
+
+    for group, options in list_opts():
+        CONF.register_opts(list(options), group)
 
     CONF(
         args=args,

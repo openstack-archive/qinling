@@ -27,24 +27,32 @@ Lambda). Qinling supports different container orchestration platforms
 * IRC channel on Freenode: #openstack-qinling
 
 
-Table of Contents
-=================
+Overview
+--------
 
 .. toctree::
    :maxdepth: 1
 
    quick_start
 
-Contributor/Developer Docs
-==========================
+Contributor/Developer Guide
+---------------------------
 
 .. toctree::
    :maxdepth: 1
 
    contributor/index
 
+Function Programming Guide
+--------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   function_developer/index
+
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`search`

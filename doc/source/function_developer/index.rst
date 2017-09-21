@@ -15,18 +15,16 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-Contributor/Developer Guide
-===========================
+Function Programming Guide
+==========================
 
-In this section you will find information helpful for contributing to qinling
-project.
+In this section you will find information helpful for developing functions.
 
 
 .. toctree::
     :maxdepth: 2
 
-    development-environment-devstack
-    contributing
+    openstack_integration
 
 Indices and tables
 ------------------

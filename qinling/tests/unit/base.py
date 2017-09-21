@@ -19,13 +19,12 @@ import random
 from oslo_config import cfg
 from oslotest import base
 
+from qinling import config
 from qinling import context as auth_context
 from qinling.db import api as db_api
 from qinling.db.sqlalchemy import sqlite_lock
 from qinling import status
-from qinling.tests.unit import config as test_config
 
-test_config.parse_args()
 DEFAULT_PROJECT_ID = 'default'
 OPT_PROJECT_ID = '55-66-77-88'
 
@@ -131,6 +130,17 @@ class DbTestCase(BaseTest):
         cfg.CONF.set_default('connection', 'sqlite://', group='database')
         cfg.CONF.set_default('max_overflow', -1, group='database')
         cfg.CONF.set_default('max_pool_size', 1000, group='database')
+
+        qinling_opts = [
+            (config.API_GROUP, config.api_opts),
+            (config.PECAN_GROUP, config.pecan_opts),
+            (config.ENGINE_GROUP, config.engine_opts),
+            (config.STORAGE_GROUP, config.storage_opts),
+            (config.KUBERNETES_GROUP, config.kubernetes_opts),
+            (None, [config.launch_opt])
+        ]
+        for group, options in qinling_opts:
+            cfg.CONF.register_opts(list(options), group)
 
         db_api.setup_db()
 

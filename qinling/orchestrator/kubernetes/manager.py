@@ -298,12 +298,19 @@ class KubernetesManager(base.OrchestratorBase):
             'download_url': download_url,
             'function_id': actual_function,
             'entry': entry,
-            'token': context.get_ctx().auth_token,
         }
+        if self.conf.pecan.auth_enable:
+            data.update(
+                {
+                    'token': context.get_ctx().auth_token,
+                    'auth_url': self.conf.keystone_authtoken.auth_uri,
+                    'username': self.conf.keystone_authtoken.username,
+                    'password': self.conf.keystone_authtoken.password,
+                }
+            )
 
-        LOG.debug(
-            'Send request to pod %s, request_url: %s, data: %s',
-            name, request_url, data
+        LOG.info(
+            'Send request to pod %s, request_url: %s', name, request_url
         )
 
         exception = None
@@ -390,7 +397,17 @@ class KubernetesManager(base.OrchestratorBase):
                       identifier=None, service_url=None):
         if service_url:
             func_url = '%s/execute' % service_url
-            data = {'input': input, 'execution_id': execution_id}
+            data = {
+                'input': input,
+                'execution_id': execution_id,
+            }
+            if self.conf.pecan.auth_enable:
+                data.update(
+                    {
+                        'token': context.get_ctx().auth_token,
+                        'trust_id': context.get_ctx().trust_id
+                    }
+                )
 
             LOG.info('Invoke function %s, url: %s', function_id, func_url)
 

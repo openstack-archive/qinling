@@ -23,8 +23,7 @@ from webtest import app as webtest_app
 
 from qinling.tests.unit import base
 
-# Disable authentication by default for API tests.
-cfg.CONF.set_default('auth_enable', False, group='pecan')
+CONF = cfg.CONF
 
 
 class APITest(base.DbTestCase):
@@ -36,7 +35,13 @@ class APITest(base.DbTestCase):
         self.override_config('file_system_dir', package_dir, 'storage')
         self.addCleanup(shutil.rmtree, package_dir, True)
 
-        pecan_opts = cfg.CONF.pecan
+        # Disable authentication by default for API tests.
+        CONF.set_default('auth_enable', False, group='pecan')
+        self.addCleanup(
+            CONF.set_default, 'auth_enable', False, group='pecan'
+        )
+
+        pecan_opts = CONF.pecan
         self.app = pecan.testing.load_test_app({
             'app': {
                 'root': pecan_opts.root,
@@ -47,9 +52,6 @@ class APITest(base.DbTestCase):
         })
 
         self.addCleanup(pecan.set_config, {}, overwrite=True)
-        self.addCleanup(
-            cfg.CONF.set_default, 'auth_enable', False, group='pecan'
-        )
 
         self.patch_ctx = mock.patch('qinling.context.Context.from_environ')
         self.mock_ctx = self.patch_ctx.start()

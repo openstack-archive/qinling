@@ -27,21 +27,34 @@ from flask import abort
 from flask import Flask
 from flask import request
 from flask import Response
+from keystoneauth1.identity import generic
+from keystoneauth1 import session
 import requests
 
 app = Flask(__name__)
 zip_file = ''
 function_module = 'main'
 function_method = 'main'
+auth_url = None
+username = None
+password = None
 
 
 @app.route('/download', methods=['POST'])
 def download():
     params = request.get_json() or {}
+
     download_url = params.get('download_url')
     function_id = params.get('function_id')
     entry = params.get('entry')
+
+    global auth_url
+    global username
+    global password
     token = params.get('token')
+    auth_url = params.get('auth_url')
+    username = params.get('username')
+    password = params.get('password')
 
     headers = {}
     if token:
@@ -101,10 +114,32 @@ def execute():
     global zip_file
     global function_module
     global function_method
+    global auth_url
+    global username
+    global password
 
     params = request.get_json() or {}
     input = params.get('input') or {}
     execution_id = params['execution_id']
+    token = params.get('token')
+    trust_id = params.get('trust_id')
+
+    # Provide an openstack session to user's function
+    os_session = None
+    if auth_url:
+        if not trust_id:
+            auth = generic.Token(auth_url=auth_url, token=token)
+        else:
+            auth = generic.Password(
+                username=username,
+                password=password,
+                auth_url=auth_url,
+                trust_id=trust_id,
+                user_domain_name='Default'
+            )
+        os_session = session.Session(auth=auth, verify=False)
+
+    input.update({'context': {'os_session': os_session}})
 
     manager = Manager()
     return_dict = manager.dict()
@@ -124,7 +159,6 @@ def execute():
 
     with open('%s.out' % execution_id) as f:
         logs = f.read()
-
     os.remove('%s.out' % execution_id)
 
     return Response(

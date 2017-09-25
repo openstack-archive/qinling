@@ -9,6 +9,12 @@ related components and dependencies of Qinling service. For quick installation,
 evaluation, and convenience, Qinling team provides a Vagrantfile in
 ``tools/vagrant`` folder.
 
+.. note::
+
+   You can also install Qinling service in OpenStack devstack environment,
+   please refer to
+   http://qinling.readthedocs.io/en/latest/contributor/development-environment-devstack.html.
+
 Qinling is a FaaS implemented on top of container orchestration system such as
 Kubernetes, Swarm, etc. Particularly, Kubernetes is a reference backend
 considering its popularity. So, you need to setup Kubernetes first before
@@ -24,8 +30,8 @@ they can communicate with each other without any network configuration.
    command line tool.
 
 Qinling can work with OpenStack Keystone for authentication, or it can work
-without authentication at all. By default, authentication is disabled, config
-``auth_enable = True`` to enable authentication.
+without authentication at all. By default, authentication is enabled, set
+``auth_enable = False`` to enable authentication.
 
 After Kubernetes installation, perform the following commands on your local
 host.

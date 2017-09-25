@@ -37,6 +37,8 @@ Python which will interact with Swift service in OpenStack.
         obj_info = conn.head_object(container, object)
         return obj_info
 
+.. end
+
 In the above code, note the following:
 
 - Qinling supports most of OpenStack service clients, so you don't need to

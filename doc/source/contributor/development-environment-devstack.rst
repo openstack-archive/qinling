@@ -26,7 +26,7 @@ Following these instructions will allow you to have a fully functional qinling
 environment using the devstack project (a shell script to build
 complete OpenStack development environments) on Ubuntu 16.04.
 
-Configuring devstack with qinling
+Configuring devstack with Qinling
 ---------------------------------
 
 Qinling can be enabled in devstack by using the plug-in based interface it
@@ -36,7 +36,7 @@ offers.
 
    The following steps have been fully verified only on Ubuntu 16.04.
 
-Start by cloning the devstack repository:
+Start by cloning the devstack repository using a non-root user:
 
 ::
 
@@ -48,29 +48,33 @@ Change to devstack directory:
 
     cd devstack/
 
-Copy the ``local.conf`` sample file to the upper level directory:
+Create the ``local.conf`` file with the following minimal devstack
+configuration:
 
-::
+.. code-block:: ini
 
-    cp samples/local.conf .
-
-Enable the qinling plugin adding the following lines to the end of the
-``local.conf`` file:
-
-::
-
-    ENABLED_SERVICES=rabbit,mysql,key,tempest
+    [[local|localrc]]
+    RECLONE=True
     enable_plugin qinling https://github.com/openstack/qinling
-    LIBS_FROM_GIT="python-qinlingclient"
+
+    LIBS_FROM_GIT=python-qinlingclient
+    DATABASE_PASSWORD=password
+    ADMIN_PASSWORD=password
+    SERVICE_PASSWORD=password
+    SERVICE_TOKEN=password
+    RABBIT_PASSWORD=password
+    LOGFILE=$DEST/logs/stack.sh.log
+    LOG_COLOR=False
+    SCREEN_LOGDIR=$DEST/logs
+    LOGFILE=$DEST/logs/stack.sh.log
+    LOGDAYS=1
+
+    ENABLED_SERVICES=rabbit,mysql,key
+
+.. end
 
 Running devstack
 ----------------
-
-.. note::
-
-   Before running devstack, make sure there is a loopback device defined in
-   ``/etc/hosts`` file, ``127.0.1.1 localhost`` is recommended, any line
-   including '127.0.0.1' will be deleted automatically during devstack running.
 
 Run the ``stack.sh`` script:
 
@@ -84,17 +88,19 @@ After it completes, verify qinling service is installed properly:
 
     $ source openrc admin admin
     $ openstack service list
-    +----------------------------------+----------+----------+
-    | ID                               | Name     | Type     |
-    +----------------------------------+----------+----------+
-    | 60145bf464f943aa88613026bd6aa5e3 | qinling  | function |
-    | 750ec7b067b7465bab2389e331f826de | keystone | identity |
-    +----------------------------------+----------+----------+
+    +----------------------------------+----------+-----------------+
+    | ID                               | Name     | Type            |
+    +----------------------------------+----------+-----------------+
+    | 59be2ecc8b8d4e61af184ea3495bf207 | qinling  | function-engine |
+    | e5891d41a929402384ef00ce7135a16d | keystone | identity        |
+    +----------------------------------+----------+-----------------+
     $ openstack runtime list --print-empty
     +----+------+-------+--------+-------------+------------+------------+------------+
     | Id | Name | Image | Status | Description | Project_id | Created_at | Updated_at |
     +----+------+-------+--------+-------------+------------+------------+------------+
     +----+------+-------+--------+-------------+------------+------------+------------+
+
+.. end
 
 Kubernetes Integration
 ----------------------
@@ -103,7 +109,7 @@ By default, Qinling uses Kubernetes as its orchestrator backend, so a k8s
 all-in-one environment (and some other related tools, e.g. kubectl) is also
 setup during devstack installation.
 
-The idea and most of the scripts are coming from
+The idea and most of the scripts come from
 `OpenStack-Helm <http://openstack-helm.readthedocs.io/en/latest/index.html>`_
 project originally, but may be probably changed as the project evolving in
 future.

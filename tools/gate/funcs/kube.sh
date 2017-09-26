@@ -136,7 +136,6 @@ function kubeadm_aio_clean {
       /var/lib/etcd \
       /var/etcd \
       /var/lib/kubelet/* \
-      /run/openvswitch \
       /var/lib/nova \
       ${HOME}/.kubeadm-aio/admin.conf \
       /var/lib/openstack-helm \

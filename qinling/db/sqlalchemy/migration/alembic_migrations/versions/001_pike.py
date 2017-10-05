@@ -73,6 +73,7 @@ def upgrade():
         sa.Column('code', st.JsonLongDictType(), nullable=False),
         sa.Column('entry', sa.String(length=80), nullable=False),
         sa.Column('count', sa.Integer, nullable=False),
+        sa.Column('trust_id', sa.String(length=80), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['runtime_id'], [u'runtimes.id']),
         info={"check_ifexists": True}
@@ -138,7 +139,6 @@ def upgrade():
         sa.Column('first_execution_time', sa.DateTime(), nullable=True),
         sa.Column('next_execution_time', sa.DateTime(), nullable=False),
         sa.Column('count', sa.Integer(), nullable=True),
-        sa.Column('trust_id', sa.String(length=80), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['function_id'], [u'functions.id']),
         info={"check_ifexists": True}

@@ -31,6 +31,7 @@ from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import rpc
 from qinling.storage import base as storage_base
+from qinling.utils.openstack import keystone as keystone_util
 from qinling.utils.openstack import swift as swift_util
 from qinling.utils import rest_utils
 
@@ -146,6 +147,15 @@ class FunctionsController(rest.RestController):
             if not swift_util.check_object(container, object):
                 raise exc.InputException('Object does not exist in Swift.')
 
+        if cfg.CONF.pecan.auth_enable:
+            try:
+                values['trust_id'] = keystone_util.create_trust().id
+                LOG.debug('Trust %s created', values['trust_id'])
+            except Exception:
+                raise exc.TrustFailedException(
+                    'Trust creation failed for function.'
+                )
+
         with db_api.transaction():
             func_db = db_api.create_function(values)
 
@@ -190,6 +200,10 @@ class FunctionsController(rest.RestController):
 
             # Delete all resources created by orchestrator asynchronously.
             self.engine_client.delete_function(id)
+
+            # Delete trust if needed
+            if func_db.trust_id:
+                keystone_util.delete_trust(func_db.trust_id)
 
             # This will also delete function service mapping as well.
             db_api.delete_function(id)

@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import os
+import pkg_resources
 import tempfile
 import zipfile
 
@@ -27,13 +28,9 @@ class BasicOpsTest(base.BaseQinlingTest):
     def setUp(self):
         super(BasicOpsTest, self).setUp()
 
-        python_file_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                os.pardir,
-                os.pardir,
-                'functions/python_test.py'
-            )
+        python_file_path = pkg_resources.resource_filename(
+            'qinling_tempest_plugin',
+            "functions/python_test.py"
         )
 
         base_name, extention = os.path.splitext(python_file_path)

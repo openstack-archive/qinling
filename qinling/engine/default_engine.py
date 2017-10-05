@@ -16,7 +16,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import requests
 
-from qinling import context
 from qinling.db import api as db_api
 from qinling import status
 from qinling.utils import common
@@ -104,14 +103,6 @@ class DefaultEngine(object):
                 )
 
                 data = {'input': input, 'execution_id': execution_id}
-                if CONF.pecan.auth_enable:
-                    data.update(
-                        {
-                            'token': context.get_ctx().auth_token,
-                            'trust_id': context.get_ctx().trust_id
-                        }
-                    )
-
                 r = self.session.post(func_url, json=data)
                 res = r.json()
 
@@ -145,7 +136,8 @@ class DefaultEngine(object):
                 identifier=identifier,
                 labels=labels,
                 input=input,
-                entry=function.entry
+                entry=function.entry,
+                trust_id=function.trust_id
             )
             output = self.orchestrator.run_execution(
                 execution_id,

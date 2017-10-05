@@ -21,7 +21,7 @@ class RuntimesTest(base.BaseQinlingTest):
     name_prefix = 'RuntimesTest'
 
     @decorators.idempotent_id('fdc2f07f-dd1d-4981-86d3-5bc7908d9a9b')
-    def test_create_list_get_delete_runtime(self):
+    def test_crud_runtime(self):
         name = data_utils.rand_name('runtime', prefix=self.name_prefix)
 
         resp, body = self.admin_client.create_runtime(

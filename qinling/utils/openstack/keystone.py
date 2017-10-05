@@ -12,7 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-from keystoneauth1.identity import generic
+from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client as ks_client
 from oslo_config import cfg
@@ -29,7 +29,7 @@ CONF = cfg.CONF
 def _get_user_keystone_session():
     ctx = context.get_ctx()
 
-    auth = generic.Token(
+    auth = v3.Token(
         auth_url=CONF.keystone_authtoken.auth_uri,
         token=ctx.auth_token,
     )
@@ -47,39 +47,35 @@ def get_swiftclient():
 
 
 @common.disable_ssl_warnings
-def get_keystone_client(use_session=True):
-    if use_session:
-        session = _get_user_keystone_session()
-        keystone = ks_client.Client(session=session)
-    else:
-        ctx = context.get_ctx()
-        auth_url = CONF.keystone_authtoken.auth_uri
-        keystone = ks_client.Client(
-            user_id=ctx.user,
-            token=ctx.auth_token,
-            tenant_id=ctx.projectid,
-            auth_url=auth_url
-        )
-        keystone.management_url = auth_url
+def get_user_client():
+    ctx = context.get_ctx()
+    auth_url = CONF.keystone_authtoken.auth_uri
+    client = ks_client.Client(
+        user_id=ctx.user,
+        token=ctx.auth_token,
+        tenant_id=ctx.projectid,
+        auth_url=auth_url
+    )
+    client.management_url = auth_url
 
-    return keystone
+    return client
 
 
 @common.disable_ssl_warnings
-def _get_admin_user_id():
-    auth_url = CONF.keystone_authtoken.auth_uri
+def get_service_client():
     client = ks_client.Client(
         username=CONF.keystone_authtoken.username,
         password=CONF.keystone_authtoken.password,
         project_name=CONF.keystone_authtoken.project_name,
-        auth_url=auth_url,
+        auth_url=CONF.keystone_authtoken.auth_uri,
+        user_domain_name=CONF.keystone_authtoken.user_domain_name,
+        project_domain_name=CONF.keystone_authtoken.project_domain_name
     )
-
-    return client.user_id
+    return client
 
 
 @common.disable_ssl_warnings
-def _get_trust_client(trust_id):
+def get_trust_client(trust_id):
     """Get project keystone client using admin credential."""
     client = ks_client.Client(
         username=CONF.keystone_authtoken.username,
@@ -87,18 +83,17 @@ def _get_trust_client(trust_id):
         auth_url=CONF.keystone_authtoken.auth_uri,
         trust_id=trust_id
     )
-    client.management_url = CONF.keystone_authtoken.auth_uri
 
     return client
 
 
 @common.disable_ssl_warnings
 def create_trust():
-    client = get_keystone_client()
     ctx = context.get_ctx()
-    trustee_id = _get_admin_user_id()
+    user_client = get_user_client()
+    trustee_id = get_service_client().user_id
 
-    return client.trusts.create(
+    return user_client.trusts.create(
         trustor_user=ctx.user,
         trustee_user=trustee_id,
         impersonation=True,
@@ -117,7 +112,7 @@ def delete_trust(trust_id):
         return
 
     try:
-        client = get_keystone_client()
+        client = get_user_client()
         client.trusts.delete(trust_id)
         LOG.debug('Trust %s deleted.', trust_id)
     except Exception:
@@ -127,7 +122,7 @@ def delete_trust(trust_id):
 def create_trust_context(trust_id, project_id):
     """Creates Qinling context on behalf of the project."""
     if CONF.pecan.auth_enable:
-        client = _get_trust_client(trust_id)
+        client = get_trust_client(trust_id)
 
         return context.Context(
             user=client.user_id,

@@ -38,6 +38,7 @@ function_method = 'main'
 auth_url = None
 username = None
 password = None
+trust_id = None
 
 
 @app.route('/download', methods=['POST'])
@@ -51,10 +52,12 @@ def download():
     global auth_url
     global username
     global password
+    global trust_id
     token = params.get('token')
     auth_url = params.get('auth_url')
     username = params.get('username')
     password = params.get('password')
+    trust_id = params.get('trust_id')
 
     headers = {}
     if token:
@@ -117,26 +120,28 @@ def execute():
     global auth_url
     global username
     global password
+    global trust_id
 
     params = request.get_json() or {}
     input = params.get('input') or {}
     execution_id = params['execution_id']
-    token = params.get('token')
-    trust_id = params.get('trust_id')
+
+    app.logger.info(
+        'Request received, execution_id:%s, input: %s, auth_url: %s, '
+        'username: %s, trust_id: %s' %
+        (execution_id, input, auth_url, username, trust_id)
+    )
 
     # Provide an openstack session to user's function
     os_session = None
     if auth_url:
-        if not trust_id:
-            auth = generic.Token(auth_url=auth_url, token=token)
-        else:
-            auth = generic.Password(
-                username=username,
-                password=password,
-                auth_url=auth_url,
-                trust_id=trust_id,
-                user_domain_name='Default'
-            )
+        auth = generic.Password(
+            username=username,
+            password=password,
+            auth_url=auth_url,
+            trust_id=trust_id,
+            user_domain_name='Default'
+        )
         os_session = session.Session(auth=auth, verify=False)
 
     input.update({'context': {'os_session': os_session}})

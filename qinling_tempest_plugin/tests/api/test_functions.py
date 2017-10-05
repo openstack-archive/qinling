@@ -79,7 +79,7 @@ class FunctionsTest(base.BaseQinlingTest):
                 zf.close()
 
     @decorators.idempotent_id('9c36ac64-9a44-4c44-9e44-241dcc6b0933')
-    def test_create_list_get_delete_function(self):
+    def test_crud_function(self):
         # Create function
         function_name = data_utils.rand_name('function',
                                              prefix=self.name_prefix)

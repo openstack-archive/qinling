@@ -101,3 +101,8 @@ class StorageProviderException(QinlingException):
 class OrchestratorException(QinlingException):
     http_code = 500
     message = "Orchestrator error."
+
+
+class TrustFailedException(QinlingException):
+    http_code = 500
+    message = "Trust operation failed."

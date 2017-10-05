@@ -98,7 +98,7 @@ class ExecutionsTest(base.BaseQinlingTest):
                         self.function_id, ignore_notfound=True)
 
     @decorators.idempotent_id('2a93fab0-2dae-4748-b0d4-f06b735ff451')
-    def test_create_list_get_delete_execution(self):
+    def test_crud_execution(self):
         resp, body = self.client.create_execution(self.function_id,
                                                   input={'name': 'Qinling'})
 

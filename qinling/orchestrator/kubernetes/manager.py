@@ -234,7 +234,7 @@ class KubernetesManager(base.OrchestratorBase):
         return ret.items[-count:]
 
     def _prepare_pod(self, pod, deployment_name, function_id, labels=None,
-                     entry=None, actual_function=None):
+                     entry=None, trust_id=None, actual_function=None):
         """Pod preparation.
 
         1. Update pod labels.
@@ -298,6 +298,7 @@ class KubernetesManager(base.OrchestratorBase):
             'download_url': download_url,
             'function_id': actual_function,
             'entry': entry,
+            'trust_id': trust_id
         }
         if self.conf.pecan.auth_enable:
             data.update(
@@ -370,7 +371,8 @@ class KubernetesManager(base.OrchestratorBase):
         return pod_labels
 
     def prepare_execution(self, function_id, image=None, identifier=None,
-                          labels=None, input=None, entry='main.main'):
+                          labels=None, input=None, entry='main.main',
+                          trust_id=None):
         """Prepare service URL for function.
 
         For image function, create a single pod with input, so the function
@@ -391,7 +393,7 @@ class KubernetesManager(base.OrchestratorBase):
             raise exc.OrchestratorException('No pod available.')
 
         return self._prepare_pod(pod[0], identifier, function_id, labels,
-                                 entry)
+                                 entry, trust_id)
 
     def run_execution(self, execution_id, function_id, input=None,
                       identifier=None, service_url=None):
@@ -401,14 +403,6 @@ class KubernetesManager(base.OrchestratorBase):
                 'input': input,
                 'execution_id': execution_id,
             }
-            if self.conf.pecan.auth_enable:
-                data.update(
-                    {
-                        'token': context.get_ctx().auth_token,
-                        'trust_id': context.get_ctx().trust_id
-                    }
-                )
-
             LOG.info('Invoke function %s, url: %s', function_id, func_url)
 
             r = self.session.post(func_url, json=data)

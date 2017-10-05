@@ -44,6 +44,7 @@ class Function(model_base.QinlingSecureModelBase):
     code = sa.Column(st.JsonLongDictType(), nullable=False)
     entry = sa.Column(sa.String(80), nullable=False)
     count = sa.Column(sa.Integer, default=0)
+    trust_id = sa.Column(sa.String(80))
 
 
 class FunctionServiceMapping(model_base.QinlingModelBase):
@@ -99,7 +100,6 @@ class Job(model_base.QinlingSecureModelBase):
     )
     function = relationship('Function', back_populates="jobs")
     function_input = sa.Column(st.JsonDictType())
-    trust_id = sa.Column(sa.String(80))
 
     def to_dict(self):
         d = super(Job, self).to_dict()

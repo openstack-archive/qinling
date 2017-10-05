@@ -18,9 +18,7 @@ from dateutil import parser
 from oslo_utils import timeutils
 import six
 
-from qinling.db import api as db_api
 from qinling import exceptions as exc
-from qinling.utils.openstack import keystone as keystone_utils
 
 
 def validate_next_time(next_execution_time):
@@ -80,18 +78,6 @@ def validate_job(params):
             )
 
     return first_time, next_time, count
-
-
-def delete_job(id, trust_id=None):
-    if not trust_id:
-        trust_id = db_api.get_job(id).trust_id
-
-    modified_count = db_api.delete_job(id)
-    if modified_count:
-        # Delete trust only together with deleting trigger.
-        keystone_utils.delete_trust(trust_id)
-
-    return 0 != modified_count
 
 
 def get_next_execution_time(pattern, start_time):

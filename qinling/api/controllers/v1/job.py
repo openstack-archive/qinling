@@ -27,7 +27,6 @@ from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import status
 from qinling.utils import jobs
-from qinling.utils.openstack import keystone as keystone_util
 from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
@@ -72,16 +71,7 @@ class JobsController(rest.RestController):
                 'function_input': params.get('function_input') or {},
                 'status': status.RUNNING
             }
-
-            if cfg.CONF.pecan.auth_enable:
-                values['trust_id'] = keystone_util.create_trust().id
-
-            try:
-                db_job = db_api.create_job(values)
-            except Exception:
-                # Delete trust before raising exception.
-                keystone_util.delete_trust(values.get('trust_id'))
-                raise
+            db_job = db_api.create_job(values)
 
         return resources.Job.from_dict(db_job.to_dict())
 
@@ -89,7 +79,7 @@ class JobsController(rest.RestController):
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
         LOG.info("Delete resource.", resource={'type': self.type, 'id': id})
-        jobs.delete_job(id)
+        return db_api.delete_job(id)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Job, types.uuid)

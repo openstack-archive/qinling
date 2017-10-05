@@ -71,10 +71,13 @@ def handle_job(engine_client):
     for job in db_api.get_next_jobs(timeutils.utcnow() + timedelta(seconds=3)):
         LOG.debug("Processing job: %s, function: %s", job.id, job.function_id)
 
+        func_db = db_api.get_function(job.function_id)
+        trust_id = func_db.trust_id
+
         try:
             # Setup context before schedule job.
             ctx = keystone_utils.create_trust_context(
-                job.trust_id, job.project_id
+                trust_id, job.project_id
             )
             context.set_ctx(ctx)
 

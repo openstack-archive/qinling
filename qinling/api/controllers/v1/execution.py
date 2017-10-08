@@ -15,6 +15,7 @@
 from oslo_log import log as logging
 import pecan
 from pecan import rest
+from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from qinling.api.controllers.v1 import resources
@@ -61,12 +62,13 @@ class ExecutionsController(rest.RestController):
         return resources.Execution.from_dict(db_model.to_dict())
 
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.Executions)
-    def get_all(self):
-        LOG.info("Get all %ss.", self.type)
+    @wsme_pecan.wsexpose(resources.Executions, wtypes.text)
+    def get_all(self, function_id=None):
+        filters = rest_utils.get_filters(function_id=function_id)
+        LOG.info("Get all %ss. filters=%s", self.type, filters)
 
         executions = [resources.Execution.from_dict(db_model.to_dict())
-                      for db_model in db_api.get_executions()]
+                      for db_model in db_api.get_executions(**filters)]
 
         return resources.Executions(executions=executions)
 

@@ -130,8 +130,8 @@ def get_execution(id):
     return IMPL.get_execution(id)
 
 
-def get_executions():
-    return IMPL.get_executions()
+def get_executions(**filters):
+    return IMPL.get_executions(**filters)
 
 
 def delete_execution(id):

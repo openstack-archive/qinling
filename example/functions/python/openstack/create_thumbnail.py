@@ -1,5 +1,13 @@
+import os
+
 from PIL import Image
 import swiftclient
+
+
+def resize_image(image_path, resized_path):
+    with Image.open(image_path) as image:
+        image.thumbnail((75, 75))
+        image.save(resized_path)
 
 
 def main(context, container, object):
@@ -8,7 +16,6 @@ def main(context, container, object):
         os_options={'region_name': 'RegionOne'},
     )
 
-    # obj_header = conn.head_object(container, object)
     new_container = '%s_thumb' % container
 
     # Download original photo
@@ -17,15 +24,10 @@ def main(context, container, object):
     with open(image_path, 'w') as local:
         local.write(obj_contents)
 
-    print('Downloaded object % from container %s' % (object, container))
+    print('Downloaded object %s from container %s' % (object, container))
 
-    # Resize
-    SIZE = (75, 75)
-    thumb_path = '/%s_thumb' % object
-    im = Image.open(image_path)
-    im.convert('RGB')
-    im.thumbnail(SIZE, Image.ANTIALIAS)
-    im.save(thumb_path, 'JPEG', quality=80)
+    thumb_path = '/thumb_%s' % object
+    resize_image(image_path, thumb_path)
 
     print('Resized.')
 
@@ -38,6 +40,7 @@ def main(context, container, object):
             content_type='text/plain'
         )
 
-    print('Uploaded object %s to container %s' % (object, new_container))
+    os.remove(image_path)
+    os.remove(thumb_path)
 
-    return True
+    print('Uploaded object %s to container %s' % (object, new_container))

@@ -40,7 +40,7 @@ def wrap_wsme_controller_exception(func):
         except exc.QinlingException as e:
             pecan.response.translatable_error = e
 
-            LOG.error('Error during API call: %s' % str(e))
+            LOG.error('Error during API call: %s', six.text_type(e))
             raise wsme_exc.ClientSideError(
                 msg=six.text_type(e),
                 status_code=e.http_code
@@ -61,7 +61,7 @@ def wrap_pecan_controller_exception(func):
         try:
             return func(*args, **kwargs)
         except exc.QinlingException as e:
-            LOG.error('Error during API call: %s' % str(e))
+            LOG.error('Error during API call: %s', six.text_type(e))
             return webob.Response(
                 status=e.http_code,
                 content_type='application/json',

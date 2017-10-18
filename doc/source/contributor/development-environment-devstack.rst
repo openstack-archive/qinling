@@ -65,7 +65,6 @@ configuration:
     RABBIT_PASSWORD=password
     LOGFILE=$DEST/logs/stack.sh.log
     LOG_COLOR=False
-    SCREEN_LOGDIR=$DEST/logs
     LOGFILE=$DEST/logs/stack.sh.log
     LOGDAYS=1
 

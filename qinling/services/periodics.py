@@ -68,10 +68,13 @@ def handle_function_service_expiration(ctx, engine_client, orchestrator):
 
 
 def handle_job(engine_client):
+    """Execute job task with no db transactions."""
     for job in db_api.get_next_jobs(timeutils.utcnow() + timedelta(seconds=3)):
-        LOG.debug("Processing job: %s, function: %s", job.id, job.function_id)
+        job_id = job.id
+        func_id = job.function_id
+        LOG.debug("Processing job: %s, function: %s", job_id, func_id)
 
-        func_db = db_api.get_function(job.function_id)
+        func_db = db_api.get_function(func_id, insecure=True)
         trust_id = func_db.trust_id
 
         try:
@@ -94,7 +97,7 @@ def handle_job(engine_client):
                         'count': 0
                     },
                     {
-                        'id': job.id,
+                        'id': job_id,
                         'status': status.RUNNING
                     },
                     insecure=True,
@@ -112,7 +115,7 @@ def handle_job(engine_client):
                         'count': job.count
                     },
                     {
-                        'id': job.id,
+                        'id': job_id,
                         'next_execution_time': job.next_execution_time
                     },
                     insecure=True,
@@ -121,24 +124,23 @@ def handle_job(engine_client):
             if not modified:
                 LOG.warning(
                     'Job %s has been already handled by another periodic '
-                    'task.', job.id
+                    'task.', job_id
                 )
                 continue
 
             LOG.debug(
-                "Starting to execute function %s by job %s",
-                job.function_id, job.id
+                "Starting to execute function %s by job %s", func_id, job_id
             )
 
             params = {
-                'function_id': job.function_id,
+                'function_id': func_id,
                 'input': job.function_input,
                 'sync': False,
-                'description': constants.EXECUTION_BY_JOB % job.id
+                'description': constants.EXECUTION_BY_JOB % job_id
             }
             executions.create_execution(engine_client, params)
         except Exception:
-            LOG.exception("Failed to process job %s", job.id)
+            LOG.exception("Failed to process job %s", job_id)
         finally:
             context.set_ctx(None)
 

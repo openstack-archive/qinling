@@ -66,8 +66,8 @@ def conditional_update(model, values, expected_values, **kwargs):
     return IMPL.conditional_update(model, values, expected_values, **kwargs)
 
 
-def get_function(id):
-    return IMPL.get_function(id)
+def get_function(id, insecure=False):
+    return IMPL.get_function(id, insecure=insecure)
 
 
 def get_functions(limit=None, marker=None, sort_keys=None,

@@ -216,8 +216,8 @@ def conditional_update(model, values, expected_values, insecure=False,
 
 
 @db_base.session_aware()
-def get_function(id, session=None):
-    function = _get_db_object_by_id(models.Function, id)
+def get_function(id, insecure=False, session=None):
+    function = _get_db_object_by_id(models.Function, id, insecure=insecure)
 
     if not function:
         raise exc.DBEntityNotFoundError("Function not found [id=%s]" % id)

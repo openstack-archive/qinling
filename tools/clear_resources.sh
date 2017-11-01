@@ -34,4 +34,4 @@ function delete_resources(){
     fi
 }
 
-delete_resources
+delete_resources $1

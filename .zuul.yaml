@@ -1,0 +1,18 @@
+- job:
+    name: qinling-dsvm-tempest
+    parent: legacy-dsvm-base
+    run: playbooks/legacy/qinling-dsvm-tempest/run.yaml
+    post-run: playbooks/legacy/qinling-dsvm-tempest/post.yaml
+    timeout: 7800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/python-qinlingclient
+      - openstack/qinling
+      - openstack/tempest
+
+- project:
+    name: openstack/qinling
+    check:
+      jobs:
+        - qinling-dsvm-tempest:
+            voting: false

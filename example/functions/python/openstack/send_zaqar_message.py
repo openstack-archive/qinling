@@ -1,13 +1,27 @@
+# Copyright 2017 Catalyst IT Limited
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
 import os
 
 import requests
 from zaqarclient.queues import client
 
 
-def _send_message(z_client, queue_name, status, message=''):
+def _send_message(z_client, queue_name, status, server=''):
     queue_name = queue_name or 'test_queue'
     queue = z_client.queue(queue_name)
-    queue.post({"body": {'status': status, 'message': message}})
+    queue.post({"body": {'status': status, 'server': server}})
     print 'message posted.'
 
 
@@ -24,14 +38,14 @@ def check_and_trigger(context, **kwargs):
             with open(file_name, 'r+') as f:
                 count = int(f.readline())
                 count += 1
-                if count >= 3:
+                if count == 3:
+                    # Send message and stop trigger after 3 checks
                     z_client = client.Client(
                         session=context['os_session'],
                         version=2,
                     )
                     _send_message(z_client, kwargs.get('queue'), r.status_code,
-                                  'Service Not Available!')
-                    count = 0
+                                  'api1.production.catalyst.co.nz')
 
                 f.seek(0)
                 f.write(str(count))

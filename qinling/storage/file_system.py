@@ -33,6 +33,12 @@ class FileSystemStorage(base.PackageStorage):
         fileutils.ensure_tree(CONF.storage.file_system_dir)
 
     def store(self, project_id, function, data):
+        """Store the function package data to local file system.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :param data: Package data.
+        """
         LOG.info(
             'Store package, function: %s, project: %s', function, project_id
         )
@@ -46,10 +52,15 @@ class FileSystemStorage(base.PackageStorage):
 
         if not zipfile.is_zipfile(func_zip):
             fileutils.delete_if_exists(func_zip)
-
             raise exc.InputException("Package is not a valid ZIP package.")
 
     def retrieve(self, project_id, function):
+        """Get function package data.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :return: File descriptor that needs to close outside.
+        """
         LOG.info(
             'Get package data, function: %s, project: %s', function, project_id
         )

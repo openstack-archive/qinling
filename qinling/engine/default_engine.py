@@ -19,6 +19,7 @@ import requests
 from qinling.db import api as db_api
 from qinling import status
 from qinling.utils import common
+from qinling.utils import constants
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -119,7 +120,7 @@ class DefaultEngine(object):
             identifier = None
             labels = None
 
-            if source == 'image':
+            if source == constants.IMAGE_FUNCTION:
                 image = function.code['image']
                 identifier = ('%s-%s' %
                               (common.generate_unicode_uuid(dashed=False),

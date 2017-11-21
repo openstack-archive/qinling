@@ -16,3 +16,7 @@ EXECUTION_BY_JOB = 'Created by Job %s'
 
 PERIODIC_JOB_HANDLER = 'job_handler'
 PERIODIC_FUNC_MAPPING_HANDLER = 'function_mapping_handler'
+
+PACKAGE_FUNCTION = 'package'
+SWIFT_FUNCTION = 'swift'
+IMAGE_FUNCTION = 'image'

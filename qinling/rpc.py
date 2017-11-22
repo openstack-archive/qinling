@@ -13,14 +13,11 @@
 #    limitations under the License.
 
 from oslo_config import cfg
-from oslo_log import log as logging
 import oslo_messaging as messaging
 from oslo_messaging.rpc import client
 
 from qinling import context as ctx
 from qinling import exceptions as exc
-
-LOG = logging.getLogger(__name__)
 
 _TRANSPORT = None
 _ENGINE_CLIENT = None

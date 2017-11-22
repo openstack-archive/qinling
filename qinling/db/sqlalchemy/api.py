@@ -19,7 +19,6 @@ import threading
 from oslo_config import cfg
 from oslo_db import exception as oslo_db_exc
 from oslo_db.sqlalchemy import utils as db_utils
-from oslo_log import log as logging
 import sqlalchemy as sa
 
 from qinling import context
@@ -31,7 +30,6 @@ from qinling import exceptions as exc
 from qinling import status
 
 CONF = cfg.CONF
-LOG = logging.getLogger(__name__)
 
 _SCHEMA_LOCK = threading.RLock()
 _initialized = False

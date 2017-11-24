@@ -31,6 +31,7 @@ from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import rpc
 from qinling.storage import base as storage_base
+from qinling.utils import constants
 from qinling.utils.openstack import keystone as keystone_util
 from qinling.utils.openstack import swift as swift_util
 from qinling.utils import rest_utils
@@ -40,7 +41,7 @@ CONF = cfg.CONF
 
 POST_REQUIRED = set(['code'])
 CODE_SOURCE = set(['package', 'swift', 'image'])
-UPDATE_ALLOWED = set(['name', 'description', 'entry'])
+UPDATE_ALLOWED = set(['name', 'description', 'code', 'package', 'entry'])
 
 
 class FunctionsController(rest.RestController):
@@ -55,6 +56,15 @@ class FunctionsController(rest.RestController):
         self.type = 'function'
 
         super(FunctionsController, self).__init__(*args, **kwargs)
+
+    def _check_swift(self, container, object):
+        # Auth needs to be enabled because qinling needs to check swift
+        # object using user's credential.
+        if not CONF.pecan.auth_enable:
+            raise exc.InputException('Swift object not supported.')
+
+        if not swift_util.check_object(container, object):
+            raise exc.InputException('Object does not exist in Swift.')
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose()
@@ -121,7 +131,7 @@ class FunctionsController(rest.RestController):
                 ', '.join(CODE_SOURCE)
             )
 
-        if source != 'image':
+        if source != constants.IMAGE_FUNCTION:
             if not kwargs.get('runtime_id'):
                 raise exc.InputException('"runtime_id" must be specified.')
 
@@ -132,20 +142,13 @@ class FunctionsController(rest.RestController):
                 )
 
         store = False
-        if values['code']['source'] == 'package':
+        if values['code']['source'] == constants.PACKAGE_FUNCTION:
             store = True
             data = kwargs['package'].file.read()
-        elif values['code']['source'] == 'swift':
-            # Auth needs to be enabled because qinling needs to check swift
-            # object using user's credential.
-            if not CONF.pecan.auth_enable:
-                raise exc.InputException('Swift object not supported.')
-
-            container = values['code']['swift'].get('container')
-            object = values['code']['swift'].get('object')
-
-            if not swift_util.check_object(container, object):
-                raise exc.InputException('Object does not exist in Swift.')
+        elif values['code']['source'] == constants.SWIFT_FUNCTION:
+            swift_info = values['code'].get('swift', {})
+            self._check_swift(swift_info.get('container'),
+                              swift_info.get('object'))
 
         if cfg.CONF.pecan.auth_enable:
             try:
@@ -208,33 +211,70 @@ class FunctionsController(rest.RestController):
             # This will also delete function service mapping as well.
             db_api.delete_function(id)
 
-    @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(
-        resources.Function,
-        types.uuid,
-        body=resources.Function
-    )
-    def put(self, id, func):
+    @rest_utils.wrap_pecan_controller_exception
+    @pecan.expose('json')
+    def put(self, id, **kwargs):
         """Update function.
 
-        Currently, we only support update name, description, entry.
+        - Function can not being used by job.
+        - Function can not being executed.
+        - (TODO)Function status should be changed so no execution will create
+           when function is updating.
         """
         values = {}
         for key in UPDATE_ALLOWED:
-            if func.to_dict().get(key) is not None:
-                values.update({key: func.to_dict()[key]})
+            if kwargs.get(key) is not None:
+                values.update({key: kwargs[key]})
 
         LOG.info('Update resource, params: %s', values,
                  resource={'type': self.type, 'id': id})
 
-        with db_api.transaction():
+        ctx = context.get_ctx()
+
+        if set(values.keys()).issubset(set(['name', 'description'])):
             func_db = db_api.update_function(id, values)
-            if 'entry' in values:
-                # Update entry will delete allocated resources in orchestrator.
+        else:
+            source = values.get('code', {}).get('source')
+            with db_api.transaction():
+                pre_func = db_api.get_function(id)
+
+                if len(pre_func.jobs) > 0:
+                    raise exc.NotAllowedException(
+                        'The function is still associated with running job(s).'
+                    )
+
+                pre_source = pre_func.code['source']
+                if source and source != pre_source:
+                    raise exc.InputException(
+                        "The function code type can not be changed."
+                    )
+                if source == constants.IMAGE_FUNCTION:
+                    raise exc.InputException(
+                        "The image type function code can not be changed."
+                    )
+                if (pre_source == constants.PACKAGE_FUNCTION and
+                        values.get('package') is not None):
+                    # Update the package data.
+                    data = values['package'].file.read()
+                    self.storage_provider.store(
+                        ctx.projectid,
+                        id,
+                        data
+                    )
+                    values.pop('package')
+                if pre_source == constants.SWIFT_FUNCTION:
+                    swift_info = values['code'].get('swift', {})
+                    self._check_swift(swift_info.get('container'),
+                                      swift_info.get('object'))
+
+                # Delete allocated resources in orchestrator.
                 db_api.delete_function_service_mapping(id)
                 self.engine_client.delete_function(id)
 
-        return resources.Function.from_dict(func_db.to_dict())
+                func_db = db_api.update_function(id, values)
+
+        pecan.response.status = 200
+        return resources.Function.from_dict(func_db.to_dict()).to_dict()
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(

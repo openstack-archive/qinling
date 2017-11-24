@@ -36,10 +36,6 @@ class TestFunctionController(base.APITest):
 
     @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
     def test_post(self, mock_store):
-        class File(object):
-            def __init__(self, f):
-                self.file = f
-
         with tempfile.NamedTemporaryFile() as f:
             body = {
                 'name': self.rand_name('function', prefix=TEST_CASE_NAME),
@@ -106,6 +102,24 @@ class TestFunctionController(base.APITest):
 
         self.assertEqual(200, resp.status_int)
         self.assertEqual('new_name', resp.json['name'])
+
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    def test_put_package(self, mock_delete_func, mock_store):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+
+        with tempfile.NamedTemporaryFile() as f:
+            resp = self.app.put(
+                '/v1/functions/%s' % db_func.id,
+                params={},
+                upload_files=[('package', f.name, f.read())]
+            )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(1, mock_store.call_count)
+        mock_delete_func.assert_called_once_with(db_func.id)
 
     @mock.patch('qinling.rpc.EngineClient.delete_function')
     @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')

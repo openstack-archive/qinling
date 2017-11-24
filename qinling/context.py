@@ -106,6 +106,7 @@ class Context(oslo_context.RequestContext):
             {
                 'is_trust_scoped': self.is_trust_scoped,
                 'trust_id': self.trust_id,
+                'auth_token': self.auth_token,
             }
         )
 

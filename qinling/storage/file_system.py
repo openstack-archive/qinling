@@ -46,13 +46,16 @@ class FileSystemStorage(base.PackageStorage):
         project_path = os.path.join(CONF.storage.file_system_dir, project_id)
         fileutils.ensure_tree(project_path)
 
+        new_func_zip = os.path.join(project_path, '%s.zip.new' % function)
         func_zip = os.path.join(project_path, '%s.zip' % function)
-        with open(func_zip, 'wb') as fd:
+        with open(new_func_zip, 'wb') as fd:
             fd.write(data)
 
-        if not zipfile.is_zipfile(func_zip):
-            fileutils.delete_if_exists(func_zip)
+        if not zipfile.is_zipfile(new_func_zip):
+            fileutils.delete_if_exists(new_func_zip)
             raise exc.InputException("Package is not a valid ZIP package.")
+
+        os.rename(new_func_zip, func_zip)
 
     def retrieve(self, project_id, function):
         """Get function package data.

@@ -25,6 +25,7 @@ import tenacity
 import yaml
 
 from qinling import context
+from qinling.engine import utils
 from qinling import exceptions as exc
 from qinling.orchestrator import base
 from qinling.utils import common
@@ -330,7 +331,7 @@ class KubernetesManager(base.OrchestratorBase):
                 time.sleep(1)
 
         raise exc.OrchestratorException(
-            'Could not connect to service. Reason: %s', exception
+            'Could not connect to function service. Reason: %s', exception
         )
 
     def _create_pod(self, image, pod_name, labels, input):
@@ -390,10 +391,17 @@ class KubernetesManager(base.OrchestratorBase):
             pod = self._choose_available_pod(labels)
 
         if not pod:
-            raise exc.OrchestratorException('No pod available.')
+            raise exc.OrchestratorException('No worker available.')
 
-        return self._prepare_pod(pod[0], identifier, function_id, labels,
-                                 entry, trust_id)
+        try:
+            pod_name, url = self._prepare_pod(
+                pod[0], identifier, function_id, labels, entry, trust_id
+            )
+            return pod_name, url
+        except Exception:
+            LOG.exception('Pod preparation failed.')
+            self.delete_function(function_id, labels)
+            raise exc.OrchestratorException('Execution preparation failed.')
 
     def run_execution(self, execution_id, function_id, input=None,
                       identifier=None, service_url=None):
@@ -403,10 +411,9 @@ class KubernetesManager(base.OrchestratorBase):
                 'input': input,
                 'execution_id': execution_id,
             }
-            LOG.info('Invoke function %s, url: %s', function_id, func_url)
+            LOG.debug('Invoke function %s, url: %s', function_id, func_url)
 
-            r = self.session.post(func_url, json=data)
-            return r.json()
+            return utils.url_request(self.session, func_url, body=data)
         else:
             status = None
 
@@ -441,14 +448,10 @@ class KubernetesManager(base.OrchestratorBase):
                 self.conf.kubernetes.namespace,
             )
 
-        LOG.info("Services for function %s deleted.", function_id)
-
         self.v1.delete_collection_namespaced_pod(
             self.conf.kubernetes.namespace,
             label_selector=selector
         )
-
-        LOG.info("Pod(s) for function %s deleted.", function_id)
 
     def scaleup_function(self, function_id, identifier=None,
                          entry='main.main', count=1):
@@ -459,7 +462,7 @@ class KubernetesManager(base.OrchestratorBase):
         )
 
         if not pods:
-            raise exc.OrchestratorException('Not enough pods available.')
+            raise exc.OrchestratorException('Not enough workers available.')
 
         temp_function = '%s-temp' % function_id
         for pod in pods:

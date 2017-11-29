@@ -18,3 +18,8 @@ spec:
       {% endfor %}
       {% endif %}
   restartPolicy: Never
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      memory: 128Mi

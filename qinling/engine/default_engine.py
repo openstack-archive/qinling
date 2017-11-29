@@ -17,6 +17,7 @@ from oslo_log import log as logging
 import requests
 
 from qinling.db import api as db_api
+from qinling.engine import utils
 from qinling import status
 from qinling.utils import common
 from qinling.utils import constants
@@ -91,7 +92,7 @@ class DefaultEngine(object):
             execution_id, function_id, runtime_id, input
         )
 
-        # FIXME(kong): Make the transaction range smaller.
+        # FIXME(kong): Make the transaction scope smaller.
         with db_api.transaction():
             execution = db_api.get_execution(execution_id)
             function = db_api.get_function(function_id)
@@ -104,12 +105,16 @@ class DefaultEngine(object):
                 )
 
                 data = {'input': input, 'execution_id': execution_id}
-                r = self.session.post(func_url, json=data)
-                res = r.json()
+                success, res = utils.url_request(
+                    self.session, func_url, body=data
+                )
+                success = success and res.pop('success')
 
-                LOG.debug('Finished execution %s', execution_id)
+                LOG.debug(
+                    'Finished execution %s, success: %s, result: %s',
+                    execution_id, success, res
+                )
 
-                success = res.pop('success')
                 execution.status = status.SUCCESS if success else status.FAILED
                 execution.logs = res.pop('logs', '')
                 execution.output = res
@@ -140,7 +145,7 @@ class DefaultEngine(object):
                 entry=function.entry,
                 trust_id=function.trust_id
             )
-            output = self.orchestrator.run_execution(
+            success, res = self.orchestrator.run_execution(
                 execution_id,
                 function_id,
                 input=input,
@@ -151,21 +156,20 @@ class DefaultEngine(object):
             logs = ''
             # Execution log is only available for non-image source execution.
             if service_url:
-                logs = output.pop('logs', '')
-                success = output.pop('success')
+                logs = res.pop('logs', '')
+                success = success and res.pop('success')
             else:
                 # If the function is created from docker image, the output is
                 # direct output, here we convert to a dict to fit into the db
                 # schema.
-                output = {'output': output}
-                success = True
+                res = {'output': res}
 
             LOG.debug(
-                'Finished execution. execution_id=%s, output=%s',
-                execution_id,
-                output
+                'Finished execution %s, success: %s, result: %s',
+                execution_id, success, res
             )
-            execution.output = output
+
+            execution.output = res
             execution.logs = logs
             execution.status = status.SUCCESS if success else status.FAILED
 

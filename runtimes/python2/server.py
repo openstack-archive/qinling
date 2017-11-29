@@ -100,6 +100,7 @@ def _invoke_function(execution_id, zip_file, module_name, method, input,
         module = importlib.import_module(module_name)
         func = getattr(module, method)
         return_dict['result'] = func(**input)
+        return_dict['success'] = True
     except Exception as e:
         return_dict['result'] = str(e)
         return_dict['success'] = False
@@ -114,6 +115,14 @@ def _invoke_function(execution_id, zip_file, module_name, method, input,
 
 @app.route('/execute', methods=['POST'])
 def execute():
+    """Invoke function.
+
+    Several things need to handle in this function:
+    - Save the function log
+    - Capture the function exception
+    - Deal with process execution error
+    """
+
     global zip_file
     global function_module
     global function_method
@@ -148,7 +157,7 @@ def execute():
 
     manager = Manager()
     return_dict = manager.dict()
-    return_dict['success'] = True
+    return_dict['success'] = False
     start = time.time()
 
     # Run the function in a separate process to avoid messing up the log
@@ -161,7 +170,14 @@ def execute():
     p.join()
 
     duration = round(time.time() - start, 3)
+    output = return_dict.get('result')
 
+    # Process was killed unexpectedly.
+    if p.exitcode != 0:
+        output = "Function execution failed because of too much resource " \
+                 "consumption."
+
+    # Execution log
     with open('%s.out' % execution_id) as f:
         logs = f.read()
     os.remove('%s.out' % execution_id)
@@ -169,7 +185,7 @@ def execute():
     return Response(
         response=json.dumps(
             {
-                'output': return_dict.get('result'),
+                'output': output,
                 'duration': duration,
                 'logs': logs,
                 'success': return_dict['success']

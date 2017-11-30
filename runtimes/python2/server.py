@@ -88,6 +88,12 @@ def download():
     return 'success'
 
 
+def _print_trace():
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    print(''.join(line for line in lines))
+
+
 def _invoke_function(execution_id, zip_file, module_name, method, input,
                      return_dict):
     """Thie function is supposed to be running in a child process."""
@@ -102,13 +108,13 @@ def _invoke_function(execution_id, zip_file, module_name, method, input,
         return_dict['result'] = func(**input)
         return_dict['success'] = True
     except Exception as e:
+        if isinstance(e, OSError) and 'Resource' in str(e):
+            sys.exit(1)
+
         return_dict['result'] = str(e)
         return_dict['success'] = False
 
-        # Print stacktrace
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-        print(''.join(line for line in lines))
+        _print_trace()
     finally:
         print('Finished execution: %s' % execution_id)
 
@@ -119,8 +125,10 @@ def execute():
 
     Several things need to handle in this function:
     - Save the function log
-    - Capture the function exception
-    - Deal with process execution error
+    - Capture the function internal exception
+    - Deal with process execution error (The process may be killed for some
+      reason, e.g. unlimited memory allocation)
+    - Deal with os error for process (e.g. Resource temporarily unavailable)
     """
 
     global zip_file
@@ -170,12 +178,15 @@ def execute():
     p.join()
 
     duration = round(time.time() - start, 3)
-    output = return_dict.get('result')
 
-    # Process was killed unexpectedly.
+    # Process was killed unexpectedly or finished with error.
     if p.exitcode != 0:
         output = "Function execution failed because of too much resource " \
                  "consumption."
+        success = False
+    else:
+        output = return_dict.get('result')
+        success = return_dict['success']
 
     # Execution log
     with open('%s.out' % execution_id) as f:
@@ -188,7 +199,7 @@ def execute():
                 'output': output,
                 'duration': duration,
                 'logs': logs,
-                'success': return_dict['success']
+                'success': success
             }
         ),
         status=200,

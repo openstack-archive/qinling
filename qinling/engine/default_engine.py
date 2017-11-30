@@ -111,8 +111,7 @@ class DefaultEngine(object):
                 success = success and res.pop('success')
 
                 LOG.debug(
-                    'Finished execution %s, success: %s, result: %s',
-                    execution_id, success, res
+                    'Finished execution %s, success: %s', execution_id, success
                 )
 
                 execution.status = status.SUCCESS if success else status.FAILED
@@ -165,8 +164,7 @@ class DefaultEngine(object):
                 res = {'output': res}
 
             LOG.debug(
-                'Finished execution %s, success: %s, result: %s',
-                execution_id, success, res
+                'Finished execution %s, success: %s', execution_id, success
             )
 
             execution.output = res
@@ -187,6 +185,7 @@ class DefaultEngine(object):
                 db_api.create_function_worker(worker)
 
     def delete_function(self, ctx, function_id):
+        """Deletes underlying resources allocated for function."""
         resource = {'type': 'function', 'id': function_id}
         LOG.info('Start to delete.', resource=resource)
 

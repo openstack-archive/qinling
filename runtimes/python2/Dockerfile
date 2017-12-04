@@ -1,13 +1,17 @@
 FROM phusion/baseimage:0.9.22
-MAINTAINER lingxian.kong@gmail.com
+MAINTAINER anlin.kong@gmail.com
 
-RUN apt-get update
-RUN apt-get -y install python-dev python-setuptools libffi-dev libxslt1-dev libxml2-dev libyaml-dev libssl-dev python-pip
-RUN pip install -U pip setuptools
+USER root
+RUN useradd -Ms /bin/bash qinling
+
+RUN apt-get update && \
+    apt-get -y install python-dev python-setuptools libffi-dev libxslt1-dev libxml2-dev libyaml-dev libssl-dev python-pip && \
+    pip install -U pip setuptools
 
 COPY . /app
 WORKDIR /app
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt && \
+    chmod 0750 custom-entrypoint.sh && \
+    chown -R qinling:qinling /app
 
-ENTRYPOINT ["python", "-u"]
-CMD ["server.py"]
+CMD ["/bin/bash", "custom-entrypoint.sh"]

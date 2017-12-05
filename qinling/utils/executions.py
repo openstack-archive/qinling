@@ -12,32 +12,61 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from oslo_log import log as logging
+
 from qinling.db import api as db_api
+from qinling.db.sqlalchemy import models
 from qinling import exceptions as exc
 from qinling import status
+
+LOG = logging.getLogger(__name__)
+
+
+def _update_function_db(function_id):
+    # NOTE(kong): Store function info in cache?
+    func_db = db_api.get_function(function_id)
+    runtime_db = func_db.runtime
+    if runtime_db and runtime_db.status != status.AVAILABLE:
+        raise exc.RuntimeNotAvailableException(
+            'Runtime %s is not available.' % func_db.runtime_id
+        )
+
+    # Function update is done using UPDATE ... FROM ... WHERE
+    # non-locking clause.
+    while func_db:
+        count = func_db.count
+        modified = db_api.conditional_update(
+            models.Function,
+            {
+                'count': count + 1,
+            },
+            {
+                'id': function_id,
+                'count': count
+            },
+            insecure=True,
+        )
+        if not modified:
+            LOG.warning("Retrying to update function count.")
+            func_db = db_api.get_function(function_id)
+            continue
+        else:
+            break
+
+    return func_db.runtime_id
 
 
 def create_execution(engine_client, params):
     function_id = params['function_id']
     is_sync = params.get('sync', True)
 
-    with db_api.transaction():
-        func_db = db_api.get_function(function_id)
-        runtime_db = func_db.runtime
-        if runtime_db and runtime_db.status != status.AVAILABLE:
-            raise exc.RuntimeNotAvailableException(
-                'Runtime %s is not available.' % func_db.runtime_id
-            )
+    runtime_id = _update_function_db(function_id)
 
-        # Increase function invoke count, the updated_at field will be also
-        # updated.
-        func_db.count = func_db.count + 1
-
-        params.update({'status': status.RUNNING})
-        db_model = db_api.create_execution(params)
+    params.update({'status': status.RUNNING})
+    db_model = db_api.create_execution(params)
 
     engine_client.create_execution(
-        db_model.id, function_id, func_db.runtime_id,
+        db_model.id, function_id, runtime_id,
         input=params.get('input'), is_sync=is_sync
     )
 

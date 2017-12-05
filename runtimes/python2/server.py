@@ -23,7 +23,6 @@ import time
 import traceback
 import zipfile
 
-from flask import abort
 from flask import Flask
 from flask import request
 from flask import Response
@@ -32,60 +31,20 @@ from keystoneauth1 import session
 import requests
 
 app = Flask(__name__)
-zip_file = ''
-function_module = 'main'
-function_method = 'main'
-auth_url = None
-username = None
-password = None
-trust_id = None
+downloaded = False
+downloading = False
 
 
-@app.route('/download', methods=['POST'])
-def download():
-    params = request.get_json() or {}
-
-    download_url = params.get('download_url')
-    function_id = params.get('function_id')
-    entry = params.get('entry')
-
-    global auth_url
-    global username
-    global password
-    global trust_id
-    token = params.get('token')
-    auth_url = params.get('auth_url')
-    username = params.get('username')
-    password = params.get('password')
-    trust_id = params.get('trust_id')
-
-    headers = {}
-    if token:
-        headers = {'X-Auth-Token': token}
-
-    global zip_file
-    zip_file = '%s.zip' % function_id
-
-    app.logger.info(
-        'Request received, download_url:%s, headers: %s, entry: %s' %
-        (download_url, headers, entry)
+def setup_logger(loglevel):
+    global app
+    root = logging.getLogger()
+    root.setLevel(loglevel)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(loglevel)
+    ch.setFormatter(
+        logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     )
-
-    # Get function code package from Qinling service.
-    r = requests.get(download_url, headers=headers, stream=True)
-    with open(zip_file, 'wb') as fd:
-        for chunk in r.iter_content(chunk_size=65535):
-            fd.write(chunk)
-
-    if not zipfile.is_zipfile(zip_file):
-        abort(500)
-    app.logger.info('Code package downloaded to %s' % zip_file)
-
-    global function_module
-    global function_method
-    function_module, function_method = tuple(entry.rsplit('.', 1))
-
-    return 'success'
+    app.logger.addHandler(ch)
 
 
 def _print_trace():
@@ -108,13 +67,13 @@ def _invoke_function(execution_id, zip_file, module_name, method, input,
         return_dict['result'] = func(**input)
         return_dict['success'] = True
     except Exception as e:
+        _print_trace()
+
         if isinstance(e, OSError) and 'Resource' in str(e):
             sys.exit(1)
 
         return_dict['result'] = str(e)
         return_dict['success'] = False
-
-        _print_trace()
     finally:
         print('Finished execution: %s' % execution_id)
 
@@ -130,24 +89,72 @@ def execute():
       reason, e.g. unlimited memory allocation)
     - Deal with os error for process (e.g. Resource temporarily unavailable)
     """
-
-    global zip_file
-    global function_module
-    global function_method
-    global auth_url
-    global username
-    global password
-    global trust_id
+    global downloading
+    global downloaded
 
     params = request.get_json() or {}
     input = params.get('input') or {}
     execution_id = params['execution_id']
+    download_url = params.get('download_url')
+    function_id = params.get('function_id')
+    entry = params.get('entry')
+    trust_id = params.get('trust_id')
+    auth_url = params.get('auth_url')
+    username = params.get('username')
+    password = params.get('password')
+    zip_file = '%s.zip' % function_id
+
+    function_module, function_method = 'main', 'main'
+    if entry:
+        function_module, function_method = tuple(entry.rsplit('.', 1))
 
     app.logger.info(
-        'Request received, execution_id:%s, input: %s, auth_url: %s, '
-        'username: %s, trust_id: %s' %
-        (execution_id, input, auth_url, username, trust_id)
+        'Request received, execution_id:%s, input: %s, auth_url: %s' %
+        (execution_id, input, auth_url)
     )
+
+    while downloading:
+        # wait
+        time.sleep(3)
+
+    # download function package
+    if not downloading and not downloaded:
+        downloading = True
+        token = params.get('token')
+
+        headers = {}
+        if token:
+            headers = {'X-Auth-Token': token}
+
+        app.logger.info(
+            'Downloading function, download_url:%s, entry: %s' %
+            (download_url, entry)
+        )
+
+        # Get function code package from Qinling service.
+        r = requests.get(download_url, headers=headers, stream=True)
+        with open(zip_file, 'wb') as fd:
+            for chunk in r.iter_content(chunk_size=65535):
+                fd.write(chunk)
+
+        app.logger.info('Downloaded function package to %s' % zip_file)
+        downloading = False
+        downloaded = True
+
+    if downloaded:
+        if not zipfile.is_zipfile(zip_file):
+            return Response(
+                response=json.dumps(
+                    {
+                        'output': 'The function package is incorrect.',
+                        'duration': 0,
+                        'logs': '',
+                        'success': False
+                    }
+                ),
+                status=500,
+                mimetype='application/json'
+            )
 
     # Provide an openstack session to user's function
     os_session = None
@@ -160,7 +167,6 @@ def execute():
             user_domain_name='Default'
         )
         os_session = session.Session(auth=auth, verify=False)
-
     input.update({'context': {'os_session': os_session}})
 
     manager = Manager()
@@ -205,18 +211,6 @@ def execute():
         status=200,
         mimetype='application/json'
     )
-
-
-def setup_logger(loglevel):
-    global app
-    root = logging.getLogger()
-    root.setLevel(loglevel)
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(loglevel)
-    ch.setFormatter(
-        logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    )
-    app.logger.addHandler(ch)
 
 
 setup_logger(logging.DEBUG)

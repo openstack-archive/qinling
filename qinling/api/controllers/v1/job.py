@@ -84,7 +84,7 @@ class JobsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Job, types.uuid)
     def get(self, id):
-        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
+        LOG.info("Get resource.", resource={'type': self.type, 'id': id})
         job_db = db_api.get_job(id)
 
         return resources.Job.from_dict(job_db.to_dict())

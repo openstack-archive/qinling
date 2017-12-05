@@ -20,7 +20,6 @@ import jinja2
 from kubernetes import client
 from oslo_log import log as logging
 import requests
-import six
 import tenacity
 import yaml
 
@@ -234,19 +233,18 @@ class KubernetesManager(base.OrchestratorBase):
 
         return ret.items[-count:]
 
-    def _prepare_pod(self, pod, deployment_name, function_id, labels=None,
-                     entry=None, trust_id=None, actual_function=None):
+    def _prepare_pod(self, pod, deployment_name, function_id, labels=None):
         """Pod preparation.
 
         1. Update pod labels.
-        2. Expose service and trigger package download.
+        2. Expose service.
         """
-        name = pod.metadata.name
-        actual_function = actual_function or function_id
+        pod_name = pod.metadata.name
+        labels = labels or {}
 
         LOG.info(
             'Prepare pod %s in deployment %s for function %s',
-            name, deployment_name, function_id
+            pod_name, deployment_name, function_id
         )
 
         # Update pod label.
@@ -255,6 +253,8 @@ class KubernetesManager(base.OrchestratorBase):
         # Create service for the chosen pod.
         service_name = "service-%s" % function_id
         labels.update({'function_id': function_id})
+
+        # TODO(kong): Make the service type configurable.
         service_body = self.service_template.render(
             {
                 "service_name": service_name,
@@ -262,19 +262,32 @@ class KubernetesManager(base.OrchestratorBase):
                 "selector": pod_labels
             }
         )
-        ret = self.v1.create_namespaced_service(
-            self.conf.kubernetes.namespace, yaml.safe_load(service_body)
-        )
-        node_port = ret.spec.ports[0].node_port
-
-        LOG.debug(
-            'Service created for pod %s, service name: %s, node port: %s',
-            name, service_name, node_port
-        )
+        try:
+            ret = self.v1.create_namespaced_service(
+                self.conf.kubernetes.namespace, yaml.safe_load(service_body)
+            )
+            LOG.debug(
+                'Service created for pod %s, service name: %s',
+                pod_name, service_name
+            )
+        except Exception as e:
+            # Service already exists
+            if e.status == 409:
+                LOG.debug(
+                    'Service already exists for pod %s, service name: %s',
+                    pod_name, service_name
+                )
+                time.sleep(1)
+                ret = self.v1.read_namespaced_service(
+                    service_name, self.conf.kubernetes.namespace
+                )
+            else:
+                raise
 
         # Get external ip address for an arbitrary node.
-        ret = self.v1.list_node()
-        addresses = ret.items[0].status.addresses
+        node_port = ret.spec.ports[0].node_port
+        nodes = self.v1.list_node()
+        addresses = nodes.items[0].status.addresses
         node_ip = None
         for addr in addresses:
             if addr.type == 'ExternalIP':
@@ -286,53 +299,9 @@ class KubernetesManager(base.OrchestratorBase):
                 if addr.type == 'InternalIP':
                     node_ip = addr.address
 
-        # Download code package into container.
         pod_service_url = 'http://%s:%s' % (node_ip, node_port)
-        request_url = '%s/download' % pod_service_url
-        download_url = (
-            'http://%s:%s/v1/functions/%s?download=true' %
-            (self.conf.kubernetes.qinling_service_address,
-             self.conf.api.port, actual_function)
-        )
 
-        data = {
-            'download_url': download_url,
-            'function_id': actual_function,
-            'entry': entry,
-            'trust_id': trust_id
-        }
-        if self.conf.pecan.auth_enable:
-            data.update(
-                {
-                    'token': context.get_ctx().auth_token,
-                    'auth_url': self.conf.keystone_authtoken.auth_uri,
-                    'username': self.conf.keystone_authtoken.username,
-                    'password': self.conf.keystone_authtoken.password,
-                }
-            )
-
-        LOG.info(
-            'Send request to pod %s, request_url: %s', name, request_url
-        )
-
-        exception = None
-        for a in six.moves.xrange(10):
-            try:
-                r = self.session.post(request_url, json=data)
-                if r.status_code != requests.codes.ok:
-                    raise exc.OrchestratorException(
-                        'Failed to download function code package.'
-                    )
-
-                return name, pod_service_url
-            except (requests.ConnectionError, requests.Timeout) as e:
-                exception = e
-                LOG.warning("Could not connect to service. Retrying.")
-                time.sleep(1)
-
-        raise exc.OrchestratorException(
-            'Could not connect to function service. Reason: %s', exception
-        )
+        return pod_name, pod_service_url
 
     def _create_pod(self, image, pod_name, labels, input):
         pod_body = self.pod_template.render(
@@ -372,8 +341,7 @@ class KubernetesManager(base.OrchestratorBase):
         return pod_labels
 
     def prepare_execution(self, function_id, image=None, identifier=None,
-                          labels=None, input=None, entry='main.main',
-                          trust_id=None):
+                          labels=None, input=None):
         """Prepare service URL for function.
 
         For image function, create a single pod with input, so the function
@@ -395,7 +363,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         try:
             pod_name, url = self._prepare_pod(
-                pod[0], identifier, function_id, labels, entry, trust_id
+                pod[0], identifier, function_id, labels
             )
             return pod_name, url
         except Exception:
@@ -404,14 +372,38 @@ class KubernetesManager(base.OrchestratorBase):
             raise exc.OrchestratorException('Execution preparation failed.')
 
     def run_execution(self, execution_id, function_id, input=None,
-                      identifier=None, service_url=None):
+                      identifier=None, service_url=None, entry='main.main',
+                      trust_id=None):
         if service_url:
             func_url = '%s/execute' % service_url
+            download_url = (
+                'http://%s:%s/v1/functions/%s?download=true' %
+                (self.conf.kubernetes.qinling_service_address,
+                 self.conf.api.port, function_id)
+            )
+
             data = {
-                'input': input,
                 'execution_id': execution_id,
+                'input': input,
+                'function_id': function_id,
+                'entry': entry,
+                'download_url': download_url,
+                'trust_id': trust_id
             }
-            LOG.debug('Invoke function %s, url: %s', function_id, func_url)
+            if self.conf.pecan.auth_enable:
+                data.update(
+                    {
+                        'token': context.get_ctx().auth_token,
+                        'auth_url': self.conf.keystone_authtoken.auth_uri,
+                        'username': self.conf.keystone_authtoken.username,
+                        'password': self.conf.keystone_authtoken.password,
+                    }
+                )
+
+            LOG.debug(
+                'Invoke function %s, url: %s, data: %s',
+                function_id, func_url, data
+            )
 
             return utils.url_request(self.session, func_url, body=data)
         else:
@@ -425,7 +417,6 @@ class KubernetesManager(base.OrchestratorBase):
                     self.conf.kubernetes.namespace
                 )
                 status = pod.status.phase
-
                 time.sleep(0.5)
 
             output = self.v1.read_namespaced_pod_log(
@@ -453,47 +444,26 @@ class KubernetesManager(base.OrchestratorBase):
             label_selector=selector
         )
 
-    def scaleup_function(self, function_id, identifier=None,
-                         entry='main.main', count=1):
+    def scaleup_function(self, function_id, identifier=None, count=1):
         pod_names = []
         labels = {'runtime_id': identifier}
-        pods = self._choose_available_pod(
-            labels, count=count
-        )
+        pods = self._choose_available_pod(labels, count=count)
 
         if not pods:
             raise exc.OrchestratorException('Not enough workers available.')
 
-        temp_function = '%s-temp' % function_id
         for pod in pods:
-            self._prepare_pod(pod, identifier, temp_function, labels, entry,
-                              actual_function=function_id)
-
-            # Delete temporary service
-            selector = common.convert_dict_to_string(
-                {'function_id': temp_function}
+            pod_name, _ = self._prepare_pod(
+                pod, identifier, function_id, labels
             )
-            ret = self.v1.list_namespaced_service(
-                self.conf.kubernetes.namespace, label_selector=selector
-            )
-            svc_names = [i.metadata.name for i in ret.items]
-            for svc_name in svc_names:
-                self.v1.delete_namespaced_service(
-                    svc_name,
-                    self.conf.kubernetes.namespace,
-                )
-
-            # Modify pod labels to fit into correct service
-            self._update_pod_label(pod, {'function_id': function_id})
-
-            pod_names.append(pod.metadata.name)
+            pod_names.append(pod_name)
 
         LOG.info('Pods scaled up for function %s: %s', function_id, pod_names)
         return pod_names
 
-    def delete_worker(self, worker_name, **kwargs):
+    def delete_worker(self, pod_name, **kwargs):
         self.v1.delete_namespaced_pod(
-            worker_name,
+            pod_name,
             self.conf.kubernetes.namespace,
             {}
         )

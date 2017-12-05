@@ -75,7 +75,7 @@ class ExecutionsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Execution, types.uuid)
     def get(self, id):
-        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
+        LOG.info("Get resource.", resource={'type': self.type, 'id': id})
 
         execution_db = db_api.get_execution(id)
 

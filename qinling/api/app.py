@@ -47,8 +47,9 @@ def setup_app(config=None):
 
     db_api.setup_db()
 
-    LOG.info('Starting periodic tasks...')
-    periodics.start_job_handler()
+    if cfg.CONF.api.enable_job_handler:
+        LOG.info('Starting periodic tasks...')
+        periodics.start_job_handler()
 
     app = pecan.make_app(
         app_conf.pop('root'),

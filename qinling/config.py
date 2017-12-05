@@ -41,7 +41,12 @@ api_opts = [
         help='Number of workers for Qinling API service '
              'default is equal to the number of CPUs available if that can '
              'be determined, else a default worker count of 1 is returned.'
-    )
+    ),
+    cfg.BoolOpt(
+        'enable_job_handler',
+        default=True,
+        help='Enable job handler.'
+    ),
 ]
 
 PECAN_GROUP = 'pecan'

@@ -19,6 +19,7 @@ import threading
 from oslo_config import cfg
 from oslo_db import exception as oslo_db_exc
 from oslo_db.sqlalchemy import utils as db_utils
+from oslo_log import log as logging
 import sqlalchemy as sa
 
 from qinling import context
@@ -30,6 +31,7 @@ from qinling import exceptions as exc
 from qinling import status
 
 CONF = cfg.CONF
+LOG = logging.getLogger(__name__)
 
 _SCHEMA_LOCK = threading.RLock()
 _initialized = False
@@ -366,14 +368,11 @@ def create_function_service_mapping(values, session=None):
     mapping = models.FunctionServiceMapping()
     mapping.update(values.copy())
 
+    # Ignore duplicate error for FunctionServiceMapping
     try:
         mapping.save(session=session)
-    except oslo_db_exc.DBDuplicateEntry as e:
-        raise exc.DBError(
-            "Duplicate entry for FunctionServiceMapping: %s" % e.columns
-        )
-
-    return mapping
+    except oslo_db_exc.DBDuplicateEntry:
+        session.close()
 
 
 @db_base.session_aware()
@@ -412,14 +411,11 @@ def create_function_worker(values, session=None):
     mapping = models.FunctionWorkers()
     mapping.update(values.copy())
 
+    # Ignore duplicate error for FunctionWorkers
     try:
         mapping.save(session=session)
-    except oslo_db_exc.DBDuplicateEntry as e:
-        raise exc.DBError(
-            "Duplicate entry for FunctionWorkers: %s" % e.columns
-        )
-
-    return mapping
+    except oslo_db_exc.DBDuplicateEntry:
+        session.close()
 
 
 @db_base.session_aware()

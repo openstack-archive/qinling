@@ -16,6 +16,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import requests
 
+from qinling import context
 from qinling.db import api as db_api
 from qinling.engine import utils
 from qinling import status
@@ -99,12 +100,35 @@ class DefaultEngine(object):
 
             if function.service:
                 func_url = '%s/execute' % function.service.service_url
+
                 LOG.debug(
                     'Found service url for function: %s, url: %s',
                     function_id, func_url
                 )
 
-                data = {'input': input, 'execution_id': execution_id}
+                download_url = (
+                    'http://%s:%s/v1/functions/%s?download=true' %
+                    (CONF.kubernetes.qinling_service_address,
+                     CONF.api.port, function_id)
+                )
+                data = {
+                    'execution_id': execution_id,
+                    'input': input,
+                    'function_id': function_id,
+                    'entry': function.entry,
+                    'download_url': download_url,
+                }
+                if CONF.pecan.auth_enable:
+                    data.update(
+                        {
+                            'token': context.get_ctx().auth_token,
+                            'auth_url': CONF.keystone_authtoken.auth_uri,
+                            'username': CONF.keystone_authtoken.username,
+                            'password': CONF.keystone_authtoken.password,
+                            'trust_id': function.trust_id
+                        }
+                    )
+
                 success, res = utils.url_request(
                     self.session, func_url, body=data
                 )
@@ -141,8 +165,6 @@ class DefaultEngine(object):
                 identifier=identifier,
                 labels=labels,
                 input=input,
-                entry=function.entry,
-                trust_id=function.trust_id
             )
             success, res = self.orchestrator.run_execution(
                 execution_id,
@@ -150,6 +172,8 @@ class DefaultEngine(object):
                 input=input,
                 identifier=identifier,
                 service_url=service_url,
+                entry=function.entry,
+                trust_id=function.trust_id
             )
 
             logs = ''
@@ -171,18 +195,18 @@ class DefaultEngine(object):
             execution.logs = logs
             execution.status = status.SUCCESS if success else status.FAILED
 
-            # No service is created in orchestrator for single container.
-            if not image:
-                mapping = {
-                    'function_id': function_id,
-                    'service_url': service_url,
-                }
-                db_api.create_function_service_mapping(mapping)
-                worker = {
-                    'function_id': function_id,
-                    'worker_name': worker_name
-                }
-                db_api.create_function_worker(worker)
+        # No service is created in orchestrator for single container.
+        if not image:
+            mapping = {
+                'function_id': function_id,
+                'service_url': service_url,
+            }
+            db_api.create_function_service_mapping(mapping)
+            worker = {
+                'function_id': function_id,
+                'worker_name': worker_name
+            }
+            db_api.create_function_worker(worker)
 
     def delete_function(self, ctx, function_id):
         """Deletes underlying resources allocated for function."""
@@ -195,12 +219,9 @@ class DefaultEngine(object):
         LOG.info('Deleted.', resource=resource)
 
     def scaleup_function(self, ctx, function_id, runtime_id, count=1):
-        function = db_api.get_function(function_id)
-
         worker_names = self.orchestrator.scaleup_function(
             function_id,
             identifier=runtime_id,
-            entry=function.entry,
             count=count
         )
 

@@ -102,6 +102,7 @@ def upgrade():
         sa.Column('function_id', sa.String(length=36), nullable=False),
         sa.Column('worker_name', sa.String(length=255), nullable=False),
         sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('function_id', 'worker_name'),
         sa.ForeignKeyConstraint(
             ['function_id'], [u'functions.id'], ondelete='CASCADE'
         ),

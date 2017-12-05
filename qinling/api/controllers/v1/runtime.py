@@ -42,7 +42,7 @@ class RuntimesController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Runtime, types.uuid)
     def get(self, id):
-        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
+        LOG.info("Get resource.", resource={'type': self.type, 'id': id})
 
         runtime_db = db_api.get_runtime(id)
 

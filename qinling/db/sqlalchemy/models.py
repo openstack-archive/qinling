@@ -38,7 +38,10 @@ class Function(model_base.QinlingSecureModelBase):
     runtime_id = sa.Column(
         sa.String(36), sa.ForeignKey(Runtime.id), nullable=True
     )
-    runtime = relationship('Runtime', back_populates="functions")
+    # We want to get runtime info when we query function
+    runtime = relationship(
+        'Runtime', back_populates="functions", innerjoin=True, lazy='joined'
+    )
     memory_size = sa.Column(sa.Integer)
     timeout = sa.Column(sa.Integer)
     code = sa.Column(st.JsonLongDictType(), nullable=False)
@@ -64,6 +67,10 @@ class FunctionServiceMapping(model_base.QinlingModelBase):
 
 class FunctionWorkers(model_base.QinlingModelBase):
     __tablename__ = 'function_workers'
+
+    __table_args__ = (
+        sa.UniqueConstraint('function_id', 'worker_name'),
+    )
 
     id = model_base.id_column()
     function_id = sa.Column(

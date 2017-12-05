@@ -69,7 +69,7 @@ class FunctionsController(rest.RestController):
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose()
     def get(self, id):
-        LOG.info("Fetch resource.", resource={'type': self.type, 'id': id})
+        LOG.info("Get resource.", resource={'type': self.type, 'id': id})
 
         download = strutils.bool_from_string(
             pecan.request.GET.get('download', False)

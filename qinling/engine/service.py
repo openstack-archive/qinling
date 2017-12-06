@@ -44,7 +44,7 @@ class EngineService(service.Service):
 
         topic = CONF.engine.topic
         server = CONF.engine.host
-        transport = messaging.get_transport(CONF)
+        transport = messaging.get_rpc_transport(CONF)
         target = messaging.Target(topic=topic, server=server, fanout=False)
         endpoints = [engine.DefaultEngine(orchestrator)]
         access_policy = dispatcher.DefaultRPCAccessPolicy

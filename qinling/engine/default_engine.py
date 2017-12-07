@@ -93,6 +93,9 @@ class DefaultEngine(object):
             execution_id, function_id, runtime_id, input
         )
 
+        if CONF.engine.enable_autoscaling:
+            self.function_load_check(function_id, runtime_id)
+
         # FIXME(kong): Make the transaction scope smaller.
         with db_api.transaction():
             execution = db_api.get_execution(execution_id)
@@ -225,13 +228,12 @@ class DefaultEngine(object):
             count=count
         )
 
-        with db_api.transaction():
-            for name in worker_names:
-                worker = {
-                    'function_id': function_id,
-                    'worker_name': name
-                }
-                db_api.create_function_worker(worker)
+        for name in worker_names:
+            worker = {
+                'function_id': function_id,
+                'worker_name': name
+            }
+            db_api.create_function_worker(worker)
 
         LOG.info('Finished scaling up function %s.', function_id)
 
@@ -251,3 +253,24 @@ class DefaultEngine(object):
                 db_api.delete_function_worker(worker.worker_name)
 
         LOG.info('Finished scaling up function %s.', function_id)
+
+    def function_load_check(self, function_id, runtime_id):
+        with db_api.transaction():
+            db_api.acquire_worker_lock(function_id)
+
+            running_execs = db_api.get_executions(
+                function_id=function_id, status=status.RUNNING
+            )
+            workers = db_api.get_function_workers(function_id)
+
+            concurrency = (len(running_execs) or 1) / (len(workers) or 1)
+
+            if concurrency > CONF.engine.function_concurrency:
+                LOG.warning(
+                    'Scale up function %s because of high concurrency, current'
+                    ' concurrency: %s',
+                    function_id, concurrency
+                )
+
+                # TODO(kong): The inscrease step could be configurable
+                self.scaleup_function(None, function_id, runtime_id, 1)

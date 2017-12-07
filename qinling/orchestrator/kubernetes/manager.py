@@ -220,8 +220,17 @@ class KubernetesManager(base.OrchestratorBase):
 
         return True
 
-    def _choose_available_pod(self, labels, count=1):
+    def _choose_available_pod(self, labels, count=1, function_id=None):
         selector = common.convert_dict_to_string(labels)
+
+        # If there is already a pod for function, reuse it.
+        if function_id:
+            ret = self.v1.list_namespaced_pod(
+                self.conf.kubernetes.namespace,
+                label_selector='function_id=%s' % function_id
+            )
+            if len(ret.items) > 0:
+                return ret.items[:count]
 
         ret = self.v1.list_namespaced_pod(
             self.conf.kubernetes.namespace,
@@ -356,10 +365,11 @@ class KubernetesManager(base.OrchestratorBase):
             self._create_pod(image, identifier, labels, input)
             return identifier, None
         else:
-            pod = self._choose_available_pod(labels)
+            pod = self._choose_available_pod(labels, function_id=function_id)
 
         if not pod:
-            raise exc.OrchestratorException('No worker available.')
+            LOG.critical('No worker available.')
+            raise exc.OrchestratorException('Execution preparation failed.')
 
         try:
             pod_name, url = self._prepare_pod(

@@ -27,6 +27,7 @@ from qinling.db import base as db_base
 from qinling.db.sqlalchemy import filters as db_filters
 from qinling.db.sqlalchemy import model_base
 from qinling.db.sqlalchemy import models
+from qinling.db.sqlalchemy import sqlite_lock
 from qinling import exceptions as exc
 from qinling import status
 
@@ -447,6 +448,21 @@ def delete_function_workers(function_id, session=None):
 
     for worker in workers:
         session.delete(worker)
+
+
+@db_base.session_aware()
+def acquire_worker_lock(function_id, session=None):
+    # Expire all so all objects queried after lock is acquired
+    # will be up-to-date from the DB and not from cache.
+    session.expire_all()
+
+    if db_base.get_driver_name() == 'sqlite':
+        # In case of 'sqlite' we need to apply a manual lock.
+        sqlite_lock.acquire_lock(function_id, session)
+
+    return _secure_query(
+        models.FunctionWorkers).with_for_update().filter(
+        models.FunctionWorkers.function_id == function_id).all()
 
 
 @db_base.session_aware()

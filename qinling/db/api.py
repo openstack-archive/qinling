@@ -178,6 +178,10 @@ def get_function_workers(function_id):
     return IMPL.get_function_workers(function_id)
 
 
+def acquire_worker_lock(id):
+    return IMPL.acquire_worker_lock(id)
+
+
 def create_job(values):
     return IMPL.create_job(values)
 

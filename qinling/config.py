@@ -98,6 +98,16 @@ engine_opts = [
         'function_service_expiration',
         default=300,
         help='Maximum service time in seconds for function in orchestrator.'
+    ),
+    cfg.IntOpt(
+        'function_concurrency',
+        default=10,
+        help='Maximum number of concurrent executions per function.'
+    ),
+    cfg.BoolOpt(
+        'enable_autoscaling',
+        default=True,
+        help='Enables autoscaling capability for function execution.'
     )
 ]
 

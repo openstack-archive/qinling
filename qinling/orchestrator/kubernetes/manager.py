@@ -230,6 +230,9 @@ class KubernetesManager(base.OrchestratorBase):
                 label_selector='function_id=%s' % function_id
             )
             if len(ret.items) > 0:
+                LOG.debug(
+                    "Function %s already associates to a pod.", function_id
+                )
                 return ret.items[:count]
 
         ret = self.v1.list_namespaced_pod(

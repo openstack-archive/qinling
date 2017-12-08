@@ -213,6 +213,20 @@ class Functions(ResourceList):
         return sample
 
 
+class FunctionWorker(Resource):
+    id = wtypes.text
+    function_id = wsme.wsattr(types.uuid, readonly=True)
+    worker_name = wtypes.text
+
+
+class FunctionWorkers(ResourceList):
+    workers = [FunctionWorker]
+
+    def __init__(self, **kwargs):
+        self._type = 'workers'
+        super(FunctionWorkers, self).__init__(**kwargs)
+
+
 class Runtime(Resource):
     id = wtypes.text
     name = wtypes.text

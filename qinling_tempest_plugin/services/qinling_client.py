@@ -94,3 +94,6 @@ class QinlingClient(client_base.QinlingClientBase):
     def get_execution_log(self, execution_id):
         return self.get('/v1/executions/%s/log' % execution_id,
                         headers={'Accept': 'text/plain'})
+
+    def get_function_workers(self, function_id):
+        return self.get_resources('functions/%s/workers' % function_id)

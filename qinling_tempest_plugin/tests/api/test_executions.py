@@ -16,6 +16,7 @@ import pkg_resources
 import tempfile
 import zipfile
 
+import futurist
 from oslo_serialization import jsonutils
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
@@ -100,11 +101,12 @@ class ExecutionsTest(base.BaseQinlingTest):
                                                   input={'name': 'Qinling'})
 
         self.assertEqual(201, resp.status)
-        self.assertEqual('success', body['status'])
 
         execution_id = body['id']
         self.addCleanup(self.client.delete_resource, 'executions',
                         execution_id, ignore_notfound=True)
+
+        self.assertEqual('success', body['status'])
 
         # Get executions
         resp, body = self.client.get_resources('executions')
@@ -128,11 +130,12 @@ class ExecutionsTest(base.BaseQinlingTest):
         resp, body = self.client.create_execution(self.function_id, sync=False)
 
         self.assertEqual(201, resp.status)
-        self.assertEqual('running', body['status'])
 
         execution_id = body['id']
         self.addCleanup(self.client.delete_resource, 'executions',
                         execution_id, ignore_notfound=True)
+
+        self.assertEqual('running', body['status'])
 
         self.await_execution_success(execution_id)
 
@@ -145,11 +148,11 @@ class ExecutionsTest(base.BaseQinlingTest):
                                                   input={'name': 'OpenStack'})
 
         self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
         self.assertEqual('success', body['status'])
 
         execution_id = body['id']
-        self.addCleanup(self.client.delete_resource, 'executions',
-                        execution_id, ignore_notfound=True)
 
         # Get execution log
         resp, body = self.client.get_execution_log(execution_id)
@@ -157,6 +160,35 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual(200, resp.status)
         self.assertIn('Hello, OpenStack', body)
 
+    @decorators.idempotent_id('f22097dc-37db-484d-83d3-3a97e72ec576')
+    def test_execution_concurrency(self):
+        self.await_runtime_available(self.runtime_id)
+        self._create_function(name='test_python_sleep.py')
+
+        def _create_execution():
+            resp, body = self.client.create_execution(self.function_id)
+            return resp, body
+
+        futs = []
+        with futurist.GreenThreadPoolExecutor(max_workers=4) as executor:
+            for _ in range(3):
+                fut = executor.submit(_create_execution)
+                futs.append(fut)
+            for f in futs:
+                # Wait until we get the response
+                resp, body = f.result()
+
+                self.assertEqual(201, resp.status)
+                self.addCleanup(self.client.delete_resource, 'executions',
+                                body['id'], ignore_notfound=True)
+                self.assertEqual('success', body['status'])
+
+        resp, body = self.admin_client.get_function_workers(self.function_id)
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual(1, len(body['workers']))
+
+    @decorators.idempotent_id('a948382a-84af-4f0e-ad08-4297345e302c')
     def test_python_execution_file_limit(self):
         self.await_runtime_available(self.runtime_id)
         self._create_function(name='test_python_file_limit.py')
@@ -164,6 +196,8 @@ class ExecutionsTest(base.BaseQinlingTest):
         resp, body = self.client.create_execution(self.function_id)
 
         self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
         self.assertEqual('failed', body['status'])
 
         output = jsonutils.loads(body['output'])
@@ -171,6 +205,7 @@ class ExecutionsTest(base.BaseQinlingTest):
             'Too many open files', output['output']
         )
 
+    @decorators.idempotent_id('bf6f8f35-fa88-469b-8878-7aa85a8ce5ab')
     def test_python_execution_process_number(self):
         self.await_runtime_available(self.runtime_id)
         self._create_function(name='test_python_process_limit.py')
@@ -178,6 +213,8 @@ class ExecutionsTest(base.BaseQinlingTest):
         resp, body = self.client.create_execution(self.function_id)
 
         self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
         self.assertEqual('failed', body['status'])
 
         output = jsonutils.loads(body['output'])

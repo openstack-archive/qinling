@@ -45,7 +45,24 @@ CODE_SOURCE = set(['package', 'swift', 'image'])
 UPDATE_ALLOWED = set(['name', 'description', 'code', 'package', 'entry'])
 
 
+class FunctionWorkerController(rest.RestController):
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(resources.FunctionWorkers, types.uuid)
+    def get_all(self, function_id):
+        acl.enforce('function_worker:get_all', context.get_ctx())
+
+        LOG.info("Get workers for function %s.", function_id)
+        db_workers = db_api.get_function_workers(function_id)
+
+        workers = [resources.FunctionWorker.from_dict(db_model.to_dict())
+                   for db_model in db_workers]
+
+        return resources.FunctionWorkers(workers=workers)
+
+
 class FunctionsController(rest.RestController):
+    workers = FunctionWorkerController()
+
     _custom_actions = {
         'scale_up': ['POST'],
         'scale_down': ['POST'],

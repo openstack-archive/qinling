@@ -4,85 +4,20 @@ Quick Start
 Installation
 ~~~~~~~~~~~~
 
-A fast and simple way to try Qinling is to create a Vagrant VM including all
-related components and dependencies of Qinling service. For quick installation,
-evaluation, and convenience, Qinling team provides a Vagrantfile in
-``tools/vagrant`` folder.
-
-.. note::
-
-   You can also install Qinling service in OpenStack devstack environment,
-   please refer to
-   http://qinling.readthedocs.io/en/latest/contributor/development-environment-devstack.html.
+A fast and simple way to try Qinling is to create a Devstack environment
+including all related components and dependencies of Qinling service. Please
+refer to
+http://qinling.readthedocs.io/en/latest/contributor/development-environment-devstack.html
+for how to install Qinling service in OpenStack devstack environment.
 
 Qinling is a FaaS implemented on top of container orchestration system such as
 Kubernetes, Swarm, etc. Particularly, Kubernetes is a reference backend
-considering its popularity. So, you need to setup Kubernetes first before
-installing Qinling. The easiest way to setup Kubernetes is to use `Minikube
-<https://kubernetes.io/docs/getting-started-guides/minikube/>`_, it runs a
-single-node Kubernetes cluster inside a VM alongside Qinling vagrant VM, so
-they can communicate with each other without any network configuration.
-
-.. note::
-
-   In order to manage resources on Kubernetes, it is recommended to install
-   `kubectl <https://kubernetes.io/docs/tasks/tools/install-kubectl/>`_
-   command line tool.
+considering its popularity. A kubernetes cluster and its command line tool
+have been installed in the devstack environment.
 
 Qinling can work with OpenStack Keystone for authentication, or it can work
 without authentication at all. By default, authentication is enabled, set
 ``auth_enable = False`` to enable authentication.
-
-After Kubernetes installation, perform the following commands on your local
-host.
-
-#. Setup HTTP proxy to access the Kubernetes API:
-
-   .. code-block:: console
-
-      $ kubectl proxy --accept-hosts='.*' --address='0.0.0.0'
-      Starting to serve on [::]:8001
-
-   .. end
-
-#. Clone Qinling repo and go to ``vagrant`` directory:
-
-   .. code-block:: console
-
-      $ git clone https://github.com/openstack/qinling.git
-      $ cd qinling/tools/vagrant
-
-   .. end
-
-#. Modify Qinling sample config file according to your own environment. Suppose
-   your IP address of your local host is ``192.168.200.50``, default Kubernetes
-   API HTTP proxy port is ``8001``, and Qinling vagrant VM IP address is
-   ``192.168.33.18`` (the default value in ``Vagrantfile``):
-
-   .. code-block:: console
-
-      $ sed -i 's/KUBERNETES_API_HOST/192.168.200.50/' qinling.conf.sample
-      $ sed -i 's/KUBERNETES_API_PORT/8001/' qinling.conf.sample
-      $ sed -i 's/QINLING_API_ADDRESS/192.168.33.18/' qinling.conf.sample
-
-   .. end
-
-#. Now, start Qinling vagrant VM:
-
-   .. code-block:: console
-
-      $ vagrant --version
-      Vagrant 1.9.1
-      $ vagrant up
-      ...
-      ==> default: INFO  [alembic.runtime.migration] Context impl MySQLImpl.
-      ==> default: INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
-      ==> default: INFO  [alembic.runtime.migration] Running upgrade  -> 001, Pike release
-
-   .. end
-
-   If you see message like the above, congratulations, your own Qinling service
-   is up and running!
 
 Getting started with Qinling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -91,11 +26,11 @@ Getting started with Qinling
 
    Currently, you can interact with Qinling using python-qinlingclient or
    sending RESTful API directly. Both ways are described in this guide.
-   ``httpie`` is a convenient tool to send HTTP request, it has been installed
-   automatically inside the vagrnat VM.
+   ``httpie`` is a convenient tool to send HTTP request, it will be installed
+   during following steps.
 
-Perform following commands on your local host, we will create
-runtime/function/execution during the process.
+Log into the devstack host, we will create python runtime/function/execution
+during the steps.
 
 #. (Optional) Prepare a docker image including development environment for a
    specific programming language. For your convenience, there is a pre-built
@@ -108,54 +43,58 @@ runtime/function/execution during the process.
 
    .. code-block:: console
 
-      $ cd runtimes/python2
+      $ cd /opt/stack/qinling/runtimes/python2
       $ docker build -t DOCKER_USER/python-runtime .
       $ docker push DOCKER_USER/python-runtime
 
    .. end
 
-#. Create runtime. ``runtime`` in Qinling is running environment for a
-   specific language, this resource is supposed to be created/deleted/updated
-   by cloud operator. After creation, check the runtime status until it's
-   ``available`` before you execute any functions:
+#. Create python runtime using admin user. ``runtime`` in Qinling is running
+   environment for a specific language, this resource is supposed to be
+   created/deleted/updated only by cloud operator. After creation, check the
+   runtime status until it's ``available`` before invoking any functions:
 
    .. code-block:: console
 
-      $ http POST http://192.168.33.18:7070/v1/runtimes name=python2.7 \
-        image=DOCKER_USER/python-runtime
-
+      $ pip install httpie
+      $ cd $DEVSTACK_DIR
+      $ source openrc admin admin
+      $ TOKEN=$(openstack token issue -f yaml -c id | awk '{print $2}')
+      $ http POST http://localhost:7070/v1/runtimes name=python2.7 \
+          image=openstackqinling/python-runtime X-Auth-Token:$TOKEN
       HTTP/1.1 201 Created
-      Connection: keep-alive
-      Content-Length: 194
-      Content-Type: application/json
-      Date: Fri, 12 May 2017 04:37:08 GMT
-
-      {
-          "created_at": "2017-05-12 04:37:08.129860",
-          "id": "c1d78623-56bf-4487-9a72-1299b2c55e65",
-          "image": "DOCKER_USER/python-runtime",
-          "name": "python2.7",
-          "project_id": "default",
-          "status": "creating"
-      }
-
-      $ http GET http://192.168.33.18:7070/v1/runtimes/c1d78623-56bf-4487-9a72-1299b2c55e65
-
-      HTTP/1.1 200 OK
       Connection: keep-alive
       Content-Length: 246
       Content-Type: application/json
-      Date: Fri, 12 May 2017 04:37:50 GMT
+      Date: Mon, 11 Dec 2017 22:35:08 GMT
 
       {
-          "created_at": "2017-05-12 04:37:08",
-          "description": null,
-          "id": "c1d78623-56bf-4487-9a72-1299b2c55e65",
-          "image": "DOCKER_USER/python-runtime",
+          "created_at": "2017-12-11 22:35:08.660498",
+          "id": "601efeb8-3e41-4e5c-a12a-986dbda252e3",
+          "image": "openstackqinling/python-runtime",
+          "is_public": true,
           "name": "python2.7",
-          "project_id": "default",
+          "project_id": "ce157785ffb24b3c862720283be4dbc8",
+          "status": "creating"
+      }
+      $ http GET http://localhost:7070/v1/runtimes/601efeb8-3e41-4e5c-a12a-986dbda252e3 \
+        X-Auth-Token:$TOKEN
+      HTTP/1.1 200 OK
+      Connection: keep-alive
+      Content-Length: 298
+      Content-Type: application/json
+      Date: Mon, 11 Dec 2017 22:37:01 GMT
+
+      {
+          "created_at": "2017-12-11 22:35:09",
+          "description": null,
+          "id": "601efeb8-3e41-4e5c-a12a-986dbda252e3",
+          "image": "openstackqinling/python-runtime",
+          "is_public": true,
+          "name": "python2.7",
+          "project_id": "ce157785ffb24b3c862720283be4dbc8",
           "status": "available",
-          "updated_at": "2017-05-12 04:37:08"
+          "updated_at": "2017-12-11 22:35:13"
       }
 
    .. end
@@ -164,18 +103,21 @@ runtime/function/execution during the process.
 
    .. code-block:: console
 
-      $ openstack runtime create python2.7 DOCKER_USER/python-runtime
-      +------------+--------------------------------------+
-      | Field      | Value                                |
-      +------------+--------------------------------------+
-      | id         | c1d78623-56bf-4487-9a72-1299b2c55e65 |
-      | name       | python2.7                            |
-      | image      | DOCKER_USER/python-runtime           |
-      | project_id | default                              |
-      | status     | available                            |
-      | created_at | 2017-05-12 04:37:08.129860           |
-      | updated_at |                                      |
-      +------------+--------------------------------------+
+      $ cd $DEVSTACK_DIR
+      $ source openrc admin admin
+      $ openstack runtime create openstackqinling/python-runtime --name python2.7
+      +-------------+--------------------------------------+
+      | Field       | Value                                |
+      +-------------+--------------------------------------+
+      | id          | 4866b566-2c9a-4f00-9665-7808f7d811f8 |
+      | name        | python2.7                            |
+      | image       | openstackqinling/python-runtime      |
+      | status      | available                             |
+      | description | None                                 |
+      | project_id  | ce157785ffb24b3c862720283be4dbc8     |
+      | created_at  | 2017-12-11 22:40:16                  |
+      | updated_at  | None                                 |
+      +-------------+--------------------------------------+
 
    .. end
 
@@ -184,7 +126,7 @@ runtime/function/execution during the process.
    .. code-block:: console
 
       $ mkdir ~/qinling_test
-      $ cat <<EOF > ~/qinling_test/main.py
+      $ cat <<EOF > ~/qinling_test/github_test.py
         import requests
         def main(*args, **kwargs):
             r = requests.get('https://api.github.com/events')
@@ -192,9 +134,8 @@ runtime/function/execution during the process.
         if __name__ == '__main__':
             main()
         EOF
-      $ pip install requests -t ~/qinling_test
       $ cd ~/qinling_test
-      $ zip -r ~/qinling_test/qinling_test.zip ./*
+      $ zip -r ~/qinling_test/github_test.zip ./*
 
    .. end
 
@@ -202,27 +143,33 @@ runtime/function/execution during the process.
 
    .. code-block:: console
 
-      $ http -f POST http://192.168.33.18:7070/v1/functions name=github_test \
-          runtime_id=c1d78623-56bf-4487-9a72-1299b2c55e65 \
-          code='{"package": "true"}' \
-          package@~/qinling_test/qinling_test.zip
-
+      $ cd $DEVSTACK_DIR
+      $ source openrc demo demo
+      $ TOKEN=$(openstack token issue -f yaml -c id | awk '{print $2}')
+      $ http -f POST http://localhost:7070/v1/functions name=github_test \
+          runtime_id=601efeb8-3e41-4e5c-a12a-986dbda252e3 \
+          code='{"source": "package"}' \
+          entry='github_test.main' \
+          package@~/qinling_test/github_test.zip \
+          X-Auth-Token:$TOKEN
       HTTP/1.1 201 Created
       Connection: keep-alive
-      Content-Length: 234
+      Content-Length: 303
       Content-Type: application/json
-      Date: Fri, 12 May 2017 04:49:59 GMT
+      Date: Mon, 11 Dec 2017 23:20:26 GMT
 
       {
           "code": {
-              "package": "true"
+              "source": "package"
           },
-          "created_at": "2017-05-12 04:49:59.659345",
+          "count": 0,
+          "created_at": "2017-12-11 23:20:26.600054",
           "description": null,
-          "entry": "main.main",
-          "id": "352e4c02-3c6b-4860-9b85-f72344b1f986",
+          "entry": "github_test.main",
+          "id": "cdce13b0-55c9-4a06-a67a-1cd1fe1fb161",
           "name": "github_test",
-          "runtime_id": "c1d78623-56bf-4487-9a72-1299b2c55e65"
+          "project_id": "c2a457c46df64ed4adcb31fdc80052d4",
+          "runtime_id": "601efeb8-3e41-4e5c-a12a-986dbda252e3"
       }
 
    .. end
@@ -231,22 +178,24 @@ runtime/function/execution during the process.
 
    .. code-block:: console
 
-      $ openstack function create github_test \
-          c1d78623-56bf-4487-9a72-1299b2c55e65 \
-          '{"source": "package"}' \
-          --package ~/qinling_test/qinling_test.zip
-      +------------+--------------------------------------+
-      | Field      | Value                                |
-      +------------+--------------------------------------+
-      | id         | 352e4c02-3c6b-4860-9b85-f72344b1f986 |
-      | name       | github_test                          |
-      | count      | 0                                    |
-      | code       | {u'source': u'package'}              |
-      | runtime_id | c1d78623-56bf-4487-9a72-1299b2c55e65 |
-      | entry      | main.main                            |
-      | created_at | 2017-05-12 04:49:59.659345           |
-      | updated_at |                                      |
-      +------------+--------------------------------------+
+      $ openstack function create --name github_test \
+          --code-type package \
+          --runtime 601efeb8-3e41-4e5c-a12a-986dbda252e3 \
+          --entry github_test.main \
+          --package ~/qinling_test/github_test.zip
+      +-------------+--------------------------------------+
+      | Field       | Value                                |
+      +-------------+--------------------------------------+
+      | id          | c9195311-9aa7-4748-bd4b-1b0f9c28d858 |
+      | name        | github_test                          |
+      | description | None                                 |
+      | count       | 0                                    |
+      | code        | {u'source': u'package'}              |
+      | runtime_id  | 601efeb8-3e41-4e5c-a12a-986dbda252e3 |
+      | entry       | github_test.main                     |
+      | created_at  | 2017-12-11 23:21:21                  |
+      | updated_at  | None                                 |
+      +-------------+--------------------------------------+
 
    .. end
 
@@ -254,25 +203,28 @@ runtime/function/execution during the process.
 
    .. code-block:: console
 
-      $ http POST http://192.168.33.18:7070/v1/executions \
-          function_id=352e4c02-3c6b-4860-9b85-f72344b1f986
-
+      $ http POST http://localhost:7070/v1/executions \
+          function_id=c9195311-9aa7-4748-bd4b-1b0f9c28d858 \
+          X-Auth-Token:$TOKEN
       HTTP/1.1 201 Created
       Connection: keep-alive
-      Content-Length: 255
+      Content-Length: 347
       Content-Type: application/json
-      Date: Thu, 11 May 2017 23:46:12 GMT
+      Date: Mon, 11 Dec 2017 23:26:11 GMT
 
       {
-          "created_at": "2017-05-12 04:51:10",
-          "function_id": "352e4c02-3c6b-4860-9b85-f72344b1f986",
-          "id": "80cd55be-d369-49b8-8bd5-e0bfc1d20d25",
+          "created_at": "2017-12-11 23:26:09",
+          "description": null,
+          "function_id": "c9195311-9aa7-4748-bd4b-1b0f9c28d858",
+          "id": "c3d61744-254a-4f41-8e6d-9e7dc1eb6a24",
           "input": null,
-          "output": "{\"result\": 30}",
+          "output": "{\"duration\": 1.299, \"output\": 30}",
+          "project_id": "c2a457c46df64ed4adcb31fdc80052d4",
           "status": "success",
           "sync": true,
-          "updated_at": "2017-05-12 04:51:23"
+          "updated_at": "2017-12-11 23:26:12"
       }
+
 
    .. end
 
@@ -280,21 +232,22 @@ runtime/function/execution during the process.
 
    .. code-block:: console
 
-      $ openstack function execution create 352e4c02-3c6b-4860-9b85-f72344b1f986
-      +-------------+------------------------------------------------------------+
-      | Field       | Value                                                      |
-      +-------------+------------------------------------------------------------+
-      | id          | 80cd55be-d369-49b8-8bd5-e0bfc1d20d25                       |
-      | function_id | 352e4c02-3c6b-4860-9b85-f72344b1f986                       |
-      | input       | {}                                                         |
-      | output      | {"result": {"duration": 1.2511260509490967, "output": 30}} |
-      | status      | success                                                    |
-      | sync        | True                                                       |
-      | created_at  | 2017-05-12 04:51:10                                        |
-      | updated_at  | 2017-05-12 04:51:23                                        |
-      +-------------+------------------------------------------------------------+
+      $ openstack function execution create c9195311-9aa7-4748-bd4b-1b0f9c28d858 --sync
+      +-------------+--------------------------------------+
+      | Field       | Value                                |
+      +-------------+--------------------------------------+
+      | id          | b7ffdd3a-a0a8-441b-874d-3b6dcf7446d9 |
+      | function_id | c9195311-9aa7-4748-bd4b-1b0f9c28d858 |
+      | description | None                                 |
+      | input       | {}                                   |
+      | output      | {"duration": 1.483, "output": 30}    |
+      | status      | success                              |
+      | sync        | True                                 |
+      | created_at  | 2017-12-11 23:27:04                  |
+      | updated_at  | 2017-12-11 23:27:05                  |
+      +-------------+--------------------------------------+
 
    .. end
 
-   If you invoke the same function again, you will find it is much faster
-   due to Qinling cache mechanism.
+Now, you have defined your first function and invoked it. Have fun with
+Qinling!

@@ -18,13 +18,16 @@
 Function Programming Guide
 ==========================
 
-In this section you will find information helpful for developing functions.
+In this section you will find information helpful for developing functions. You
+can also find some code examples in ``example/functions`` folder.
 
 
 .. toctree::
     :maxdepth: 2
 
+    python_dev
     openstack_integration
+    monitoring
 
 Indices and tables
 ------------------

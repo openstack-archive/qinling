@@ -7,4 +7,6 @@
     "runtime:create": "rule:context_is_admin",
     "runtime:update": "rule:context_is_admin",
     "runtime:delete": "rule:context_is_admin",
+
+    "function:get_all:all_projects": "rule:context_is_admin",
 }

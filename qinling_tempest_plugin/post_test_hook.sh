@@ -31,4 +31,4 @@ sudo cp $BASE/new/tempest/etc/logging.conf.sample $BASE/new/tempest/etc/logging.
 
 export TOX_TESTENV_PASSENV=ZUUL_PROJECT
 (cd $BASE/new/tempest/; sudo -E testr init)
-(cd $BASE/new/tempest/; sudo -E tox -eall-plugin qinling)
+(cd $BASE/new/tempest/; sudo -E tox -eall-plugin -- qinling --serial)

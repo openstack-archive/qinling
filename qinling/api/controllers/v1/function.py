@@ -24,6 +24,7 @@ from pecan import rest
 from webob.static import FileIter
 import wsmeext.pecan as wsme_pecan
 
+from qinling.api import access_control as acl
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
 from qinling import context
@@ -175,12 +176,32 @@ class FunctionsController(rest.RestController):
         return resources.Function.from_dict(func_db.to_dict()).to_dict()
 
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.Functions)
-    def get_all(self):
+    @wsme_pecan.wsexpose(resources.Functions, bool, types.uuid)
+    def get_all(self, all_projects=False, project_id=None):
+        """Return a list of functions.
+
+        :param project_id: Optional. Admin user can query other projects
+            resources, the param is ignored for normal user.
+        :param all_projects: Optional. Get resources of all projects.
+        """
+        ctx = context.get_ctx()
+        if project_id and not ctx.is_admin:
+            project_id = context.ctx().projectid
+        if project_id and ctx.is_admin:
+            all_projects = True
+
+        if all_projects:
+            acl.enforce('function:get_all:all_projects', ctx)
+
         LOG.info("Get all functions.")
 
+        filters = rest_utils.get_filters(
+            project_id=project_id,
+        )
+
+        db_functions = db_api.get_functions(insecure=all_projects, **filters)
         functions = [resources.Function.from_dict(db_model.to_dict())
-                     for db_model in db_api.get_functions()]
+                     for db_model in db_functions]
 
         return resources.Functions(functions=functions)
 

@@ -17,6 +17,7 @@ import zipfile
 
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
+from tempest.lib import exceptions
 
 from qinling_tempest_plugin.tests import base
 
@@ -115,3 +116,56 @@ class FunctionsTest(base.BaseQinlingTest):
         resp = self.client.delete_resource('functions', function_id)
 
         self.assertEqual(204, resp.status)
+
+    @decorators.idempotent_id('051f3106-df01-4fcd-a0a3-c81c99653163')
+    def test_get_all_admin(self):
+        # Create function by normal user
+        function_name = data_utils.rand_name('function',
+                                             prefix=self.name_prefix)
+        with open(self.python_zip_file, 'rb') as package_data:
+            resp, body = self.client.create_function(
+                {"source": "package"},
+                self.runtime_id,
+                name=function_name,
+                package_data=package_data,
+                entry='%s.main' % self.base_name
+            )
+
+        self.assertEqual(201, resp.status_code)
+
+        function_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'functions',
+                        function_id, ignore_notfound=True)
+
+        # Get functions by admin
+        resp, body = self.admin_client.get_resources('functions')
+
+        self.assertEqual(200, resp.status)
+        self.assertNotIn(
+            function_id,
+            [function['id'] for function in body['functions']]
+        )
+
+        # Get other projects functions by admin
+        resp, body = self.admin_client.get_resources(
+            'functions?all_projects=true'
+        )
+
+        self.assertEqual(200, resp.status)
+        self.assertIn(
+            function_id,
+            [function['id'] for function in body['functions']]
+        )
+
+    @decorators.idempotent_id('cd396bda-2174-4335-9f7f-2457aab61a4a')
+    def test_get_all_not_allowed(self):
+        # Get other projects functions by normal user
+        context = self.assertRaises(
+            exceptions.Forbidden,
+            self.client.get_resources,
+            'functions?all_projects=true'
+        )
+        self.assertIn(
+            'Operation not allowed',
+            context.resp_body.get('faultstring')
+        )

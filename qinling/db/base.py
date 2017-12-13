@@ -18,6 +18,7 @@ from oslo_config import cfg
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import session as db_session
 
+from qinling import context
 from qinling.db.sqlalchemy import sqlite_lock
 from qinling import exceptions as exc
 from qinling.utils import thread_local
@@ -155,6 +156,22 @@ def session_aware():
                     ses.close()
 
         return _within_session
+
+    return _decorator
+
+
+def insecure_aware():
+    """Decorator for methods working within insecure db query or not."""
+
+    def _decorator(func):
+        @functools.wraps(func)
+        def _with_insecure(*args, **kw):
+            if kw.get('insecure') is None:
+                insecure = context.get_ctx().is_admin
+                kw['insecure'] = insecure
+            return func(*args, **kw)
+
+        return _with_insecure
 
     return _decorator
 

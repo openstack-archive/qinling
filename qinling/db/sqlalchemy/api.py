@@ -186,13 +186,15 @@ def _get_collection_sorted_by_time(model, insecure=False, fields=None,
     )
 
 
-def _get_db_object_by_id(model, id, insecure=False):
+@db_base.insecure_aware()
+def _get_db_object_by_id(model, id, insecure=None):
     query = db_base.model_query(model) if insecure else _secure_query(model)
 
     return query.filter_by(id=id).first()
 
 
-def _delete_all(model, insecure=False, **kwargs):
+@db_base.insecure_aware()
+def _delete_all(model, insecure=None, **kwargs):
     # NOTE(kong): Because we use 'in_' operator in _secure_query(), delete()
     # method will raise error with default parameter. Please refer to
     # http://docs.sqlalchemy.org/en/rel_1_0/orm/query.html#sqlalchemy.orm.query.Query.delete
@@ -216,6 +218,7 @@ def conditional_update(model, values, expected_values, insecure=False,
     return 0 != result
 
 
+@db_base.insecure_aware()
 @db_base.session_aware()
 def get_function(id, insecure=False, session=None):
     function = _get_db_object_by_id(models.Function, id, insecure=insecure)
@@ -262,8 +265,8 @@ def delete_function(id, session=None):
 
 
 @db_base.session_aware()
-def delete_functions(session=None, insecure=False, **kwargs):
-    return _delete_all(models.Function, insecure=insecure, **kwargs)
+def delete_functions(session=None, **kwargs):
+    return _delete_all(models.Function, **kwargs)
 
 
 @db_base.session_aware()
@@ -304,21 +307,25 @@ def get_runtimes(session=None, **kwargs):
 
 @db_base.session_aware()
 def delete_runtime(id, session=None):
+    # Because we don't allow normal user to delete runtime in api layer, so it
+    # is safe to get runtime here
     runtime = get_runtime(id)
-
     session.delete(runtime)
 
 
 @db_base.session_aware()
 def update_runtime(id, values, session=None):
+    # Because we don't allow normal user to update runtime in api layer, so it
+    # is safe to get runtime here
     runtime = get_runtime(id)
     runtime.update(values.copy())
 
     return runtime
 
 
+@db_base.insecure_aware()
 @db_base.session_aware()
-def delete_runtimes(session=None, insecure=False, **kwargs):
+def delete_runtimes(session=None, insecure=None, **kwargs):
     return _delete_all(models.Runtime, insecure=insecure, **kwargs)
 
 
@@ -337,9 +344,10 @@ def create_execution(values, session=None):
     return execution
 
 
+@db_base.insecure_aware()
 @db_base.session_aware()
-def get_execution(id, session=None):
-    execution = _get_db_object_by_id(models.Execution, id)
+def get_execution(id, insecure=None, session=None):
+    execution = _get_db_object_by_id(models.Execution, id, insecure=insecure)
 
     if not execution:
         raise exc.DBEntityNotFoundError("Execution not found [id=%s]" % id)
@@ -359,8 +367,9 @@ def delete_execution(id, session=None):
     session.delete(execution)
 
 
+@db_base.insecure_aware()
 @db_base.session_aware()
-def delete_executions(session=None, insecure=False, **kwargs):
+def delete_executions(session=None, insecure=None, **kwargs):
     return _delete_all(models.Execution, insecure=insecure, **kwargs)
 
 
@@ -522,6 +531,7 @@ def get_jobs(session=None, **kwargs):
     return _get_collection_sorted_by_time(models.Job, **kwargs)
 
 
+@db_base.insecure_aware()
 @db_base.session_aware()
-def delete_jobs(session=None, insecure=False, **kwargs):
+def delete_jobs(session=None, insecure=None, **kwargs):
     return _delete_all(models.Job, insecure=insecure, **kwargs)

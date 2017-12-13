@@ -20,6 +20,7 @@ import futurist
 from oslo_serialization import jsonutils
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
+from tempest.lib import exceptions
 
 from qinling_tempest_plugin.tests import base
 
@@ -121,6 +122,42 @@ class ExecutionsTest(base.BaseQinlingTest):
         resp = self.client.delete_resource('executions', execution_id)
 
         self.assertEqual(204, resp.status)
+
+    @decorators.idempotent_id('2199d1e6-de7d-4345-8745-a8184d6022b1')
+    def test_get_all_admin(self):
+        """Admin user can get executions of other projects"""
+        self.await_runtime_available(self.runtime_id)
+        self._create_function()
+
+        resp, body = self.client.create_execution(self.function_id,
+                                                  input={'name': 'Qinling'})
+        self.assertEqual(201, resp.status)
+
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        resp, body = self.admin_client.get_resources(
+            'executions?all_projects=true'
+        )
+        self.assertEqual(200, resp.status)
+        self.assertIn(
+            execution_id,
+            [execution['id'] for execution in body['executions']]
+        )
+
+    @decorators.idempotent_id('009fba47-957e-4de5-82e8-a032386d3ac0')
+    def test_get_all_not_allowed(self):
+        # Get other projects functions by normal user
+        context = self.assertRaises(
+            exceptions.Forbidden,
+            self.client.get_resources,
+            'executions?all_projects=true'
+        )
+        self.assertIn(
+            'Operation not allowed',
+            context.resp_body.get('faultstring')
+        )
 
     @decorators.idempotent_id('8096cc52-64d2-4660-a657-9ac0bdd743ae')
     def test_execution_async(self):

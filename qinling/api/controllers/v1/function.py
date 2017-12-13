@@ -22,6 +22,7 @@ from oslo_utils import strutils
 import pecan
 from pecan import rest
 from webob.static import FileIter
+from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from qinling.api import access_control as acl
@@ -193,7 +194,7 @@ class FunctionsController(rest.RestController):
         return resources.Function.from_dict(func_db.to_dict()).to_dict()
 
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.Functions, bool, types.uuid)
+    @wsme_pecan.wsexpose(resources.Functions, bool, wtypes.text)
     def get_all(self, all_projects=False, project_id=None):
         """Return a list of functions.
 
@@ -210,11 +211,10 @@ class FunctionsController(rest.RestController):
         if all_projects:
             acl.enforce('function:get_all:all_projects', ctx)
 
-        LOG.info("Get all functions.")
-
         filters = rest_utils.get_filters(
             project_id=project_id,
         )
+        LOG.info("Get all %ss. filters=%s", self.type, filters)
 
         db_functions = db_api.get_functions(insecure=all_projects, **filters)
         functions = [resources.Function.from_dict(db_model.to_dict())

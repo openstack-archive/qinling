@@ -9,6 +9,7 @@
     "runtime:delete": "rule:context_is_admin",
 
     "function:get_all:all_projects": "rule:context_is_admin",
-
     "function_worker:get_all": "rule:context_is_admin",
+
+    "execution:get_all:all_projects": "rule:context_is_admin",
 }

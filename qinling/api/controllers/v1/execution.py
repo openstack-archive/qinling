@@ -18,8 +18,10 @@ from pecan import rest
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
+from qinling.api import access_control as acl
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
+from qinling import context
 from qinling.db import api as db_api
 from qinling import rpc
 from qinling.utils import executions
@@ -62,13 +64,33 @@ class ExecutionsController(rest.RestController):
         return resources.Execution.from_dict(db_model.to_dict())
 
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.Executions, wtypes.text)
-    def get_all(self, function_id=None):
-        filters = rest_utils.get_filters(function_id=function_id)
+    @wsme_pecan.wsexpose(resources.Executions, wtypes.text, bool, wtypes.text)
+    def get_all(self, function_id=None, all_projects=False, project_id=None):
+        """Return a list of executions.
+
+        :param function_id: Optional. Filtering executions by function_id.
+        :param project_id: Optional. Admin user can query other projects
+            resources, the param is ignored for normal user.
+        :param all_projects: Optional. Get resources of all projects.
+        """
+        ctx = context.get_ctx()
+        if project_id and not ctx.is_admin:
+            project_id = context.ctx().projectid
+        if project_id and ctx.is_admin:
+            all_projects = True
+
+        if all_projects:
+            acl.enforce('execution:get_all:all_projects', ctx)
+
+        filters = rest_utils.get_filters(
+            function_id=function_id,
+            project_id=project_id,
+        )
         LOG.info("Get all %ss. filters=%s", self.type, filters)
 
+        db_execs = db_api.get_executions(insecure=all_projects, **filters)
         executions = [resources.Execution.from_dict(db_model.to_dict())
-                      for db_model in db_api.get_executions(**filters)]
+                      for db_model in db_execs]
 
         return resources.Executions(executions=executions)
 

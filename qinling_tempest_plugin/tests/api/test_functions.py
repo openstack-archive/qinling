@@ -45,6 +45,26 @@ class FunctionsTest(base.BaseQinlingTest):
 
         super(FunctionsTest, cls).resource_cleanup()
 
+    def _create_function(self):
+        function_name = data_utils.rand_name('function',
+                                             prefix=self.name_prefix)
+        with open(self.python_zip_file, 'rb') as package_data:
+            resp, body = self.client.create_function(
+                {"source": "package"},
+                self.runtime_id,
+                name=function_name,
+                package_data=package_data,
+                entry='%s.main' % self.base_name
+            )
+
+        self.assertEqual(201, resp.status_code)
+
+        function_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'functions',
+                        function_id, ignore_notfound=True)
+
+        return function_id
+
     def setUp(self):
         super(FunctionsTest, self).setUp()
 
@@ -82,25 +102,10 @@ class FunctionsTest(base.BaseQinlingTest):
     @decorators.idempotent_id('9c36ac64-9a44-4c44-9e44-241dcc6b0933')
     def test_crud_function(self):
         # Create function
-        function_name = data_utils.rand_name('function',
-                                             prefix=self.name_prefix)
-        with open(self.python_zip_file, 'rb') as package_data:
-            resp, body = self.client.create_function(
-                {"source": "package"},
-                self.runtime_id,
-                name=function_name,
-                package_data=package_data,
-                entry='%s.main' % self.base_name
-            )
-            function_id = body['id']
-
-        self.assertEqual(201, resp.status_code)
-        self.addCleanup(self.client.delete_resource, 'functions',
-                        function_id, ignore_notfound=True)
+        function_id = self._create_function()
 
         # Get functions
         resp, body = self.client.get_resources('functions')
-
         self.assertEqual(200, resp.status)
         self.assertIn(
             function_id,
@@ -114,28 +119,12 @@ class FunctionsTest(base.BaseQinlingTest):
 
         # Delete function
         resp = self.client.delete_resource('functions', function_id)
-
         self.assertEqual(204, resp.status)
 
     @decorators.idempotent_id('051f3106-df01-4fcd-a0a3-c81c99653163')
     def test_get_all_admin(self):
         # Create function by normal user
-        function_name = data_utils.rand_name('function',
-                                             prefix=self.name_prefix)
-        with open(self.python_zip_file, 'rb') as package_data:
-            resp, body = self.client.create_function(
-                {"source": "package"},
-                self.runtime_id,
-                name=function_name,
-                package_data=package_data,
-                entry='%s.main' % self.base_name
-            )
-
-        self.assertEqual(201, resp.status_code)
-
-        function_id = body['id']
-        self.addCleanup(self.client.delete_resource, 'functions',
-                        function_id, ignore_notfound=True)
+        function_id = self._create_function()
 
         # Get functions by admin
         resp, body = self.admin_client.get_resources('functions')
@@ -168,4 +157,16 @@ class FunctionsTest(base.BaseQinlingTest):
         self.assertIn(
             'Operation not allowed',
             context.resp_body.get('faultstring')
+        )
+
+    @decorators.idempotent_id('5cb44ee4-6c0c-4ede-9e6c-e1b9109eaa2c')
+    def test_delete_not_allowed(self):
+        """Even admin user can not delete other project's function."""
+        function_id = self._create_function()
+
+        self.assertRaises(
+            exceptions.Forbidden,
+            self.admin_client.delete_resource,
+            'functions',
+            function_id
         )

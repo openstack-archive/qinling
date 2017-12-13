@@ -218,9 +218,16 @@ class FunctionsController(rest.RestController):
                     'The function is still associated with running job(s).'
                 )
 
+            # Even admin user can not delete other project's function because
+            # the trust associated can only be removed by function owner.
+            if func_db.project_id != context.get_ctx().projectid:
+                raise exc.NotAllowedException(
+                    'Function can only be deleted by its owner.'
+                )
+
             source = func_db.code['source']
             if source == 'package':
-                self.storage_provider.delete(context.get_ctx().projectid, id)
+                self.storage_provider.delete(func_db.project_id, id)
 
             # Delete all resources created by orchestrator asynchronously.
             self.engine_client.delete_function(id)

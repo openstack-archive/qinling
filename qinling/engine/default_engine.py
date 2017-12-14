@@ -11,17 +11,17 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 from oslo_config import cfg
 from oslo_log import log as logging
 import requests
+import tenacity
 
-from qinling import context
 from qinling.db import api as db_api
 from qinling.engine import utils
 from qinling import status
 from qinling.utils import common
 from qinling.utils import constants
+from qinling.utils import etcd_util
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -85,6 +85,32 @@ class DefaultEngine(object):
 
             LOG.info('Rollbacked.', resource=resource)
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(1),
+        stop=tenacity.stop_after_attempt(30),
+        retry=(tenacity.retry_if_result(lambda result: result is False))
+    )
+    def function_load_check(self, function_id, runtime_id):
+        with etcd_util.get_worker_lock() as lock:
+            if not lock.is_acquired():
+                return False
+
+            workers = etcd_util.get_workers(function_id)
+            running_execs = db_api.get_executions(
+                function_id=function_id, status=status.RUNNING
+            )
+            concurrency = (len(running_execs) or 1) / (len(workers) or 1)
+            if (len(workers) == 0 or
+                    concurrency > CONF.engine.function_concurrency):
+                LOG.info(
+                    'Scale up function %s. Current concurrency: %s, execution '
+                    'number %s, worker number %s',
+                    function_id, concurrency, len(running_execs), len(workers)
+                )
+
+                # NOTE(kong): The increase step could be configurable
+                return self.scaleup_function(None, function_id, runtime_id, 1)
+
     def create_execution(self, ctx, execution_id, function_id, runtime_id,
                          input=None):
         LOG.info(
@@ -93,123 +119,100 @@ class DefaultEngine(object):
             execution_id, function_id, runtime_id, input
         )
 
-        if CONF.engine.enable_autoscaling:
-            self.function_load_check(function_id, runtime_id)
+        function = db_api.get_function(function_id)
+        source = function.code['source']
+        image = None
+        identifier = None
+        labels = None
+        svc_url = None
 
-        # FIXME(kong): Make the transaction scope smaller.
-        with db_api.transaction():
-            execution = db_api.get_execution(execution_id)
-            function = db_api.get_function(function_id)
+        # Auto scale workers if needed
+        if source != constants.IMAGE_FUNCTION:
+            svc_url = self.function_load_check(function_id, runtime_id)
 
-            if function.service:
-                func_url = '%s/execute' % function.service.service_url
-
-                LOG.debug(
-                    'Found service url for function: %s, url: %s',
-                    function_id, func_url
-                )
-
-                download_url = (
-                    'http://%s:%s/v1/functions/%s?download=true' %
-                    (CONF.kubernetes.qinling_service_address,
-                     CONF.api.port, function_id)
-                )
-                data = {
-                    'execution_id': execution_id,
-                    'input': input,
-                    'function_id': function_id,
-                    'entry': function.entry,
-                    'download_url': download_url,
-                }
-                if CONF.pecan.auth_enable:
-                    data.update(
-                        {
-                            'token': context.get_ctx().auth_token,
-                            'auth_url': CONF.keystone_authtoken.auth_uri,
-                            'username': CONF.keystone_authtoken.username,
-                            'password': CONF.keystone_authtoken.password,
-                            'trust_id': function.trust_id
-                        }
-                    )
-
-                success, res = utils.url_request(
-                    self.session, func_url, body=data
-                )
-                success = success and res.pop('success')
-
-                LOG.debug(
-                    'Finished execution %s, success: %s', execution_id, success
-                )
-
-                execution.status = status.SUCCESS if success else status.FAILED
-                execution.logs = res.pop('logs', '')
-                execution.output = res
-                return
-
-            source = function.code['source']
-            image = None
-            identifier = None
-            labels = None
-
-            if source == constants.IMAGE_FUNCTION:
-                image = function.code['image']
-                identifier = ('%s-%s' %
-                              (common.generate_unicode_uuid(dashed=False),
-                               function_id)
-                              )[:63]
-                labels = {'function_id': function_id}
-            else:
-                identifier = runtime_id
-                labels = {'runtime_id': runtime_id}
-
-            worker_name, service_url = self.orchestrator.prepare_execution(
-                function_id,
-                image=image,
-                identifier=identifier,
-                labels=labels,
-                input=input,
-            )
-            success, res = self.orchestrator.run_execution(
-                execution_id,
-                function_id,
-                input=input,
-                identifier=identifier,
-                service_url=service_url,
-                entry=function.entry,
-                trust_id=function.trust_id
+        temp_url = etcd_util.get_service_url(function_id)
+        svc_url = svc_url or temp_url
+        if svc_url:
+            func_url = '%s/execute' % svc_url
+            LOG.debug(
+                'Found service url for function: %s, execution: %s, url: %s',
+                function_id, execution_id, func_url
             )
 
-            logs = ''
-            # Execution log is only available for non-image source execution.
-            if service_url:
-                logs = res.pop('logs', '')
-                success = success and res.pop('success')
-            else:
-                # If the function is created from docker image, the output is
-                # direct output, here we convert to a dict to fit into the db
-                # schema.
-                res = {'output': res}
+            data = utils.get_request_data(
+                CONF, function_id, execution_id,
+                input, function.entry, function.trust_id
+            )
+            success, res = utils.url_request(
+                self.session, func_url, body=data
+            )
+            success = success and res.pop('success')
 
             LOG.debug(
                 'Finished execution %s, success: %s', execution_id, success
             )
 
-            execution.output = res
-            execution.logs = logs
-            execution.status = status.SUCCESS if success else status.FAILED
+            db_api.update_execution(
+                execution_id,
+                {
+                    'status': status.SUCCESS if success else status.FAILED,
+                    'logs': res.pop('logs', ''),
+                    'output': res
+                }
+            )
+            return
 
-        # No service is created in orchestrator for single container.
-        if not image:
-            mapping = {
-                'function_id': function_id,
-                'service_url': service_url,
+        if source == constants.IMAGE_FUNCTION:
+            image = function.code['image']
+            identifier = ('%s-%s' %
+                          (common.generate_unicode_uuid(dashed=False),
+                           function_id)
+                          )[:63]
+            labels = {'function_id': function_id}
+        else:
+            identifier = runtime_id
+            labels = {'runtime_id': runtime_id}
+
+        _, svc_url = self.orchestrator.prepare_execution(
+            function_id,
+            image=image,
+            identifier=identifier,
+            labels=labels,
+            input=input,
+        )
+        success, res = self.orchestrator.run_execution(
+            execution_id,
+            function_id,
+            input=input,
+            identifier=identifier,
+            service_url=svc_url,
+            entry=function.entry,
+            trust_id=function.trust_id
+        )
+
+        logs = ''
+        # Execution log is only available for non-image source execution.
+        if svc_url:
+            logs = res.pop('logs', '')
+            success = success and res.pop('success')
+        else:
+            # If the function is created from docker image, the output is
+            # direct output, here we convert to a dict to fit into the db
+            # schema.
+            res = {'output': res}
+
+        LOG.debug(
+            'Finished execution %s, success: %s', execution_id, success
+        )
+
+        db_api.update_execution(
+            execution_id,
+            {
+                'status': status.SUCCESS if success else status.FAILED,
+                'logs': logs,
+                'output': res
             }
-            db_api.create_function_service_mapping(mapping)
-            worker = {
-                'function_id': function_id,
-                'worker_name': worker_name
-            }
-            db_api.create_function_worker(worker)
+        )
 
     def delete_function(self, ctx, function_id):
         """Deletes underlying resources allocated for function."""
@@ -219,60 +222,32 @@ class DefaultEngine(object):
         labels = {'function_id': function_id}
         self.orchestrator.delete_function(function_id, labels=labels)
 
-        db_api.delete_function_workers(function_id)
-
         LOG.info('Deleted.', resource=resource)
 
     def scaleup_function(self, ctx, function_id, runtime_id, count=1):
-        worker_names = self.orchestrator.scaleup_function(
+        worker_names, service_url = self.orchestrator.scaleup_function(
             function_id,
             identifier=runtime_id,
             count=count
         )
 
         for name in worker_names:
-            worker = {
-                'function_id': function_id,
-                'worker_name': name
-            }
-            db_api.create_function_worker(worker)
+            etcd_util.create_worker(function_id, name)
+
+        etcd_util.create_service_url(function_id, service_url)
 
         LOG.info('Finished scaling up function %s.', function_id)
+        return service_url
 
     def scaledown_function(self, ctx, function_id, count=1):
-        func_db = db_api.get_function(function_id)
+        workers = etcd_util.get_workers(function_id)
         worker_deleted_num = (
-            count if len(func_db.workers) > count else len(func_db.workers) - 1
+            count if len(workers) > count else len(workers) - 1
         )
-        workers = func_db.workers[:worker_deleted_num]
+        workers = workers[:worker_deleted_num]
 
-        with db_api.transaction():
-            for worker in workers:
-                LOG.debug('Removing worker %s', worker.worker_name)
-                self.orchestrator.delete_worker(
-                    worker.worker_name,
-                )
-                db_api.delete_function_worker(worker.worker_name)
+        for worker in workers:
+            LOG.debug('Removing worker %s', worker)
+            self.orchestrator.delete_worker(worker)
 
         LOG.info('Finished scaling up function %s.', function_id)
-
-    def function_load_check(self, function_id, runtime_id):
-        with db_api.transaction():
-            db_api.acquire_worker_lock(function_id)
-
-            running_execs = db_api.get_executions(
-                function_id=function_id, status=status.RUNNING
-            )
-            workers = db_api.get_function_workers(function_id)
-
-            concurrency = (len(running_execs) or 1) / (len(workers) or 1)
-
-            if concurrency > CONF.engine.function_concurrency:
-                LOG.warning(
-                    'Scale up function %s because of high concurrency, current'
-                    ' concurrency: %s',
-                    function_id, concurrency
-                )
-
-                # TODO(kong): The inscrease step could be configurable
-                self.scaleup_function(None, function_id, runtime_id, 1)

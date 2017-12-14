@@ -22,7 +22,6 @@ from oslotest import base
 from qinling import config
 from qinling import context as auth_context
 from qinling.db import api as db_api
-from qinling.db.sqlalchemy import sqlite_lock
 from qinling import status
 
 DEFAULT_PROJECT_ID = 'default'
@@ -137,6 +136,7 @@ class DbTestCase(BaseTest):
             (config.ENGINE_GROUP, config.engine_opts),
             (config.STORAGE_GROUP, config.storage_opts),
             (config.KUBERNETES_GROUP, config.kubernetes_opts),
+            (config.ETCD_GROUP, config.etcd_opts),
             (None, [config.launch_opt])
         ]
         for group, options in qinling_opts:
@@ -160,7 +160,6 @@ class DbTestCase(BaseTest):
 
     def _clean_db(self):
         db_api.delete_all()
-        sqlite_lock.cleanup()
 
     def create_runtime(self, prefix=None):
         runtime = db_api.create_runtime(

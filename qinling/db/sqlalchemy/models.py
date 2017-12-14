@@ -50,36 +50,6 @@ class Function(model_base.QinlingSecureModelBase):
     trust_id = sa.Column(sa.String(80))
 
 
-class FunctionServiceMapping(model_base.QinlingModelBase):
-    __tablename__ = 'function_service_mappings'
-
-    __table_args__ = (
-        sa.UniqueConstraint('function_id', 'service_url'),
-    )
-
-    id = model_base.id_column()
-    function_id = sa.Column(
-        sa.String(36),
-        sa.ForeignKey(Function.id, ondelete='CASCADE'),
-    )
-    service_url = sa.Column(sa.String(255), nullable=False)
-
-
-class FunctionWorkers(model_base.QinlingModelBase):
-    __tablename__ = 'function_workers'
-
-    __table_args__ = (
-        sa.UniqueConstraint('function_id', 'worker_name'),
-    )
-
-    id = model_base.id_column()
-    function_id = sa.Column(
-        sa.String(36),
-        sa.ForeignKey(Function.id, ondelete='CASCADE'),
-    )
-    worker_name = sa.Column(sa.String(255), nullable=False)
-
-
 class Execution(model_base.QinlingSecureModelBase):
     __tablename__ = 'executions'
 
@@ -114,21 +84,6 @@ class Job(model_base.QinlingSecureModelBase):
         common.datetime_to_str(d, 'next_execution_time')
         return d
 
-
-# Delete service mapping automatically when deleting function.
-Function.service = relationship(
-    "FunctionServiceMapping",
-    uselist=False,
-    lazy='subquery',
-    cascade="all, delete-orphan"
-)
-# Delete workers automatically when deleting function.
-Function.workers = relationship(
-    "FunctionWorkers",
-    order_by="FunctionWorkers.created_at",
-    lazy='subquery',
-    cascade="all, delete-orphan"
-)
 
 Runtime.functions = relationship("Function", back_populates="runtime")
 

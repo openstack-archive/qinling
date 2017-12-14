@@ -80,36 +80,6 @@ def upgrade():
     )
 
     op.create_table(
-        'function_service_mappings',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('updated_at', sa.DateTime(), nullable=True),
-        sa.Column('function_id', sa.String(length=36), nullable=False),
-        sa.Column('service_url', sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('function_id', 'service_url'),
-        sa.ForeignKeyConstraint(
-            ['function_id'], [u'functions.id'], ondelete='CASCADE'
-        ),
-        info={"check_ifexists": True}
-    )
-
-    op.create_table(
-        'function_workers',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('updated_at', sa.DateTime(), nullable=True),
-        sa.Column('function_id', sa.String(length=36), nullable=False),
-        sa.Column('worker_name', sa.String(length=255), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('function_id', 'worker_name'),
-        sa.ForeignKeyConstraint(
-            ['function_id'], [u'functions.id'], ondelete='CASCADE'
-        ),
-        info={"check_ifexists": True}
-    )
-
-    op.create_table(
         'executions',
         sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),

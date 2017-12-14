@@ -96,19 +96,14 @@ engine_opts = [
     ),
     cfg.IntOpt(
         'function_service_expiration',
-        default=300,
+        default=3600,
         help='Maximum service time in seconds for function in orchestrator.'
     ),
     cfg.IntOpt(
         'function_concurrency',
-        default=10,
+        default=3,
         help='Maximum number of concurrent executions per function.'
     ),
-    cfg.BoolOpt(
-        'enable_autoscaling',
-        default=True,
-        help='Enables autoscaling capability for function execution.'
-    )
 ]
 
 STORAGE_GROUP = 'storage'
@@ -134,7 +129,7 @@ kubernetes_opts = [
     ),
     cfg.IntOpt(
         'replicas',
-        default=3,
+        default=5,
         help='Number of desired replicas in deployment.'
     ),
     cfg.StrOpt(
@@ -148,6 +143,18 @@ kubernetes_opts = [
         default='127.0.0.1',
         help='Qinling API service ip address.'
     ),
+    cfg.StrOpt(
+        'log_devel',
+        default='INFO',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+        help='Log level for kubernetes operations.'
+    ),
+]
+
+ETCD_GROUP = 'etcd'
+etcd_opts = [
+    cfg.StrOpt('host', default='127.0.0.1', help='Etcd service host address.'),
+    cfg.PortOpt('port', default=2379, help='Etcd service port.'),
 ]
 
 
@@ -163,36 +170,35 @@ def list_opts():
         (ENGINE_GROUP, engine_opts),
         (STORAGE_GROUP, storage_opts),
         (KUBERNETES_GROUP, kubernetes_opts),
+        (ETCD_GROUP, etcd_opts),
         (None, [launch_opt])
     ]
 
     return keystone_middleware_opts + keystone_loading_opts + qinling_opts
 
 
-_DEFAULT_LOG_LEVELS = [
-    'eventlet.wsgi.server=WARN',
-    'oslo_service.periodic_task=INFO',
-    'oslo_service.loopingcall=INFO',
-    'oslo_db=WARN',
-    'oslo_concurrency.lockutils=WARN',
-    'kubernetes.client.rest=DEBUG',
-    'keystoneclient=INFO',
-    'requests.packages.urllib3.connectionpool=CRITICAL',
-    'urllib3.connectionpool=CRITICAL'
-]
-
-
 def parse_args(args=None, usage=None, default_config_files=None):
-    default_log_levels = log.get_default_log_levels()
-    default_log_levels.extend(_DEFAULT_LOG_LEVELS)
-    log.set_defaults(default_log_levels=default_log_levels)
-    log.register_options(CONF)
-
     CLI_OPTS = [launch_opt]
     CONF.register_cli_opts(CLI_OPTS)
 
     for group, options in list_opts():
         CONF.register_opts(list(options), group)
+
+    _DEFAULT_LOG_LEVELS = [
+        'eventlet.wsgi.server=WARN',
+        'oslo_service.periodic_task=INFO',
+        'oslo_service.loopingcall=INFO',
+        'oslo_db=WARN',
+        'oslo_concurrency.lockutils=WARN',
+        'kubernetes.client.rest=%s' % CONF.kubernetes.log_devel,
+        'keystoneclient=INFO',
+        'requests.packages.urllib3.connectionpool=CRITICAL',
+        'urllib3.connectionpool=CRITICAL',
+    ]
+    default_log_levels = log.get_default_log_levels()
+    default_log_levels.extend(_DEFAULT_LOG_LEVELS)
+    log.set_defaults(default_log_levels=default_log_levels)
+    log.register_options(CONF)
 
     CONF(
         args=args,

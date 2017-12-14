@@ -19,7 +19,6 @@ from oslo_db import options as db_options
 from oslo_db.sqlalchemy import session as db_session
 
 from qinling import context
-from qinling.db.sqlalchemy import sqlite_lock
 from qinling import exceptions as exc
 from qinling.utils import thread_local
 
@@ -123,8 +122,6 @@ def end_tx():
     if ses.dirty:
         rollback_tx()
 
-    release_locks_if_sqlite(ses)
-
     ses.close()
     _set_thread_local_session(None)
 
@@ -174,16 +171,6 @@ def insecure_aware():
         return _with_insecure
 
     return _decorator
-
-
-@session_aware()
-def get_driver_name(session=None):
-    return session.bind.url.drivername
-
-
-def release_locks_if_sqlite(session):
-    if get_driver_name() == 'sqlite':
-        sqlite_lock.release_locks(session)
 
 
 @session_aware()

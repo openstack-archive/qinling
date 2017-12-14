@@ -31,7 +31,6 @@ CONF = cfg.CONF
 class EngineService(service.Service):
     def __init__(self):
         super(EngineService, self).__init__()
-
         self.server = None
 
     def start(self):

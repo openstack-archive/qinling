@@ -117,8 +117,9 @@ class TestRuntimeController(base.APITest):
 
         self.assertEqual(409, resp.status_int)
 
+    @mock.patch('qinling.utils.etcd_util.get_service_url')
     @mock.patch('qinling.rpc.EngineClient.update_runtime')
-    def test_put_image(self, mock_update_runtime):
+    def test_put_image(self, mock_update_runtime, mock_etcd_url):
         resp = self.app.put_json(
             '/v1/runtimes/%s' % self.runtime_id, {'image': 'new_image'}
         )

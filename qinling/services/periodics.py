@@ -26,6 +26,7 @@ from qinling.db.sqlalchemy import models
 from qinling import rpc
 from qinling import status
 from qinling.utils import constants
+from qinling.utils import etcd_util
 from qinling.utils import executions
 from qinling.utils import jobs
 from qinling.utils.openstack import keystone as keystone_utils
@@ -50,21 +51,19 @@ def handle_function_service_expiration(ctx, engine_client, orchestrator):
         return
 
     for func_db in results:
-        if not func_db.service:
+        if not etcd_util.get_service_url(func_db.id):
             continue
 
-        with db_api.transaction():
-            LOG.info(
-                'Deleting service mapping and workers for function %s',
-                func_db.id
-            )
+        LOG.info(
+            'Deleting service mapping and workers for function %s',
+            func_db.id
+        )
 
-            # Delete resources related to the function
-            engine_client.delete_function(func_db.id)
+        # Delete resources related to the function
+        engine_client.delete_function(func_db.id)
 
-            # Delete service mapping and worker records
-            db_api.delete_function_service_mapping(func_db.id)
-            db_api.delete_function_workers(func_db.id)
+        # Delete etcd keys
+        etcd_util.delete_function(func_db.id)
 
 
 def handle_job(engine_client):

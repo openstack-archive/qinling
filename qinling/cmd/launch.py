@@ -47,27 +47,29 @@ CONF = cfg.CONF
 
 
 def launch_api():
-    server = api_service.WSGIService('qinling_api')
-    launcher = service.launch(CONF, server, workers=server.workers)
-    launcher.wait()
+    try:
+        server = api_service.WSGIService('qinling_api')
+        launcher = service.launch(CONF, server, workers=server.workers)
+        return launcher
+    except Exception as e:
+        sys.stderr.write("ERROR: %s\n" % e)
+        sys.exit(1)
 
 
 def launch_engine():
     try:
         server = eng_service.EngineService()
         launcher = service.launch(CONF, server)
-        launcher.wait()
-    except RuntimeError as e:
+        return launcher
+    except Exception as e:
         sys.stderr.write("ERROR: %s\n" % e)
         sys.exit(1)
 
 
 def launch_any(options):
-    # Launch the servers on different threads.
-    threads = [eventlet.spawn(LAUNCH_OPTIONS[option])
-               for option in options]
-
-    [thread.wait() for thread in threads]
+    launchers = [LAUNCH_OPTIONS[option]() for option in options]
+    for l in launchers:
+        l.wait()
 
 
 LAUNCH_OPTIONS = {

@@ -98,6 +98,7 @@ def execute():
     download_url = params.get('download_url')
     function_id = params.get('function_id')
     entry = params.get('entry')
+    request_id = params.get('request_id')
     trust_id = params.get('trust_id')
     auth_url = params.get('auth_url')
     username = params.get('username')
@@ -109,8 +110,9 @@ def execute():
         function_module, function_method = tuple(entry.rsplit('.', 1))
 
     app.logger.info(
-        'Request received, execution_id:%s, input: %s, auth_url: %s' %
-        (execution_id, input, auth_url)
+        'Request received, request_id: %s, execution_id: %s, input: %s, '
+        'auth_url: %s' %
+        (request_id, execution_id, input, auth_url)
     )
 
     while downloading:
@@ -211,6 +213,11 @@ def execute():
         status=200,
         mimetype='application/json'
     )
+
+
+@app.route('/ping')
+def ping():
+    return 'pong'
 
 
 setup_logger(logging.DEBUG)

@@ -11,6 +11,7 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+from concurrent import futures
 import os
 import pkg_resources
 import tempfile
@@ -183,7 +184,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertIn('Hello, OpenStack', body)
 
     @decorators.idempotent_id('f22097dc-37db-484d-83d3-3a97e72ec576')
-    def test_execution_concurrency(self):
+    def test_execution_concurrency_no_scale(self):
         self._create_function(name='test_python_sleep.py')
 
         def _create_execution():
@@ -191,11 +192,11 @@ class ExecutionsTest(base.BaseQinlingTest):
             return resp, body
 
         futs = []
-        with futurist.GreenThreadPoolExecutor(max_workers=4) as executor:
+        with futurist.ThreadPoolExecutor(max_workers=10) as executor:
             for _ in range(3):
                 fut = executor.submit(_create_execution)
                 futs.append(fut)
-            for f in futs:
+            for f in futures.as_completed(futs):
                 # Wait until we get the response
                 resp, body = f.result()
 
@@ -208,6 +209,33 @@ class ExecutionsTest(base.BaseQinlingTest):
 
         self.assertEqual(200, resp.status)
         self.assertEqual(1, len(body['workers']))
+
+    @decorators.idempotent_id('a5ed173a-19b7-4c92-ac78-c8862ad1d1d2')
+    def test_execution_concurrency_scale_up(self):
+        self.await_runtime_available(self.runtime_id)
+        self._create_function(name='test_python_sleep.py')
+
+        def _create_execution():
+            resp, body = self.client.create_execution(self.function_id)
+            return resp, body
+
+        futs = []
+        with futurist.ThreadPoolExecutor(max_workers=10) as executor:
+            for _ in range(6):
+                fut = executor.submit(_create_execution)
+                futs.append(fut)
+            for f in futures.as_completed(futs):
+                # Wait until we get the response
+                resp, body = f.result()
+
+                self.assertEqual(201, resp.status)
+                self.addCleanup(self.client.delete_resource, 'executions',
+                                body['id'], ignore_notfound=True)
+                self.assertEqual('success', body['status'])
+
+        resp, body = self.admin_client.get_function_workers(self.function_id)
+        self.assertEqual(200, resp.status)
+        self.assertEqual(2, len(body['workers']))
 
     @decorators.idempotent_id('a948382a-84af-4f0e-ad08-4297345e302c')
     def test_python_execution_file_limit(self):

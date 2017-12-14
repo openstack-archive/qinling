@@ -34,6 +34,7 @@ from qinling import exceptions as exc
 from qinling import rpc
 from qinling.storage import base as storage_base
 from qinling.utils import constants
+from qinling.utils import etcd_util
 from qinling.utils.openstack import keystone as keystone_util
 from qinling.utils.openstack import swift as swift_util
 from qinling.utils import rest_utils
@@ -51,12 +52,14 @@ class FunctionWorkerController(rest.RestController):
     @wsme_pecan.wsexpose(resources.FunctionWorkers, types.uuid)
     def get_all(self, function_id):
         acl.enforce('function_worker:get_all', context.get_ctx())
-
         LOG.info("Get workers for function %s.", function_id)
-        db_workers = db_api.get_function_workers(function_id)
 
-        workers = [resources.FunctionWorker.from_dict(db_model.to_dict())
-                   for db_model in db_workers]
+        workers = etcd_util.get_workers(function_id, CONF)
+        workers = [
+            resources.FunctionWorker.from_dict(
+                {'function_id': function_id, 'worker_name': w}
+            ) for w in workers
+            ]
 
         return resources.FunctionWorkers(workers=workers)
 
@@ -254,6 +257,9 @@ class FunctionsController(rest.RestController):
             if func_db.trust_id:
                 keystone_util.delete_trust(func_db.trust_id)
 
+            # Delete etcd keys
+            etcd_util.delete_function(id)
+
             # This will also delete function service mapping as well.
             db_api.delete_function(id)
 
@@ -313,9 +319,9 @@ class FunctionsController(rest.RestController):
                     self._check_swift(swift_info.get('container'),
                                       swift_info.get('object'))
 
-                # Delete allocated resources in orchestrator.
-                db_api.delete_function_service_mapping(id)
+                # Delete allocated resources in orchestrator and etcd keys.
                 self.engine_client.delete_function(id)
+                etcd_util.delete_function(id)
 
                 func_db = db_api.update_function(id, values)
 
@@ -363,14 +369,14 @@ class FunctionsController(rest.RestController):
         """
         acl.enforce('function:scale_down', context.get_ctx())
 
-        func_db = db_api.get_function(id)
+        db_api.get_function(id)
+        workers = etcd_util.get_workers(id)
         params = scale.to_dict()
-        if len(func_db.workers) <= 1:
+        if len(workers) <= 1:
             LOG.info('No need to scale down function %s', id)
             return
 
         LOG.info('Starting to scale down function %s, params: %s', id, params)
-
         self.engine_client.scaledown_function(id, count=params['count'])
 
     @rest_utils.wrap_wsme_controller_exception
@@ -386,5 +392,6 @@ class FunctionsController(rest.RestController):
         db_api.get_function(id)
         LOG.info('Starting to detach function %s', id)
 
-        # Delete all resources created by orchestrator asynchronously.
+        # Delete allocated resources in orchestrator and etcd keys.
         self.engine_client.delete_function(id)
+        etcd_util.delete_function(id)

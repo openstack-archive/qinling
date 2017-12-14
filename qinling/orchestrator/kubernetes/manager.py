@@ -23,7 +23,6 @@ import requests
 import tenacity
 import yaml
 
-from qinling import context
 from qinling.engine import utils
 from qinling import exceptions as exc
 from qinling.orchestrator import base
@@ -389,30 +388,9 @@ class KubernetesManager(base.OrchestratorBase):
                       trust_id=None):
         if service_url:
             func_url = '%s/execute' % service_url
-            download_url = (
-                'http://%s:%s/v1/functions/%s?download=true' %
-                (self.conf.kubernetes.qinling_service_address,
-                 self.conf.api.port, function_id)
+            data = utils.get_request_data(
+                self.conf, function_id, execution_id, input, entry, trust_id
             )
-
-            data = {
-                'execution_id': execution_id,
-                'input': input,
-                'function_id': function_id,
-                'entry': entry,
-                'download_url': download_url,
-                'trust_id': trust_id
-            }
-            if self.conf.pecan.auth_enable:
-                data.update(
-                    {
-                        'token': context.get_ctx().auth_token,
-                        'auth_url': self.conf.keystone_authtoken.auth_uri,
-                        'username': self.conf.keystone_authtoken.username,
-                        'password': self.conf.keystone_authtoken.password,
-                    }
-                )
-
             LOG.debug(
                 'Invoke function %s, url: %s, data: %s',
                 function_id, func_url, data
@@ -466,13 +444,13 @@ class KubernetesManager(base.OrchestratorBase):
             raise exc.OrchestratorException('Not enough workers available.')
 
         for pod in pods:
-            pod_name, _ = self._prepare_pod(
+            pod_name, service_url = self._prepare_pod(
                 pod, identifier, function_id, labels
             )
             pod_names.append(pod_name)
 
         LOG.info('Pods scaled up for function %s: %s', function_id, pod_names)
-        return pod_names
+        return pod_names, service_url
 
     def delete_worker(self, pod_name, **kwargs):
         self.v1.delete_namespaced_pod(

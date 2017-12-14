@@ -146,42 +146,6 @@ def delete_executions(**kwargs):
     return IMPL.delete_executions(**kwargs)
 
 
-def create_function_service_mapping(values):
-    return IMPL.create_function_service_mapping(values)
-
-
-def get_function_service_mapping(function_id):
-    return IMPL.get_function_service_mapping(function_id)
-
-
-def get_function_service_mappings(**kwargs):
-    return IMPL.get_function_service_mappings(**kwargs)
-
-
-def delete_function_service_mapping(id):
-    return IMPL.delete_function_service_mapping(id)
-
-
-def create_function_worker(values):
-    return IMPL.create_function_worker(values)
-
-
-def delete_function_worker(name):
-    return IMPL.delete_function_worker(name)
-
-
-def delete_function_workers(function_id):
-    return IMPL.delete_function_workers(function_id)
-
-
-def get_function_workers(function_id):
-    return IMPL.get_function_workers(function_id)
-
-
-def acquire_worker_lock(id):
-    return IMPL.acquire_worker_lock(id)
-
-
 def create_job(values):
     return IMPL.create_job(values)
 

@@ -27,7 +27,6 @@ from qinling.db import base as db_base
 from qinling.db.sqlalchemy import filters as db_filters
 from qinling.db.sqlalchemy import model_base
 from qinling.db.sqlalchemy import models
-from qinling.db.sqlalchemy import sqlite_lock
 from qinling import exceptions as exc
 from qinling import status
 
@@ -356,6 +355,14 @@ def get_execution(id, insecure=None, session=None):
 
 
 @db_base.session_aware()
+def update_execution(id, values, session=None):
+    execution = get_execution(id)
+    execution.update(values.copy())
+
+    return execution
+
+
+@db_base.session_aware()
 def get_executions(session=None, **kwargs):
     return _get_collection_sorted_by_time(models.Execution, **kwargs)
 
@@ -371,109 +378,6 @@ def delete_execution(id, session=None):
 @db_base.session_aware()
 def delete_executions(session=None, insecure=None, **kwargs):
     return _delete_all(models.Execution, insecure=insecure, **kwargs)
-
-
-@db_base.session_aware()
-def create_function_service_mapping(values, session=None):
-    mapping = models.FunctionServiceMapping()
-    mapping.update(values.copy())
-
-    # Ignore duplicate error for FunctionServiceMapping
-    try:
-        mapping.save(session=session)
-    except oslo_db_exc.DBDuplicateEntry:
-        session.close()
-
-
-@db_base.session_aware()
-def get_function_service_mapping(function_id, session=None):
-    mapping = db_base.model_query(
-        models.FunctionServiceMapping
-    ).filter_by(function_id=function_id).first()
-
-    if not mapping:
-        raise exc.DBEntityNotFoundError(
-            "FunctionServiceMapping not found [function_id=%s]" % function_id
-        )
-
-    return mapping
-
-
-@db_base.session_aware()
-def get_function_service_mappings(session=None, **kwargs):
-    return _get_collection_sorted_by_time(
-        models.FunctionServiceMapping, **kwargs
-    )
-
-
-@db_base.session_aware()
-def delete_function_service_mapping(id, session=None):
-    try:
-        mapping = get_function_service_mapping(id)
-    except exc.DBEntityNotFoundError:
-        return
-
-    session.delete(mapping)
-
-
-@db_base.session_aware()
-def create_function_worker(values, session=None):
-    worker = models.FunctionWorkers()
-    worker.update(values.copy())
-
-    # Ignore duplicate error for FunctionWorkers
-    try:
-        worker.save(session=session)
-    except oslo_db_exc.DBDuplicateEntry:
-        session.close()
-
-    return worker
-
-
-@db_base.session_aware()
-def get_function_workers(function_id, session=None):
-    workers = db_base.model_query(
-        models.FunctionWorkers
-    ).filter_by(function_id=function_id).all()
-
-    return workers
-
-
-@db_base.session_aware()
-def delete_function_worker(worker_name, session=None):
-    worker = db_base.model_query(
-        models.FunctionWorkers
-    ).filter_by(worker_name=worker_name).first()
-
-    if not worker:
-        raise exc.DBEntityNotFoundError(
-            "FunctionWorker not found [worker_name=%s]" % worker_name
-        )
-
-    session.delete(worker)
-
-
-@db_base.session_aware()
-def delete_function_workers(function_id, session=None):
-    workers = get_function_workers(function_id)
-
-    for worker in workers:
-        session.delete(worker)
-
-
-@db_base.session_aware()
-def acquire_worker_lock(function_id, session=None):
-    # Expire all so all objects queried after lock is acquired
-    # will be up-to-date from the DB and not from cache.
-    session.expire_all()
-
-    if db_base.get_driver_name() == 'sqlite':
-        # In case of 'sqlite' we need to apply a manual lock.
-        sqlite_lock.acquire_lock(function_id, session)
-
-    return _secure_query(
-        models.FunctionWorkers).with_for_update().filter(
-        models.FunctionWorkers.function_id == function_id).all()
 
 
 @db_base.session_aware()

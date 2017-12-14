@@ -11,7 +11,6 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-
 import pecan
 from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
@@ -28,13 +27,11 @@ class RootResource(resources.Resource):
 
     It references all other resources belonging to the API.
     """
-
     uri = wtypes.text
 
 
 class Controller(object):
     """API root controller for version 1."""
-
     functions = function.FunctionsController()
     runtimes = runtime.RuntimesController()
     executions = execution.ExecutionsController()

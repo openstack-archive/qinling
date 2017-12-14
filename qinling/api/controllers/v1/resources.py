@@ -214,7 +214,6 @@ class Functions(ResourceList):
 
 
 class FunctionWorker(Resource):
-    id = wtypes.text
     function_id = wsme.wsattr(types.uuid, readonly=True)
     worker_name = wtypes.text
 

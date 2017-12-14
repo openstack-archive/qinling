@@ -11,37 +11,29 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+import uuid
 
-from qinling.db import api as db_api
+import mock
+
 from qinling.tests.unit.api import base
 
 TEST_CASE_NAME = 'TestFunctionWorkerController'
 
 
 class TestFunctionWorkerController(base.APITest):
-    def setUp(self):
-        super(TestFunctionWorkerController, self).setUp()
+    @mock.patch('qinling.utils.etcd_util.get_workers')
+    def test_get_all_workers(self, mock_get_workers):
+        function_id = str(uuid.uuid4())
+        mock_get_workers.return_value = ['test_worker0', 'test_worker1']
 
-        db_func = self.create_function(prefix=TEST_CASE_NAME)
-        self.function_id = db_func.id
-
-    def test_get_all_workers(self):
-        db_worker = db_api.create_function_worker(
-            {
-                'function_id': self.function_id,
-                'worker_name': 'worker_1',
-            }
-        )
-        expected = {
-            "id": db_worker.id,
-            "function_id": self.function_id,
-            "worker_name": "worker_1",
-        }
-
-        resp = self.app.get('/v1/functions/%s/workers' % self.function_id)
-
+        resp = self.app.get('/v1/functions/%s/workers' % function_id)
         self.assertEqual(200, resp.status_int)
-        actual = self._assert_single_item(
-            resp.json['workers'], id=db_worker.id
+        self._assert_multiple_items(
+            resp.json['workers'], 2, function_id=function_id
         )
-        self._assertDictContainsSubset(actual, expected)
+        self._assert_single_item(
+            resp.json['workers'], worker_name='test_worker0'
+        )
+        self._assert_single_item(
+            resp.json['workers'], worker_name='test_worker1'
+        )

@@ -24,6 +24,7 @@ from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import rpc
 from qinling import status
+from qinling.utils import etcd_util
 from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
@@ -143,16 +144,13 @@ class RuntimesController(rest.RestController):
                     )
                     func_ids = [func.id for func in db_funcs]
 
-                    mappings = db_api.get_function_service_mappings(
-                        insecure=True, function_id={'in': func_ids}
-                    )
-                    if mappings:
-                        raise exc.NotAllowedException(
-                            'Runtime %s is still in use by functions.' % id
-                        )
+                    for id in func_ids:
+                        if etcd_util.get_service_url(id):
+                            raise exc.NotAllowedException(
+                                'Runtime %s is still in use by functions.' % id
+                            )
 
                     values['status'] = status.UPGRADING
-
                     self.engine_client.update_runtime(
                         id,
                         image=values['image'],

@@ -10,6 +10,9 @@
 
     "function:get_all:all_projects": "rule:context_is_admin",
     "function_worker:get_all": "rule:context_is_admin",
+    "function:scale_up": "rule:context_is_admin",
+    "function:scale_down": "rule:context_is_admin",
+    "function:detach": "rule:context_is_admin",
 
     "execution:get_all:all_projects": "rule:context_is_admin",
 }

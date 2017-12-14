@@ -67,6 +67,7 @@ class FunctionsController(rest.RestController):
     _custom_actions = {
         'scale_up': ['POST'],
         'scale_down': ['POST'],
+        'detach': ['POST'],
     }
 
     def __init__(self, *args, **kwargs):
@@ -334,6 +335,8 @@ class FunctionsController(rest.RestController):
         This is admin only operation. The load monitoring of function execution
         depends on the monitoring solution of underlying orchestrator.
         """
+        acl.enforce('function:scale_up', context.get_ctx())
+
         func_db = db_api.get_function(id)
         params = scale.to_dict()
 
@@ -358,6 +361,8 @@ class FunctionsController(rest.RestController):
         This is admin only operation. The load monitoring of function execution
         depends on the monitoring solution of underlying orchestrator.
         """
+        acl.enforce('function:scale_down', context.get_ctx())
+
         func_db = db_api.get_function(id)
         params = scale.to_dict()
         if len(func_db.workers) <= 1:
@@ -367,3 +372,19 @@ class FunctionsController(rest.RestController):
         LOG.info('Starting to scale down function %s, params: %s', id, params)
 
         self.engine_client.scaledown_function(id, count=params['count'])
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(None, types.uuid, status_code=202)
+    def detach(self, id):
+        """Detach the function from its underlying workers.
+
+        This is admin only operation, which gives admin user a safe way to
+        clean up the underlying resources allocated for the function.
+        """
+        acl.enforce('function:detach', context.get_ctx())
+
+        db_api.get_function(id)
+        LOG.info('Starting to detach function %s', id)
+
+        # Delete all resources created by orchestrator asynchronously.
+        self.engine_client.delete_function(id)

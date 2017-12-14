@@ -52,16 +52,20 @@ class ExecutionsTest(base.BaseQinlingTest):
 
         super(ExecutionsTest, cls).resource_cleanup()
 
+    def setUp(self):
+        super(ExecutionsTest, self).setUp()
+        self.await_runtime_available(self.runtime_id)
+
     def _create_function(self, name='python_test.py'):
         python_file_path = pkg_resources.resource_filename(
             'qinling_tempest_plugin',
             "functions/%s" % name
         )
         base_name, extention = os.path.splitext(python_file_path)
-        self.base_name = os.path.basename(base_name)
+        module_name = os.path.basename(base_name)
         self.python_zip_file = os.path.join(
             tempfile.gettempdir(),
-            '%s.zip' % self.base_name
+            '%s.zip' % module_name
         )
 
         if not os.path.isfile(self.python_zip_file):
@@ -70,32 +74,16 @@ class ExecutionsTest(base.BaseQinlingTest):
                 # Use default compression mode, may change in future.
                 zf.write(
                     python_file_path,
-                    '%s%s' % (self.base_name, extention),
+                    '%s%s' % (module_name, extention),
                     compress_type=zipfile.ZIP_STORED
                 )
             finally:
                 zf.close()
 
-        # Create function
-        function_name = data_utils.rand_name('function',
-                                             prefix=self.name_prefix)
-        with open(self.python_zip_file, 'rb') as package_data:
-            resp, body = self.client.create_function(
-                {"source": "package"},
-                self.runtime_id,
-                name=function_name,
-                package_data=package_data,
-                entry='%s.main' % self.base_name
-            )
-            self.function_id = body['id']
-
-        self.addCleanup(self.client.delete_resource, 'functions',
-                        self.function_id, ignore_notfound=True)
-        self.addCleanup(os.remove, self.python_zip_file)
+        self.function_id = self.create_function(self.python_zip_file)
 
     @decorators.idempotent_id('2a93fab0-2dae-4748-b0d4-f06b735ff451')
     def test_crud_execution(self):
-        self.await_runtime_available(self.runtime_id)
         self._create_function()
 
         resp, body = self.client.create_execution(self.function_id,
@@ -126,7 +114,6 @@ class ExecutionsTest(base.BaseQinlingTest):
     @decorators.idempotent_id('2199d1e6-de7d-4345-8745-a8184d6022b1')
     def test_get_all_admin(self):
         """Admin user can get executions of other projects"""
-        self.await_runtime_available(self.runtime_id)
         self._create_function()
 
         resp, body = self.client.create_execution(self.function_id,
@@ -161,7 +148,6 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('8096cc52-64d2-4660-a657-9ac0bdd743ae')
     def test_execution_async(self):
-        self.await_runtime_available(self.runtime_id)
         self._create_function()
 
         resp, body = self.client.create_execution(self.function_id, sync=False)
@@ -178,7 +164,6 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('6cb47b1d-a8c6-48f2-a92f-c4f613c33d1c')
     def test_execution_log(self):
-        self.await_runtime_available(self.runtime_id)
         self._create_function()
 
         resp, body = self.client.create_execution(self.function_id,
@@ -199,7 +184,6 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('f22097dc-37db-484d-83d3-3a97e72ec576')
     def test_execution_concurrency(self):
-        self.await_runtime_available(self.runtime_id)
         self._create_function(name='test_python_sleep.py')
 
         def _create_execution():
@@ -227,7 +211,6 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('a948382a-84af-4f0e-ad08-4297345e302c')
     def test_python_execution_file_limit(self):
-        self.await_runtime_available(self.runtime_id)
         self._create_function(name='test_python_file_limit.py')
 
         resp, body = self.client.create_execution(self.function_id)
@@ -244,7 +227,6 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('bf6f8f35-fa88-469b-8878-7aa85a8ce5ab')
     def test_python_execution_process_number(self):
-        self.await_runtime_available(self.runtime_id)
         self._create_function(name='test_python_process_limit.py')
 
         resp, body = self.client.create_execution(self.function_id)

@@ -12,12 +12,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import os
+import pkg_resources
 import tempfile
 import zipfile
 
 from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions
+import tenacity
 
 from qinling_tempest_plugin.tests import base
 
@@ -45,46 +47,21 @@ class FunctionsTest(base.BaseQinlingTest):
 
         super(FunctionsTest, cls).resource_cleanup()
 
-    def _create_function(self):
-        function_name = data_utils.rand_name('function',
-                                             prefix=self.name_prefix)
-        with open(self.python_zip_file, 'rb') as package_data:
-            resp, body = self.client.create_function(
-                {"source": "package"},
-                self.runtime_id,
-                name=function_name,
-                package_data=package_data,
-                entry='%s.main' % self.base_name
-            )
-
-        self.assertEqual(201, resp.status_code)
-
-        function_id = body['id']
-        self.addCleanup(self.client.delete_resource, 'functions',
-                        function_id, ignore_notfound=True)
-
-        return function_id
-
     def setUp(self):
         super(FunctionsTest, self).setUp()
 
         # Wait until runtime is available
         self.await_runtime_available(self.runtime_id)
 
-        python_file_path = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                os.pardir,
-                os.pardir,
-                'functions/python_test.py'
-            )
+        python_file_path = pkg_resources.resource_filename(
+            'qinling_tempest_plugin',
+            "functions/python_test.py"
         )
-
         base_name, extention = os.path.splitext(python_file_path)
-        self.base_name = os.path.basename(base_name)
+        module_name = os.path.basename(base_name)
         self.python_zip_file = os.path.join(
             tempfile.gettempdir(),
-            '%s.zip' % self.base_name
+            '%s.zip' % module_name
         )
 
         if not os.path.isfile(self.python_zip_file):
@@ -93,7 +70,7 @@ class FunctionsTest(base.BaseQinlingTest):
                 # Use default compression mode, may change in future.
                 zf.write(
                     python_file_path,
-                    '%s%s' % (self.base_name, extention),
+                    '%s%s' % (module_name, extention),
                     compress_type=zipfile.ZIP_STORED
                 )
             finally:
@@ -102,7 +79,7 @@ class FunctionsTest(base.BaseQinlingTest):
     @decorators.idempotent_id('9c36ac64-9a44-4c44-9e44-241dcc6b0933')
     def test_crud_function(self):
         # Create function
-        function_id = self._create_function()
+        function_id = self.create_function(self.python_zip_file)
 
         # Get functions
         resp, body = self.client.get_resources('functions')
@@ -124,7 +101,7 @@ class FunctionsTest(base.BaseQinlingTest):
     @decorators.idempotent_id('051f3106-df01-4fcd-a0a3-c81c99653163')
     def test_get_all_admin(self):
         # Create function by normal user
-        function_id = self._create_function()
+        function_id = self.create_function(self.python_zip_file)
 
         # Get functions by admin
         resp, body = self.admin_client.get_resources('functions')
@@ -162,7 +139,7 @@ class FunctionsTest(base.BaseQinlingTest):
     @decorators.idempotent_id('5cb44ee4-6c0c-4ede-9e6c-e1b9109eaa2c')
     def test_delete_not_allowed(self):
         """Even admin user can not delete other project's function."""
-        function_id = self._create_function()
+        function_id = self.create_function(self.python_zip_file)
 
         self.assertRaises(
             exceptions.Forbidden,
@@ -170,3 +147,31 @@ class FunctionsTest(base.BaseQinlingTest):
             'functions',
             function_id
         )
+
+    @decorators.idempotent_id('45df227e-3399-4412-a8d3-d40c1290bc1c')
+    def test_detach(self):
+        """Admin only operation."""
+        function_id = self.create_function(self.python_zip_file)
+        resp, _ = self.client.create_execution(function_id,
+                                               input={'name': 'Qinling'})
+        self.assertEqual(201, resp.status)
+
+        resp, body = self.admin_client.get_function_workers(function_id)
+        self.assertEqual(200, resp.status)
+        self.assertEqual(1, len(body['workers']))
+
+        # Detach function
+        resp, _ = self.admin_client.detach_function(function_id)
+        self.assertEqual(202, resp.status)
+
+        def _assert_workers():
+            resp, body = self.admin_client.get_function_workers(function_id)
+            self.assertEqual(200, resp.status)
+            self.assertEqual(0, len(body['workers']))
+
+        r = tenacity.Retrying(
+            wait=tenacity.wait_fixed(1),
+            stop=tenacity.stop_after_attempt(5),
+            retry=tenacity.retry_if_exception_type(AssertionError)
+        )
+        r.call(_assert_workers)

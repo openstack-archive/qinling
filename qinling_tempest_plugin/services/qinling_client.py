@@ -85,6 +85,11 @@ class QinlingClient(client_base.QinlingClientBase):
         return self.get('/v1/functions/%s?download=true' % function_id,
                         headers={})
 
+    def detach_function(self, function_id):
+        return self.post('/v1/functions/%s/detach' % function_id,
+                         None,
+                         headers={})
+
     def create_execution(self, function_id, input=None, sync=True):
         req_body = {'function_id': function_id, 'sync': sync, 'input': input}
         resp, body = self.post_json('executions', req_body)

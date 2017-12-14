@@ -219,6 +219,8 @@ class DefaultEngine(object):
         labels = {'function_id': function_id}
         self.orchestrator.delete_function(function_id, labels=labels)
 
+        db_api.delete_function_workers(function_id)
+
         LOG.info('Deleted.', resource=resource)
 
     def scaleup_function(self, ctx, function_id, runtime_id, count=1):

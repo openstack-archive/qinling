@@ -63,4 +63,5 @@ def create_service_url(function_id, url):
 
 def get_service_url(function_id):
     client = get_client()
-    return client.get('%s/service_url' % function_id)[0]
+    values = client.get('%s/service_url' % function_id)
+    return None if not values else values[0]

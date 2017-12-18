@@ -64,14 +64,17 @@ class ExecutionsController(rest.RestController):
         return resources.Execution.from_dict(db_model.to_dict())
 
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.Executions, wtypes.text, bool, wtypes.text)
-    def get_all(self, function_id=None, all_projects=False, project_id=None):
+    @wsme_pecan.wsexpose(resources.Executions, wtypes.text, bool, wtypes.text,
+                         wtypes.text)
+    def get_all(self, function_id=None, all_projects=False, project_id=None,
+                status=None):
         """Return a list of executions.
 
         :param function_id: Optional. Filtering executions by function_id.
         :param project_id: Optional. Admin user can query other projects
             resources, the param is ignored for normal user.
         :param all_projects: Optional. Get resources of all projects.
+        :param status: Optional. Filter by execution status.
         """
         ctx = context.get_ctx()
         if project_id and not ctx.is_admin:
@@ -85,6 +88,7 @@ class ExecutionsController(rest.RestController):
         filters = rest_utils.get_filters(
             function_id=function_id,
             project_id=project_id,
+            status=status,
         )
         LOG.info("Get all %ss. filters=%s", self.type, filters)
 

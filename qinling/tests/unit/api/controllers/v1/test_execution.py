@@ -77,16 +77,22 @@ class TestExecutionController(base.APITest):
         }
         resp = self.app.post_json('/v1/executions', body)
         exec_id = resp.json.get('id')
-
         self.assertEqual(201, resp.status_int)
 
+        # Test filtering by 'function_id'
         resp = self.app.get('/v1/executions?function_id=%s' % self.func_id)
-
         self.assertEqual(200, resp.status_int)
         actual = self._assert_single_item(
             resp.json['executions'], id=exec_id
         )
         self._assertDictContainsSubset(actual, body)
+
+        # Test filtering by 'status'
+        resp = self.app.get(
+            '/v1/executions?function_id=%s&status=running' % self.func_id
+        )
+        self.assertEqual(200, resp.status_int)
+        self._assert_single_item(resp.json['executions'], id=exec_id)
 
     @mock.patch('qinling.rpc.EngineClient.create_execution')
     def test_delete(self, mock_create_execution):

@@ -11,6 +11,7 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+import json
 
 from oslo_log import log as logging
 
@@ -23,13 +24,14 @@ LOG = logging.getLogger(__name__)
 
 
 def _update_function_db(function_id):
-    # NOTE(kong): Store function info in cache?
-    func_db = db_api.get_function(function_id)
-    runtime_db = func_db.runtime
-    if runtime_db and runtime_db.status != status.AVAILABLE:
-        raise exc.RuntimeNotAvailableException(
-            'Runtime %s is not available.' % func_db.runtime_id
-        )
+    with db_api.transaction():
+        # NOTE(kong): Store function info in cache?
+        func_db = db_api.get_function(function_id)
+        runtime_db = func_db.runtime
+        if runtime_db and runtime_db.status != status.AVAILABLE:
+            raise exc.RuntimeNotAvailableException(
+                'Runtime %s is not available.' % func_db.runtime_id
+            )
 
     # Function update is done using UPDATE ... FROM ... WHERE
     # non-locking clause.
@@ -59,6 +61,12 @@ def _update_function_db(function_id):
 def create_execution(engine_client, params):
     function_id = params['function_id']
     is_sync = params.get('sync', True)
+    input = params.get('input')
+    if input:
+        try:
+            params['input'] = json.loads(input)
+        except ValueError:
+            params['input'] = {'__function_input': input}
 
     runtime_id = _update_function_db(function_id)
 

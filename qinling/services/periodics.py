@@ -36,9 +36,13 @@ CONF = cfg.CONF
 _periodic_tasks = {}
 
 
-def handle_function_service_expiration(ctx, engine_client, orchestrator):
-    context.set_ctx(ctx)
+def handle_function_service_expiration(ctx, engine):
+    """Clean up resources related to expired functions.
 
+    If it's image function, we will rely on the orchestrator itself to do the
+    image clean up, e.g. image collection feature in kubernetes.
+    """
+    context.set_ctx(ctx)
     delta = timedelta(seconds=CONF.engine.function_service_expiration)
     expiry_time = datetime.utcnow() - delta
 
@@ -60,8 +64,7 @@ def handle_function_service_expiration(ctx, engine_client, orchestrator):
         )
 
         # Delete resources related to the function
-        engine_client.delete_function(func_db.id)
-
+        engine.delete_function(func_db.id)
         # Delete etcd keys
         etcd_util.delete_function(func_db.id)
 
@@ -144,16 +147,13 @@ def handle_job(engine_client):
             context.set_ctx(None)
 
 
-def start_function_mapping_handler(orchestrator):
+def start_function_mapping_handler(engine):
     tg = threadgroup.ThreadGroup(1)
-    engine_client = rpc.get_engine_client()
-
     tg.add_timer(
         300,
         handle_function_service_expiration,
         ctx=context.Context(),
-        engine_client=engine_client,
-        orchestrator=orchestrator
+        engine=engine,
     )
     _periodic_tasks[constants.PERIODIC_FUNC_MAPPING_HANDLER] = tg
 

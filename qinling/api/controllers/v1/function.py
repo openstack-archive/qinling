@@ -165,15 +165,19 @@ class FunctionsController(rest.RestController):
                 )
 
         store = False
-        if values['code']['source'] == constants.PACKAGE_FUNCTION:
+        create_trust = True
+        if source == constants.PACKAGE_FUNCTION:
             store = True
             data = kwargs['package'].file.read()
-        elif values['code']['source'] == constants.SWIFT_FUNCTION:
+        elif source == constants.SWIFT_FUNCTION:
             swift_info = values['code'].get('swift', {})
             self._check_swift(swift_info.get('container'),
                               swift_info.get('object'))
+        else:
+            create_trust = False
+            values['entry'] = None
 
-        if cfg.CONF.pecan.auth_enable:
+        if cfg.CONF.pecan.auth_enable and create_trust:
             try:
                 values['trust_id'] = keystone_util.create_trust().id
                 LOG.debug('Trust %s created', values['trust_id'])
@@ -187,7 +191,6 @@ class FunctionsController(rest.RestController):
 
             if store:
                 ctx = context.get_ctx()
-
                 self.storage_provider.store(
                     ctx.projectid,
                     func_db.id,
@@ -219,7 +222,6 @@ class FunctionsController(rest.RestController):
             project_id=project_id,
         )
         LOG.info("Get all %ss. filters=%s", self.type, filters)
-
         db_functions = db_api.get_functions(insecure=all_projects, **filters)
         functions = [resources.Function.from_dict(db_model.to_dict())
                      for db_model in db_functions]

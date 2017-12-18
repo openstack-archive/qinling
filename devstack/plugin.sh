@@ -24,8 +24,10 @@ function install_k8s {
     source tools/gate/setup_gate.sh
     popd
 
-    # Pre-pull the default docker image for python runtime
+    # Pre-pull the default docker image for python runtime and image function
+    # test.
     sudo docker pull $QINLING_PYTHON_RUNTIME_IMAGE
+    sudo docker pull openstackqinling/alpine-test
 }
 
 

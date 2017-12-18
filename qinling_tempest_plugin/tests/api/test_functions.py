@@ -152,8 +152,9 @@ class FunctionsTest(base.BaseQinlingTest):
     def test_detach(self):
         """Admin only operation."""
         function_id = self.create_function(self.python_zip_file)
-        resp, _ = self.client.create_execution(function_id,
-                                               input={'name': 'Qinling'})
+        resp, _ = self.client.create_execution(
+            function_id, input='{"name": "Qinling"}'
+        )
         self.assertEqual(201, resp.status)
 
         resp, body = self.admin_client.get_function_workers(function_id)

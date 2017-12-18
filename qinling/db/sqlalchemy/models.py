@@ -40,12 +40,12 @@ class Function(model_base.QinlingSecureModelBase):
     )
     # We want to get runtime info when we query function
     runtime = relationship(
-        'Runtime', back_populates="functions", innerjoin=True, lazy='joined'
+        'Runtime', back_populates="functions", innerjoin=True, lazy='select'
     )
     memory_size = sa.Column(sa.Integer)
     timeout = sa.Column(sa.Integer)
     code = sa.Column(st.JsonLongDictType(), nullable=False)
-    entry = sa.Column(sa.String(80), nullable=False)
+    entry = sa.Column(sa.String(80), nullable=True)
     count = sa.Column(sa.Integer, default=0)
     trust_id = sa.Column(sa.String(80))
 
@@ -57,7 +57,7 @@ class Execution(model_base.QinlingSecureModelBase):
     status = sa.Column(sa.String(32), nullable=False)
     sync = sa.Column(sa.BOOLEAN, default=True)
     input = sa.Column(st.JsonLongDictType())
-    output = sa.Column(st.JsonLongDictType())
+    result = sa.Column(st.JsonLongDictType())
     description = sa.Column(sa.String(255))
     logs = sa.Column(sa.Text(), nullable=True)
 

@@ -15,7 +15,7 @@ function delete_resources(){
     ids=$(openstack function execution list -f yaml -c Id | awk '{print $3}')
     for id in $ids
     do
-      openstack function execution delete $id
+      openstack function execution delete --execution $id
     done
 
     # Delete functions

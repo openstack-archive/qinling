@@ -71,7 +71,7 @@ def upgrade():
         sa.Column('memory_size', sa.Integer, nullable=True),
         sa.Column('timeout', sa.Integer, nullable=True),
         sa.Column('code', st.JsonLongDictType(), nullable=False),
-        sa.Column('entry', sa.String(length=80), nullable=False),
+        sa.Column('entry', sa.String(length=80), nullable=True),
         sa.Column('count', sa.Integer, nullable=False),
         sa.Column('trust_id', sa.String(length=80), nullable=True),
         sa.PrimaryKeyConstraint('id'),
@@ -90,7 +90,7 @@ def upgrade():
         sa.Column('status', sa.String(length=32), nullable=False),
         sa.Column('sync', sa.BOOLEAN, nullable=False),
         sa.Column('input', st.JsonLongDictType(), nullable=True),
-        sa.Column('output', st.JsonLongDictType(), nullable=True),
+        sa.Column('result', st.JsonLongDictType(), nullable=True),
         sa.Column('logs', sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         info={"check_ifexists": True}

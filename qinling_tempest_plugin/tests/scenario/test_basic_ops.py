@@ -93,8 +93,9 @@ class BasicOpsTest(base.BaseQinlingTest):
                         function_id, ignore_notfound=True)
 
         # Invoke function
-        resp, body = self.client.create_execution(function_id,
-                                                  input={'name': 'Qinling'})
+        resp, body = self.client.create_execution(
+            function_id, input='{"name": "Qinling"}'
+        )
 
         self.assertEqual(201, resp.status)
         self.assertEqual('success', body['status'])

@@ -279,11 +279,27 @@ class Execution(Resource):
     description = wtypes.text
     status = wsme.wsattr(wtypes.text, readonly=True)
     sync = bool
-    input = types.jsontype
-    output = wsme.wsattr(types.jsontype, readonly=True)
+    input = wtypes.text
+    result = wsme.wsattr(types.jsontype, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wsme.wsattr(wtypes.text, readonly=True)
     updated_at = wsme.wsattr(wtypes.text, readonly=True)
+
+    @classmethod
+    def from_dict(cls, d):
+        obj = cls()
+
+        for key, val in d.items():
+            if key == 'input' and val:
+                if val.get('__function_input'):
+                    setattr(obj, key, val.get('__function_input'))
+                else:
+                    setattr(obj, key, json.dumps(val))
+                continue
+            if hasattr(obj, key):
+                setattr(obj, key, val)
+
+        return obj
 
     @classmethod
     def sample(cls):
@@ -294,7 +310,7 @@ class Execution(Resource):
             status='success',
             sync=True,
             input={'data': 'hello, world'},
-            output={'result': 'hello, world'},
+            result={'result': 'hello, world'},
             project_id='default',
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'

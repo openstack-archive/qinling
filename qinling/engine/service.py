@@ -35,28 +35,27 @@ class EngineService(service.Service):
 
     def start(self):
         orchestrator = orchestra_base.load_orchestrator(CONF)
-
         db_api.setup_db()
-
-        LOG.info('Starting periodic tasks...')
-        periodics.start_function_mapping_handler(orchestrator)
 
         topic = CONF.engine.topic
         server = CONF.engine.host
         transport = messaging.get_rpc_transport(CONF)
         target = messaging.Target(topic=topic, server=server, fanout=False)
-        endpoints = [engine.DefaultEngine(orchestrator)]
+        endpoint = engine.DefaultEngine(orchestrator)
         access_policy = dispatcher.DefaultRPCAccessPolicy
         self.server = messaging.get_rpc_server(
             transport,
             target,
-            endpoints,
+            [endpoint],
             executor='eventlet',
             access_policy=access_policy,
             serializer=rpc.ContextSerializer(
                 messaging.serializer.JsonPayloadSerializer()
             )
         )
+
+        LOG.info('Starting function mapping periodic task...')
+        periodics.start_function_mapping_handler(endpoint)
 
         LOG.info('Starting engine...')
         self.server.start()

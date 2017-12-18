@@ -53,7 +53,7 @@ def _print_trace():
     print(''.join(line for line in lines))
 
 
-def _invoke_function(execution_id, zip_file, module_name, method, input,
+def _invoke_function(execution_id, zip_file, module_name, method, arg, input,
                      return_dict):
     """Thie function is supposed to be running in a child process."""
     sys.path.insert(0, zip_file)
@@ -64,7 +64,7 @@ def _invoke_function(execution_id, zip_file, module_name, method, input,
     try:
         module = importlib.import_module(module_name)
         func = getattr(module, method)
-        return_dict['result'] = func(**input)
+        return_dict['result'] = func(arg, **input) if arg else func(**input)
         return_dict['success'] = True
     except Exception as e:
         _print_trace()
@@ -180,7 +180,7 @@ def execute():
     p = Process(
         target=_invoke_function,
         args=(execution_id, zip_file, function_module, function_method,
-              input, return_dict)
+              input.pop('__function_input', None), input, return_dict)
     )
     p.start()
     p.join()
@@ -224,4 +224,4 @@ setup_logger(logging.DEBUG)
 app.logger.info("Starting server")
 
 # Just for testing purpose
-app.run(host='0.0.0.0', port='9090', threaded=True)
+app.run(host='0.0.0.0', port=9090, threaded=True)

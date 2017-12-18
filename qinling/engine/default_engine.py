@@ -157,7 +157,7 @@ class DefaultEngine(object):
                 {
                     'status': status.SUCCESS if success else status.FAILED,
                     'logs': res.pop('logs', ''),
-                    'output': res
+                    'result': res
                 }
             )
             return
@@ -196,7 +196,7 @@ class DefaultEngine(object):
             logs = res.pop('logs', '')
             success = success and res.pop('success')
         else:
-            # If the function is created from docker image, the output is
+            # If the function is created from docker image, the result is
             # direct output, here we convert to a dict to fit into the db
             # schema.
             res = {'output': res}
@@ -210,7 +210,7 @@ class DefaultEngine(object):
             {
                 'status': status.SUCCESS if success else status.FAILED,
                 'logs': logs,
-                'output': res
+                'result': res
             }
         )
 

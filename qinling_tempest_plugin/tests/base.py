@@ -68,24 +68,31 @@ class BaseQinlingTest(test.BaseTestCase):
         self.assertEqual(200, resp.status)
         self.assertEqual('success', body['status'])
 
-    def create_function(self, package_path):
+    def create_function(self, package_path=None, image=False):
         function_name = data_utils.rand_name('function',
                                              prefix=self.name_prefix)
-        base_name, _ = os.path.splitext(package_path)
-        module_name = os.path.basename(base_name)
 
-        with open(package_path, 'rb') as package_data:
+        if not image:
+            base_name, _ = os.path.splitext(package_path)
+            module_name = os.path.basename(base_name)
+            with open(package_path, 'rb') as package_data:
+                resp, body = self.client.create_function(
+                    {"source": "package"},
+                    self.runtime_id,
+                    name=function_name,
+                    package_data=package_data,
+                    entry='%s.main' % module_name
+                )
+            self.addCleanup(os.remove, package_path)
+        else:
             resp, body = self.client.create_function(
-                {"source": "package"},
-                self.runtime_id,
+                {"source": "image", "image": "openstackqinling/alpine-test"},
+                None,
                 name=function_name,
-                package_data=package_data,
-                entry='%s.main' % module_name
             )
 
         self.assertEqual(201, resp.status_code)
         function_id = body['id']
-        self.addCleanup(os.remove, package_path)
         self.addCleanup(self.client.delete_resource, 'functions',
                         function_id, ignore_notfound=True)
 

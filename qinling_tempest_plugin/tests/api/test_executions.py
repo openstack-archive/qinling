@@ -88,7 +88,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         self._create_function()
 
         resp, body = self.client.create_execution(self.function_id,
-                                                  input={'name': 'Qinling'})
+                                                  input='{"name": "Qinling"}')
 
         self.assertEqual(201, resp.status)
 
@@ -117,8 +117,9 @@ class ExecutionsTest(base.BaseQinlingTest):
         """Admin user can get executions of other projects"""
         self._create_function()
 
-        resp, body = self.client.create_execution(self.function_id,
-                                                  input={'name': 'Qinling'})
+        resp, body = self.client.create_execution(
+            self.function_id, input='{"name": "Qinling"}'
+        )
         self.assertEqual(201, resp.status)
 
         execution_id = body['id']
@@ -160,15 +161,14 @@ class ExecutionsTest(base.BaseQinlingTest):
                         execution_id, ignore_notfound=True)
 
         self.assertEqual('running', body['status'])
-
         self.await_execution_success(execution_id)
 
     @decorators.idempotent_id('6cb47b1d-a8c6-48f2-a92f-c4f613c33d1c')
     def test_execution_log(self):
         self._create_function()
-
-        resp, body = self.client.create_execution(self.function_id,
-                                                  input={'name': 'OpenStack'})
+        resp, body = self.client.create_execution(
+            self.function_id, input='{"name": "OpenStack"}'
+        )
 
         self.assertEqual(201, resp.status)
         self.addCleanup(self.client.delete_resource, 'executions',
@@ -237,6 +237,20 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual(200, resp.status)
         self.assertEqual(2, len(body['workers']))
 
+    @decorators.idempotent_id('ccfe67ce-e467-11e7-916c-00224d6b7bc1')
+    def test_python_execution_positional_args(self):
+        self._create_function(name='test_python_positional_args.py')
+        resp, body = self.client.create_execution(self.function_id,
+                                                  input='Qinling')
+
+        self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
+        self.assertEqual('success', body['status'])
+
+        result = jsonutils.loads(body['result'])
+        self.assertIn('Qinling', result['output'])
+
     @decorators.idempotent_id('a948382a-84af-4f0e-ad08-4297345e302c')
     def test_python_execution_file_limit(self):
         self._create_function(name='test_python_file_limit.py')
@@ -248,9 +262,9 @@ class ExecutionsTest(base.BaseQinlingTest):
                         body['id'], ignore_notfound=True)
         self.assertEqual('failed', body['status'])
 
-        output = jsonutils.loads(body['output'])
+        result = jsonutils.loads(body['result'])
         self.assertIn(
-            'Too many open files', output['output']
+            'Too many open files', result['output']
         )
 
     @decorators.idempotent_id('bf6f8f35-fa88-469b-8878-7aa85a8ce5ab')
@@ -264,7 +278,20 @@ class ExecutionsTest(base.BaseQinlingTest):
                         body['id'], ignore_notfound=True)
         self.assertEqual('failed', body['status'])
 
-        output = jsonutils.loads(body['output'])
+        result = jsonutils.loads(body['result'])
         self.assertIn(
-            'too much resource consumption', output['output']
+            'too much resource consumption', result['output']
         )
+
+    @decorators.idempotent_id('d0598868-e45d-11e7-9125-00224d6b7bc1')
+    def test_execution_image_function(self):
+        function_id = self.create_function(image=True)
+        resp, body = self.client.create_execution(function_id,
+                                                  input='Qinling')
+
+        self.assertEqual(201, resp.status)
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+        self.assertEqual('success', body['status'])
+        self.assertIn('Qinling', jsonutils.loads(body['result'])['output'])

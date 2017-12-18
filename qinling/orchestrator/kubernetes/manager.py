@@ -13,6 +13,7 @@
 #    limitations under the License.
 
 import copy
+import json
 import os
 import time
 
@@ -315,12 +316,19 @@ class KubernetesManager(base.OrchestratorBase):
         return pod_name, pod_service_url
 
     def _create_pod(self, image, pod_name, labels, input):
+        if not input:
+            input_list = []
+        elif input.get('__function_input'):
+            input_list = input.get('__function_input').split()
+        else:
+            input_list = [json.dumps(input)]
+
         pod_body = self.pod_template.render(
             {
                 "pod_name": pod_name,
                 "labels": labels,
                 "pod_image": image,
-                "input": input
+                "input": input_list
             }
         )
 
@@ -386,6 +394,7 @@ class KubernetesManager(base.OrchestratorBase):
     def run_execution(self, execution_id, function_id, input=None,
                       identifier=None, service_url=None, entry='main.main',
                       trust_id=None):
+        """Run execution and get output."""
         if service_url:
             func_url = '%s/execute' % service_url
             data = utils.get_request_data(
@@ -398,24 +407,34 @@ class KubernetesManager(base.OrchestratorBase):
 
             return utils.url_request(self.session, func_url, body=data)
         else:
-            status = None
-
-            # Wait for execution to be finished.
-            # TODO(kong): Do not retry infinitely.
-            while status != 'Succeeded':
+            def _wait_complete():
                 pod = self.v1.read_namespaced_pod(
                     identifier,
                     self.conf.kubernetes.namespace
                 )
                 status = pod.status.phase
-                time.sleep(0.5)
+                return True if status == 'Succeeded' else False
+
+            try:
+                r = tenacity.Retrying(
+                    wait=tenacity.wait_fixed(1),
+                    stop=tenacity.stop_after_delay(180),
+                    retry=tenacity.retry_if_result(
+                        lambda result: result is False)
+                )
+                r.call(_wait_complete)
+            except Exception as e:
+                LOG.exception(
+                    "Failed to get pod output, pod: %s, error: %s",
+                    identifier, str(e)
+                )
+                return False, {'error': 'Function execution failed.'}
 
             output = self.v1.read_namespaced_pod_log(
                 identifier,
                 self.conf.kubernetes.namespace,
             )
-
-            return output
+            return True, output
 
     def delete_function(self, function_id, labels=None):
         selector = common.convert_dict_to_string(labels)

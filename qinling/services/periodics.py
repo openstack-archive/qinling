@@ -64,7 +64,7 @@ def handle_function_service_expiration(ctx, engine):
         )
 
         # Delete resources related to the function
-        engine.delete_function(func_db.id)
+        engine.delete_function(ctx, func_db.id)
         # Delete etcd keys
         etcd_util.delete_function(func_db.id)
 

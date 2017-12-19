@@ -33,8 +33,7 @@ class DefaultEngine(object):
         self.session = requests.Session()
 
     def create_runtime(self, ctx, runtime_id):
-        LOG.info('Start to create.',
-                 resource={'type': 'runtime', 'id': runtime_id})
+        LOG.info('Start to create runtime %s.', runtime_id)
 
         with db_api.transaction():
             runtime = db_api.get_runtime(runtime_id)
@@ -47,6 +46,7 @@ class DefaultEngine(object):
                     labels=labels,
                 )
                 runtime.status = status.AVAILABLE
+                LOG.info('Runtime %s created.', runtime_id)
             except Exception as e:
                 LOG.exception(
                     'Failed to create pool for runtime %s. Error: %s',
@@ -56,18 +56,19 @@ class DefaultEngine(object):
                 runtime.status = status.ERROR
 
     def delete_runtime(self, ctx, runtime_id):
-        resource = {'type': 'runtime', 'id': runtime_id}
-        LOG.info('Start to delete.', resource=resource)
+        LOG.info('Start to delete runtime %s.', runtime_id)
 
         labels = {'runtime_id': runtime_id}
         self.orchestrator.delete_pool(runtime_id, labels=labels)
         db_api.delete_runtime(runtime_id)
 
-        LOG.info('Deleted.', resource=resource)
+        LOG.info('Deleted runtime %s.', runtime_id)
 
     def update_runtime(self, ctx, runtime_id, image=None, pre_image=None):
-        resource = {'type': 'runtime', 'id': runtime_id}
-        LOG.info('Start to update, image=%s', image, resource=resource)
+        LOG.info(
+            'Start to update runtime %s, image: %s, pre_image: %s',
+            runtime_id, image, pre_image
+        )
 
         labels = {'runtime_id': runtime_id}
         ret = self.orchestrator.update_pool(
@@ -78,12 +79,12 @@ class DefaultEngine(object):
             values = {'status': status.AVAILABLE}
             db_api.update_runtime(runtime_id, values)
 
-            LOG.info('Updated.', resource=resource)
+            LOG.info('Updated runtime %s.', runtime_id)
         else:
             values = {'status': status.AVAILABLE, 'image': pre_image}
             db_api.update_runtime(runtime_id, values)
 
-            LOG.info('Rollbacked.', resource=resource)
+            LOG.info('Rollbacked runtime %s.', runtime_id)
 
     @tenacity.retry(
         wait=tenacity.wait_fixed(1),
@@ -216,13 +217,12 @@ class DefaultEngine(object):
 
     def delete_function(self, ctx, function_id):
         """Deletes underlying resources allocated for function."""
-        resource = {'type': 'function', 'id': function_id}
-        LOG.info('Start to delete.', resource=resource)
+        LOG.info('Start to delete function %s.', function_id)
 
         labels = {'function_id': function_id}
         self.orchestrator.delete_function(function_id, labels=labels)
 
-        LOG.info('Deleted.', resource=resource)
+        LOG.info('Deleted function %s.', function_id)
 
     def scaleup_function(self, ctx, function_id, runtime_id, count=1):
         worker_names, service_url = self.orchestrator.scaleup_function(

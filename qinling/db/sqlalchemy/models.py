@@ -76,7 +76,7 @@ class Job(model_base.QinlingSecureModelBase):
         sa.ForeignKey(Function.id)
     )
     function = relationship('Function', back_populates="jobs")
-    function_input = sa.Column(st.JsonDictType())
+    function_input = sa.Column(sa.String(255), nullable=True)
 
     def to_dict(self):
         d = super(Job, self).to_dict()

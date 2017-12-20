@@ -36,10 +36,7 @@ class APITest(base.DbTestCase):
         self.addCleanup(shutil.rmtree, package_dir, True)
 
         # Disable authentication by default for API tests.
-        CONF.set_default('auth_enable', False, group='pecan')
-        self.addCleanup(
-            CONF.set_default, 'auth_enable', False, group='pecan'
-        )
+        self.override_config('auth_enable', False, group='pecan')
 
         pecan_opts = CONF.pecan
         self.app = pecan.testing.load_test_app({

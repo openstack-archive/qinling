@@ -62,6 +62,8 @@ def create_execution(engine_client, params):
     function_id = params['function_id']
     is_sync = params.get('sync', True)
     input = params.get('input')
+
+    # input in params should be a string.
     if input:
         try:
             params['input'] = json.loads(input)

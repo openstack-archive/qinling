@@ -148,6 +148,10 @@ def handle_job(engine_client):
 
 
 def start_function_mapping_handler(engine):
+    """Start function mapping handler thread.
+
+    Function mapping handler is supposed to be running with engine service.
+    """
     tg = threadgroup.ThreadGroup(1)
     tg.add_timer(
         300,
@@ -161,6 +165,10 @@ def start_function_mapping_handler(engine):
 
 
 def start_job_handler():
+    """Start job handler thread.
+
+    Job handler is supposed to be running with api service.
+    """
     tg = threadgroup.ThreadGroup(1)
     engine_client = rpc.get_engine_client()
 

@@ -342,7 +342,7 @@ class Job(Resource):
     id = types.uuid
     name = wtypes.text
     function_id = types.uuid
-    function_input = types.jsontype
+    function_input = wtypes.text
     status = wtypes.text
     pattern = wtypes.text
     count = int

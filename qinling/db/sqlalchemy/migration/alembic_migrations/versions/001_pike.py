@@ -103,7 +103,7 @@ def upgrade():
         sa.Column('project_id', sa.String(length=80), nullable=False),
         sa.Column('id', sa.String(length=36), nullable=False),
         sa.Column('function_id', sa.String(length=36), nullable=False),
-        sa.Column('function_input', st.JsonLongDictType(), nullable=True),
+        sa.Column('function_input', sa.String(length=255), nullable=True),
         sa.Column('status', sa.String(length=32), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=True),
         sa.Column('pattern', sa.String(length=32), nullable=True),

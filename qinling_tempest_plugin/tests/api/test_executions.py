@@ -270,7 +270,6 @@ class ExecutionsTest(base.BaseQinlingTest):
     @decorators.idempotent_id('bf6f8f35-fa88-469b-8878-7aa85a8ce5ab')
     def test_python_execution_process_number(self):
         self._create_function(name='test_python_process_limit.py')
-
         resp, body = self.client.create_execution(self.function_id)
 
         self.assertEqual(201, resp.status)

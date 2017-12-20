@@ -68,7 +68,7 @@ class JobsController(rest.RestController):
                 'next_execution_time': next_time,
                 'count': count,
                 'function_id': params['function_id'],
-                'function_input': params.get('function_input') or {},
+                'function_input': params.get('function_input'),
                 'status': status.RUNNING
             }
             db_job = db_api.create_job(values)

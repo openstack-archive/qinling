@@ -219,7 +219,7 @@ def conditional_update(model, values, expected_values, insecure=False,
 
 @db_base.insecure_aware()
 @db_base.session_aware()
-def get_function(id, insecure=False, session=None):
+def get_function(id, insecure=None, session=None):
     function = _get_db_object_by_id(models.Function, id, insecure=insecure)
 
     if not function:

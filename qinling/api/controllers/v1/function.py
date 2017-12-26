@@ -106,9 +106,9 @@ class FunctionsController(rest.RestController):
             LOG.info("Downloading function %s", id)
             source = func_db.code['source']
 
-            if source == 'package':
+            if source == constants.PACKAGE_FUNCTION:
                 f = self.storage_provider.retrieve(ctx.projectid, id)
-            elif source == 'swift':
+            elif source == constants.SWIFT_FUNCTION:
                 container = func_db.code['swift']['container']
                 obj = func_db.code['swift']['object']
                 f = swift_util.download_object(container, obj)
@@ -250,7 +250,7 @@ class FunctionsController(rest.RestController):
                 )
 
             source = func_db.code['source']
-            if source == 'package':
+            if source == constants.PACKAGE_FUNCTION:
                 self.storage_provider.delete(func_db.project_id, id)
 
             # Delete all resources created by orchestrator asynchronously.

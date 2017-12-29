@@ -41,6 +41,6 @@ QinlingGroup = [
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the qinling service."),
     cfg.StrOpt('kube_host',
-               default='127.0.0.1:8001',
+               default='http://127.0.0.1:8001',
                help="The Kubernetes service address."),
 ]

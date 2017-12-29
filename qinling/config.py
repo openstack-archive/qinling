@@ -38,6 +38,7 @@ api_opts = [
     ),
     cfg.IntOpt(
         'api_workers',
+        default=1,
         help='Number of workers for Qinling API service '
              'default is equal to the number of CPUs available if that can '
              'be determined, else a default worker count of 1 is returned.'
@@ -134,7 +135,7 @@ kubernetes_opts = [
     ),
     cfg.StrOpt(
         'kube_host',
-        default='127.0.0.1:8001',
+        default='http://127.0.0.1:8001',
         help='Kubernetes server address, e.g. you can start a proxy to the '
              'Kubernetes API server by using "kubectl proxy" command.'
     ),
@@ -194,6 +195,7 @@ def parse_args(args=None, usage=None, default_config_files=None):
         'keystoneclient=INFO',
         'requests.packages.urllib3.connectionpool=CRITICAL',
         'urllib3.connectionpool=CRITICAL',
+        'cotyledon=INFO'
     ]
     default_log_levels = log.get_default_log_levels()
     default_log_levels.extend(_DEFAULT_LOG_LEVELS)

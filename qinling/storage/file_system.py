@@ -39,7 +39,7 @@ class FileSystemStorage(base.PackageStorage):
         :param function: Function ID.
         :param data: Package data.
         """
-        LOG.info(
+        LOG.debug(
             'Store package, function: %s, project: %s', function, project_id
         )
 
@@ -64,7 +64,7 @@ class FileSystemStorage(base.PackageStorage):
         :param function: Function ID.
         :return: File descriptor that needs to close outside.
         """
-        LOG.info(
+        LOG.debug(
             'Get package data, function: %s, project: %s', function, project_id
         )
 
@@ -80,11 +80,12 @@ class FileSystemStorage(base.PackageStorage):
             )
 
         f = open(func_zip, 'rb')
+        LOG.debug('Found package data')
 
         return f
 
     def delete(self, project_id, function):
-        LOG.info(
+        LOG.debug(
             'Delete package data, function: %s, project: %s', function,
             project_id
         )

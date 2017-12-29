@@ -82,7 +82,7 @@ def get_request_data(conf, function_id, execution_id, input, entry, trust_id):
         data.update(
             {
                 'token': ctx.auth_token,
-                'auth_url': conf.keystone_authtoken.auth_uri,
+                'auth_url': conf.keystone_authtoken.www_authenticate_uri,
                 'username': conf.keystone_authtoken.username,
                 'password': conf.keystone_authtoken.password,
                 'trust_id': trust_id

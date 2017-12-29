@@ -13,11 +13,12 @@
 #    limitations under the License.
 import os
 
-from kubernetes import client as k8s_client
 from tempest import config
 from tempest.lib.common.utils import data_utils
 from tempest import test
 import tenacity
+
+from qinling_tempest_plugin.tests import utils
 
 CONF = config.CONF
 
@@ -41,9 +42,9 @@ class BaseQinlingTest(test.BaseTestCase):
         cls.admin_client = cls.os_admin.qinling.QinlingClient()
 
         # Initilize k8s client
-        k8s_client.Configuration().host = CONF.qinling.kube_host
-        cls.k8s_v1 = k8s_client.CoreV1Api()
-        cls.k8s_v1extention = k8s_client.ExtensionsV1beta1Api()
+        clients = utils.get_k8s_clients(CONF)
+        cls.k8s_v1 = clients['v1']
+        cls.k8s_v1extention = clients['v1extention']
         cls.namespace = 'qinling'
 
     @tenacity.retry(

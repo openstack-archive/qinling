@@ -80,7 +80,7 @@ function configure_qinling {
 
     # Setup keystone_authtoken section
     configure_auth_token_middleware $QINLING_CONF_FILE qinling $QINLING_AUTH_CACHE_DIR
-    iniset $QINLING_CONF_FILE keystone_authtoken auth_uri $KEYSTONE_AUTH_URI_V3
+    iniset $QINLING_CONF_FILE keystone_authtoken www_authenticate_uri $KEYSTONE_AUTH_URI_V3
 
     # Setup RabbitMQ credentials
     iniset_rpc_backend qinling $QINLING_CONF_FILE
@@ -99,8 +99,8 @@ function init_qinling {
 
 
 function start_qinling {
-    run_process qinling-engine "$QINLING_BIN_DIR/qinling-server --server engine --config-file $QINLING_CONF_FILE"
-    run_process qinling-api "$QINLING_BIN_DIR/qinling-server --server api --config-file $QINLING_CONF_FILE"
+    run_process qinling-engine "$QINLING_BIN_DIR/qinling-engine --config-file $QINLING_CONF_FILE"
+    run_process qinling-api "$QINLING_BIN_DIR/qinling-api --config-file $QINLING_CONF_FILE"
 }
 
 

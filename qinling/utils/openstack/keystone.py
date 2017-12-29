@@ -30,7 +30,7 @@ def _get_user_keystone_session():
     ctx = context.get_ctx()
 
     auth = v3.Token(
-        auth_url=CONF.keystone_authtoken.auth_uri,
+        auth_url=CONF.keystone_authtoken.www_authenticate_uri,
         token=ctx.auth_token,
     )
 
@@ -49,7 +49,7 @@ def get_swiftclient():
 @common.disable_ssl_warnings
 def get_user_client():
     ctx = context.get_ctx()
-    auth_url = CONF.keystone_authtoken.auth_uri
+    auth_url = CONF.keystone_authtoken.www_authenticate_uri
     client = ks_client.Client(
         user_id=ctx.user,
         token=ctx.auth_token,
@@ -67,7 +67,7 @@ def get_service_client():
         username=CONF.keystone_authtoken.username,
         password=CONF.keystone_authtoken.password,
         project_name=CONF.keystone_authtoken.project_name,
-        auth_url=CONF.keystone_authtoken.auth_uri,
+        auth_url=CONF.keystone_authtoken.www_authenticate_uri,
         user_domain_name=CONF.keystone_authtoken.user_domain_name,
         project_domain_name=CONF.keystone_authtoken.project_domain_name
     )
@@ -80,7 +80,7 @@ def get_trust_client(trust_id):
     client = ks_client.Client(
         username=CONF.keystone_authtoken.username,
         password=CONF.keystone_authtoken.password,
-        auth_url=CONF.keystone_authtoken.auth_uri,
+        auth_url=CONF.keystone_authtoken.www_authenticate_uri,
         trust_id=trust_id
     )
 

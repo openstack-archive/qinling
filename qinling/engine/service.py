@@ -12,11 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import cotyledon
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging as messaging
 from oslo_messaging.rpc import dispatcher
-from oslo_service import service
 
 from qinling.db import api as db_api
 from qinling.engine import default_engine as engine
@@ -28,12 +28,12 @@ LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 
-class EngineService(service.Service):
-    def __init__(self):
-        super(EngineService, self).__init__()
+class EngineService(cotyledon.Service):
+    def __init__(self, worker_id):
+        super(EngineService, self).__init__(worker_id)
         self.server = None
 
-    def start(self):
+    def run(self):
         orchestrator = orchestra_base.load_orchestrator(CONF)
         db_api.setup_db()
 
@@ -47,11 +47,10 @@ class EngineService(service.Service):
             transport,
             target,
             [endpoint],
-            executor='eventlet',
+            executor='threading',
             access_policy=access_policy,
             serializer=rpc.ContextSerializer(
-                messaging.serializer.JsonPayloadSerializer()
-            )
+                messaging.serializer.JsonPayloadSerializer())
         )
 
         LOG.info('Starting function mapping periodic task...')
@@ -60,25 +59,10 @@ class EngineService(service.Service):
         LOG.info('Starting engine...')
         self.server.start()
 
-        super(EngineService, self).start()
-
-    def stop(self, graceful=False):
+    def terminate(self):
         periodics.stop()
 
         if self.server:
             LOG.info('Stopping engine...')
             self.server.stop()
-            if graceful:
-                LOG.info(
-                    'Consumer successfully stopped. Waiting for final '
-                    'messages to be processed...'
-                )
-                self.server.wait()
-
-        super(EngineService, self).stop(graceful=graceful)
-
-    def reset(self):
-        if self.server:
-            self.server.reset()
-
-        super(EngineService, self).reset()
+            self.server.wait()

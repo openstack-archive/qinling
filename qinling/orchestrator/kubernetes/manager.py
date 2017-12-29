@@ -18,7 +18,6 @@ import os
 import time
 
 import jinja2
-from kubernetes import client
 from oslo_log import log as logging
 import requests
 import tenacity
@@ -27,6 +26,7 @@ import yaml
 from qinling.engine import utils
 from qinling import exceptions as exc
 from qinling.orchestrator import base
+from qinling.orchestrator.kubernetes import utils as k8s_util
 from qinling.utils import common
 
 LOG = logging.getLogger(__name__)
@@ -38,9 +38,9 @@ class KubernetesManager(base.OrchestratorBase):
     def __init__(self, conf):
         self.conf = conf
 
-        client.Configuration().host = self.conf.kubernetes.kube_host
-        self.v1 = client.CoreV1Api()
-        self.v1extention = client.ExtensionsV1beta1Api()
+        clients = k8s_util.get_k8s_clients(self.conf)
+        self.v1 = clients['v1']
+        self.v1extention = clients['v1extention']
 
         # Create namespace if not exists
         self._ensure_namespace()

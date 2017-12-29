@@ -76,7 +76,6 @@ class FunctionsController(rest.RestController):
     def __init__(self, *args, **kwargs):
         self.storage_provider = storage_base.load_storage_provider(CONF)
         self.engine_client = rpc.get_engine_client()
-        self.type = 'function'
 
         super(FunctionsController, self).__init__(*args, **kwargs)
 
@@ -92,7 +91,7 @@ class FunctionsController(rest.RestController):
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose()
     def get(self, id):
-        LOG.info("Get resource.", resource={'type': self.type, 'id': id})
+        LOG.info("Get function %s.", id)
 
         download = strutils.bool_from_string(
             pecan.request.GET.get('download', False)
@@ -104,6 +103,7 @@ class FunctionsController(rest.RestController):
             pecan.override_template('json')
             return resources.Function.from_dict(func_db.to_dict()).to_dict()
         else:
+            LOG.info("Downloading function %s", id)
             source = func_db.code['source']
 
             if source == 'package':
@@ -126,11 +126,12 @@ class FunctionsController(rest.RestController):
             pecan.response.headers['Content-Disposition'] = (
                 'attachment; filename="%s"' % os.path.basename(func_db.name)
             )
+            LOG.info("Downloaded function %s", id)
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose('json')
     def post(self, **kwargs):
-        LOG.info("Creating %s, params: %s", self.type, kwargs)
+        LOG.info("Creating function, params: %s", kwargs)
 
         # When using image to create function, runtime_id is not a required
         # param.
@@ -221,7 +222,7 @@ class FunctionsController(rest.RestController):
         filters = rest_utils.get_filters(
             project_id=project_id,
         )
-        LOG.info("Get all %ss. filters=%s", self.type, filters)
+        LOG.info("Get all functions. filters=%s", filters)
         db_functions = db_api.get_functions(insecure=all_projects, **filters)
         functions = [resources.Function.from_dict(db_model.to_dict())
                      for db_model in db_functions]
@@ -232,7 +233,7 @@ class FunctionsController(rest.RestController):
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
         """Delete the specified function."""
-        LOG.info("Delete resource.", resource={'type': self.type, 'id': id})
+        LOG.info("Delete function %s.", id)
 
         with db_api.transaction():
             func_db = db_api.get_function(id)
@@ -280,9 +281,7 @@ class FunctionsController(rest.RestController):
             if kwargs.get(key) is not None:
                 values.update({key: kwargs[key]})
 
-        LOG.info('Update resource, params: %s', values,
-                 resource={'type': self.type, 'id': id})
-
+        LOG.info('Update function %s, params: %s', id, values)
         ctx = context.get_ctx()
 
         if set(values.keys()).issubset(set(['name', 'description'])):

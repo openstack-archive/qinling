@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 
 class WSGIService(service.ServiceBase):
-    """Provides ability to launch Mistral API from wsgi app."""
+    """Provides ability to launch Qinling API from wsgi app."""
 
     def __init__(self):
         self.app = app.setup_app()

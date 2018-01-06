@@ -23,7 +23,7 @@ from oslo_config import cfg
 from oslo_utils import importutils
 import six
 
-# We need to import mistral.api.app to
+# We need to import qinling.api.app to
 # make sure we register all needed options.
 importutils.try_import('qinling.api.app')
 

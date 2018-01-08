@@ -18,3 +18,17 @@ Qinling features
 This section does not intend to give you an exhaustive feature list of Qinling,
 but some features which make Qinling userful, powerful, scalable and highly
 available.
+
+Auto Scaling
+~~~~~~~~~~~~
+
+With Qinling, the function invocation can be automatically scaled up and down
+to meet the needs of your function. It's not necessary to monitor usage by
+yourself, Qinling can scale up new containers if traffic ticks up, and scale
+back down when it drops.
+
+Webhook
+~~~~~~~
+
+Webhooks are a low-effort way to invoke the functions in Qinling. They do
+not require a bot user or authentication to use.

@@ -68,7 +68,7 @@ configuration:
     LOGFILE=$DEST/logs/stack.sh.log
     LOGDAYS=1
 
-    ENABLED_SERVICES=rabbit,mysql,key
+    ENABLED_SERVICES=rabbit,mysql,key,tempest
 
 .. end
 

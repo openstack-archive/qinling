@@ -23,7 +23,7 @@ can also find some code examples in ``example/functions`` folder.
 
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     python_dev
     openstack_integration

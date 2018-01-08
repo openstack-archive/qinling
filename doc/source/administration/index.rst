@@ -15,18 +15,14 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-Contributor/Developer Guide
-===========================
-
-In this section you will find information helpful for contributing to qinling
-project.
-
+Administration/Operation Guide
+==============================
 
 .. toctree::
     :maxdepth: 1
 
-    development-environment-devstack
-    contributing
+    runtime
+    security
 
 Indices and tables
 ------------------

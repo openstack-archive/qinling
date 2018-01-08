@@ -44,6 +44,14 @@ Overview
    quick_start
    features
 
+Administration/Operation Guide
+------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   administration/index
+
 Contributor/Developer Guide
 ---------------------------
 

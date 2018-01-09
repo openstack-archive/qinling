@@ -98,3 +98,12 @@ class BaseQinlingTest(test.BaseTestCase):
                         function_id, ignore_notfound=True)
 
         return function_id
+
+    def create_webhook(self):
+        resp, body = self.client.create_webhook(self.function_id)
+        self.assertEqual(201, resp.status)
+        webhook_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'webhooks',
+                        webhook_id, ignore_notfound=True)
+
+        return webhook_id, body['webhook_url']

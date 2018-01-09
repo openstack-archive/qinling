@@ -38,8 +38,8 @@ class QinlingClient(client_base.QinlingClientBase):
 
         return resp, body
 
-    def get_resources(self, res):
-        resp, body = self.get_list_objs(res)
+    def get_resources(self, res, params=None):
+        resp, body = self.get_list_objs(res, params=params)
 
         return resp, body
 
@@ -102,3 +102,8 @@ class QinlingClient(client_base.QinlingClientBase):
 
     def get_function_workers(self, function_id):
         return self.get_resources('functions/%s/workers' % function_id)
+
+    def create_webhook(self, function_id):
+        req_body = {"function_id": function_id}
+        resp, body = self.post_json('webhooks', req_body)
+        return resp, body

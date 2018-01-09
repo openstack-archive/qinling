@@ -23,6 +23,7 @@ from qinling.engine import default_engine as engine
 from qinling.orchestrator import base as orchestra_base
 from qinling import rpc
 from qinling.services import periodics
+from qinling.utils.openstack import keystone as keystone_utils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -34,14 +35,15 @@ class EngineService(cotyledon.Service):
         self.server = None
 
     def run(self):
-        orchestrator = orchestra_base.load_orchestrator(CONF)
+        qinling_endpoint = keystone_utils.get_qinling_endpoint()
+        orchestrator = orchestra_base.load_orchestrator(CONF, qinling_endpoint)
         db_api.setup_db()
 
         topic = CONF.engine.topic
         server = CONF.engine.host
         transport = messaging.get_rpc_transport(CONF)
         target = messaging.Target(topic=topic, server=server, fanout=False)
-        endpoint = engine.DefaultEngine(orchestrator)
+        endpoint = engine.DefaultEngine(orchestrator, qinling_endpoint)
         access_policy = dispatcher.DefaultRPCAccessPolicy
         self.server = messaging.get_rpc_server(
             transport,

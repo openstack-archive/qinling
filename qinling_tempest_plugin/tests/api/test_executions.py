@@ -89,27 +89,31 @@ class ExecutionsTest(base.BaseQinlingTest):
 
         resp, body = self.client.create_execution(self.function_id,
                                                   input='{"name": "Qinling"}')
-
         self.assertEqual(201, resp.status)
-
-        execution_id = body['id']
+        execution_id_1 = body['id']
         self.addCleanup(self.client.delete_resource, 'executions',
-                        execution_id, ignore_notfound=True)
+                        execution_id_1, ignore_notfound=True)
+        self.assertEqual('success', body['status'])
 
+        # Create another execution without input
+        resp, body = self.client.create_execution(self.function_id)
+        self.assertEqual(201, resp.status)
+        execution_id_2 = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id_2, ignore_notfound=True)
         self.assertEqual('success', body['status'])
 
         # Get executions
         resp, body = self.client.get_resources('executions')
-
         self.assertEqual(200, resp.status)
-        self.assertIn(
-            execution_id,
-            [execution['id'] for execution in body['executions']]
-        )
+        expected = {execution_id_1, execution_id_2}
+        actual = set([execution['id'] for execution in body['executions']])
+        self.assertTrue(expected.issubset(actual))
 
-        # Delete execution
-        resp = self.client.delete_resource('executions', execution_id)
-
+        # Delete executions
+        resp = self.client.delete_resource('executions', execution_id_1)
+        self.assertEqual(204, resp.status)
+        resp = self.client.delete_resource('executions', execution_id_2)
         self.assertEqual(204, resp.status)
 
     @decorators.idempotent_id('2199d1e6-de7d-4345-8745-a8184d6022b1')

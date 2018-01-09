@@ -137,10 +137,13 @@ class DbTestCase(BaseTest):
             (config.STORAGE_GROUP, config.storage_opts),
             (config.KUBERNETES_GROUP, config.kubernetes_opts),
             (config.ETCD_GROUP, config.etcd_opts),
-            (None, [config.launch_opt])
+            (None, [config.launch_opt]),
+            (None, config.default_opts)
         ]
         for group, options in qinling_opts:
             cfg.CONF.register_opts(list(options), group)
+        cls.qinling_endpoint = 'http://127.0.0.1:7070/'
+        cfg.CONF.set_default('qinling_endpoint', cls.qinling_endpoint)
 
         db_api.setup_db()
 
@@ -200,11 +203,24 @@ class DbTestCase(BaseTest):
         job_params = {
             'name': self.rand_name('job', prefix=prefix),
             'function_id': function_id,
-            # 'auth_enable' is disabled by default, we create runtime for
-            # default tenant.
+            # 'auth_enable' is disabled by default
             'project_id': DEFAULT_PROJECT_ID,
         }
         job_params.update(kwargs)
         job = db_api.create_job(job_params)
 
         return job
+
+    def create_webhook(self, function_id=None, prefix=None, **kwargs):
+        if not function_id:
+            function_id = self.create_function(prefix=prefix).id
+
+        webhook_params = {
+            'function_id': function_id,
+            # 'auth_enable' is disabled by default
+            'project_id': DEFAULT_PROJECT_ID,
+        }
+        webhook_params.update(kwargs)
+        webhook = db_api.create_webhook(webhook_params)
+
+        return webhook

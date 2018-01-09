@@ -11,8 +11,10 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+CURRENT_VERSION = 'v1'
 
 EXECUTION_BY_JOB = 'Created by Job %s'
+EXECUTION_BY_WEBHOOK = 'Created by Webhook %s'
 
 PERIODIC_JOB_HANDLER = 'job_handler'
 PERIODIC_FUNC_MAPPING_HANDLER = 'function_mapping_handler'

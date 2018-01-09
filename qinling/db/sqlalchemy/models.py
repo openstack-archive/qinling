@@ -85,9 +85,19 @@ class Job(model_base.QinlingSecureModelBase):
         return d
 
 
+class Webhook(model_base.QinlingSecureModelBase):
+    __tablename__ = 'webhooks'
+
+    function_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey(Function.id)
+    )
+    description = sa.Column(sa.String(255))
+
+
 Runtime.functions = relationship("Function", back_populates="runtime")
 
-# Only get jobs
+# Only get running jobs
 Function.jobs = relationship(
     "Job",
     back_populates="function",
@@ -96,3 +106,4 @@ Function.jobs = relationship(
         "~Job.status.in_(['done', 'cancelled']))"
     )
 )
+Function.webhook = relationship("Webhook", uselist=False, backref="function")

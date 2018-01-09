@@ -290,7 +290,7 @@ class Execution(Resource):
         obj = cls()
 
         for key, val in d.items():
-            if key == 'input' and val:
+            if key == 'input' and val is not None:
                 if val.get('__function_input'):
                     setattr(obj, key, val.get('__function_input'))
                 else:
@@ -393,3 +393,22 @@ class Jobs(ResourceList):
 
 class ScaleInfo(Resource):
     count = wtypes.IntegerType(minimum=1)
+
+
+class Webhook(Resource):
+    id = types.uuid
+    function_id = types.uuid
+    description = wtypes.text
+    project_id = wsme.wsattr(wtypes.text, readonly=True)
+    created_at = wsme.wsattr(wtypes.text, readonly=True)
+    updated_at = wsme.wsattr(wtypes.text, readonly=True)
+    webhook_url = wsme.wsattr(wtypes.text, readonly=True)
+
+
+class Webhooks(ResourceList):
+    webhooks = [Webhook]
+
+    def __init__(self, **kwargs):
+        self._type = 'webhooks'
+
+        super(Webhooks, self).__init__(**kwargs)

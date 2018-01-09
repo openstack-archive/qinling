@@ -138,3 +138,25 @@ def create_trust_context(trust_id, project_id):
         auth_token=None,
         is_admin=True
     )
+
+
+def get_qinling_endpoint():
+    '''Get Qinling service endpoint.'''
+    if CONF.qinling_endpoint:
+        return CONF.qinling_endpoint
+
+    region = CONF.keystone_authtoken.region_name
+    auth = v3.Password(
+        auth_url=CONF.keystone_authtoken.www_authenticate_uri,
+        username=CONF.keystone_authtoken.username,
+        password=CONF.keystone_authtoken.password,
+        project_name=CONF.keystone_authtoken.project_name,
+        user_domain_name=CONF.keystone_authtoken.user_domain_name,
+        project_domain_name=CONF.keystone_authtoken.project_domain_name,
+    )
+    sess = session.Session(auth=auth, verify=False)
+    endpoint = sess.get_endpoint(service_type='function-engine',
+                                 interface='public',
+                                 region_name=region)
+
+    return endpoint

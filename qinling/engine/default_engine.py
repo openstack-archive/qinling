@@ -28,8 +28,9 @@ CONF = cfg.CONF
 
 
 class DefaultEngine(object):
-    def __init__(self, orchestrator):
+    def __init__(self, orchestrator, qinling_endpoint):
         self.orchestrator = orchestrator
+        self.qinling_endpoint = qinling_endpoint
         self.session = requests.Session()
 
     def create_runtime(self, ctx, runtime_id):
@@ -142,7 +143,8 @@ class DefaultEngine(object):
 
             data = utils.get_request_data(
                 CONF, function_id, execution_id,
-                input, function.entry, function.trust_id
+                input, function.entry, function.trust_id,
+                self.qinling_endpoint
             )
             success, res = utils.url_request(
                 self.session, func_url, body=data

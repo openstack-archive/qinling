@@ -155,7 +155,6 @@ def _get_collection(model, insecure=False, limit=None, marker=None,
     query = (db_base.model_query(model, columns) if insecure
              else _secure_query(model, *columns))
     query = db_filters.apply_filters(query, model, **filters)
-
     query = _paginate_query(
         model,
         limit,
@@ -441,3 +440,54 @@ def get_jobs(session=None, **kwargs):
 @db_base.session_aware()
 def delete_jobs(session=None, insecure=None, **kwargs):
     return _delete_all(models.Job, insecure=insecure, **kwargs)
+
+
+@db_base.session_aware()
+def create_webhook(values, session=None):
+    webhook = models.Webhook()
+    webhook.update(values.copy())
+
+    try:
+        webhook.save(session=session)
+    except oslo_db_exc.DBDuplicateEntry as e:
+        raise exc.DBError(
+            "Duplicate entry for webhook: %s" % e.columns
+        )
+
+    return webhook
+
+
+@db_base.insecure_aware()
+@db_base.session_aware()
+def get_webhook(id, insecure=None, session=None):
+    webhook = _get_db_object_by_id(models.Webhook, id, insecure=insecure)
+
+    if not webhook:
+        raise exc.DBEntityNotFoundError("Webhook not found [id=%s]" % id)
+
+    return webhook
+
+
+@db_base.session_aware()
+def get_webhooks(session=None, **kwargs):
+    return _get_collection_sorted_by_time(models.Webhook, **kwargs)
+
+
+@db_base.session_aware()
+def delete_webhook(id, session=None):
+    webhook = get_webhook(id)
+    session.delete(webhook)
+
+
+@db_base.session_aware()
+def update_webhook(id, values, session=None):
+    webhook = get_webhook(id)
+    webhook.update(values.copy())
+
+    return webhook
+
+
+@db_base.insecure_aware()
+@db_base.session_aware()
+def delete_webhooks(session=None, insecure=None, **kwargs):
+    return _delete_all(models.Webhook, insecure=insecure, **kwargs)

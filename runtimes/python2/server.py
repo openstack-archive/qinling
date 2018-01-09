@@ -21,7 +21,6 @@ import os
 import sys
 import time
 import traceback
-import zipfile
 
 from flask import Flask
 from flask import request
@@ -33,6 +32,10 @@ import requests
 app = Flask(__name__)
 downloaded = False
 downloading = False
+
+DOWNLOAD_ERROR = "Failed to download function package from %s, error: %s"
+INVOKE_ERROR = "Function execution failed because of too much resource " \
+               "consumption"
 
 
 def setup_logger(loglevel):
@@ -51,6 +54,47 @@ def _print_trace():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
     print(''.join(line for line in lines))
+
+
+def _get_responce(output, duration, logs, success, code):
+    return Response(
+        response=json.dumps(
+            {
+                'output': output,
+                'duration': duration,
+                'logs': logs,
+                'success': success
+            }
+        ),
+        status=code,
+        mimetype='application/json'
+    )
+
+
+def _download_package(url, zip_file, token=None):
+    app.logger.info('Downloading function, download_url:%s' % url)
+
+    headers = {}
+    if token:
+        headers = {'X-Auth-Token': token}
+
+    try:
+        r = requests.get(url, headers=headers, stream=True,
+                         verify=False, timeout=5)
+        if r.status_code != 200:
+            return _get_responce(
+                DOWNLOAD_ERROR % (url, r.content), 0, '', False, 500
+            )
+
+        with open(zip_file, 'wb') as fd:
+            for chunk in r.iter_content(chunk_size=65535):
+                fd.write(chunk)
+    except Exception as e:
+        return _get_responce(
+            DOWNLOAD_ERROR % (url, str(e)), 0, '', False, 500
+        )
+
+    app.logger.info('Downloaded function package to %s' % zip_file)
 
 
 def _invoke_function(execution_id, zip_file, module_name, method, arg, input,
@@ -116,47 +160,15 @@ def execute():
     )
 
     while downloading:
-        # wait
         time.sleep(3)
 
-    # download function package
     if not downloading and not downloaded:
         downloading = True
-        token = params.get('token')
 
-        headers = {}
-        if token:
-            headers = {'X-Auth-Token': token}
+        _download_package(download_url, zip_file, params.get('token'))
 
-        app.logger.info(
-            'Downloading function, download_url:%s, entry: %s' %
-            (download_url, entry)
-        )
-
-        # Get function code package from Qinling service.
-        r = requests.get(download_url, headers=headers, stream=True)
-        with open(zip_file, 'wb') as fd:
-            for chunk in r.iter_content(chunk_size=65535):
-                fd.write(chunk)
-
-        app.logger.info('Downloaded function package to %s' % zip_file)
         downloading = False
         downloaded = True
-
-    if downloaded:
-        if not zipfile.is_zipfile(zip_file):
-            return Response(
-                response=json.dumps(
-                    {
-                        'output': 'The function package is incorrect.',
-                        'duration': 0,
-                        'logs': '',
-                        'success': False
-                    }
-                ),
-                status=500,
-                mimetype='application/json'
-            )
 
     # Provide an openstack session to user's function
     os_session = None
@@ -189,8 +201,7 @@ def execute():
 
     # Process was killed unexpectedly or finished with error.
     if p.exitcode != 0:
-        output = "Function execution failed because of too much resource " \
-                 "consumption."
+        output = INVOKE_ERROR
         success = False
     else:
         output = return_dict.get('result')
@@ -201,18 +212,7 @@ def execute():
         logs = f.read()
     os.remove('%s.out' % execution_id)
 
-    return Response(
-        response=json.dumps(
-            {
-                'output': output,
-                'duration': duration,
-                'logs': logs,
-                'success': success
-            }
-        ),
-        status=200,
-        mimetype='application/json'
-    )
+    return _get_responce(output, duration, logs, success, 200)
 
 
 @app.route('/ping')

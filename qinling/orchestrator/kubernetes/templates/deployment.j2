@@ -20,6 +20,7 @@ spec:
         {{ key }}: {{ value }}
       {% endfor %}
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
       - name: {{ container_name }}
         image: {{ image }}

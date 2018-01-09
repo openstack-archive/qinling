@@ -131,14 +131,13 @@ class FunctionsController(rest.RestController):
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose('json')
     def post(self, **kwargs):
-        LOG.info("Creating function, params: %s", kwargs)
-
         # When using image to create function, runtime_id is not a required
         # param.
         if not POST_REQUIRED.issubset(set(kwargs.keys())):
             raise exc.InputException(
                 'Required param is missing. Required: %s' % POST_REQUIRED
             )
+        LOG.info("Creating function, params: %s", kwargs)
 
         values = {
             'name': kwargs.get('name'),
@@ -240,6 +239,10 @@ class FunctionsController(rest.RestController):
             if len(func_db.jobs) > 0:
                 raise exc.NotAllowedException(
                     'The function is still associated with running job(s).'
+                )
+            if func_db.webhook:
+                raise exc.NotAllowedException(
+                    'The function is still associated with webhook.'
                 )
 
             # Even admin user can not delete other project's function because

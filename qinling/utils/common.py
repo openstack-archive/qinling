@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import functools
+import pdb
 import sys
 import warnings
 
@@ -104,3 +105,20 @@ def disable_ssl_warnings(func):
             return func(*args, **kwargs)
 
     return wrapper
+
+
+class ForkedPdb(pdb.Pdb):
+    """A Pdb subclass that may be used from a forked multiprocessing child.
+
+    Usage:
+    from qinling.utils import common
+    common.ForkedPdb().set_trace()
+    """
+
+    def interaction(self, *args, **kwargs):
+        _stdin = sys.stdin
+        try:
+            sys.stdin = file('/dev/stdin')
+            pdb.Pdb.interaction(self, *args, **kwargs)
+        finally:
+            sys.stdin = _stdin

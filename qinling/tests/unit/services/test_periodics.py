@@ -50,7 +50,7 @@ class TestPeriodics(base.DbTestCase):
         mock_k8s = mock.Mock()
         mock_etcd_url.return_value = 'http://localhost:37718'
         self.override_config('function_service_expiration', 1, 'engine')
-        engine = default_engine.DefaultEngine(mock_k8s)
+        engine = default_engine.DefaultEngine(mock_k8s, CONF.qinling_endpoint)
         periodics.handle_function_service_expiration(self.ctx, engine)
 
         self.assertEqual(1, mock_k8s.delete_function.call_count)

@@ -35,8 +35,9 @@ TEMPLATES_DIR = (os.path.dirname(os.path.realpath(__file__)) + '/templates/')
 
 
 class KubernetesManager(base.OrchestratorBase):
-    def __init__(self, conf):
+    def __init__(self, conf, qinling_endpoint):
         self.conf = conf
+        self.qinling_endpoint = qinling_endpoint
 
         clients = k8s_util.get_k8s_clients(self.conf)
         self.v1 = clients['v1']
@@ -125,7 +126,6 @@ class KubernetesManager(base.OrchestratorBase):
 
     def delete_pool(self, name, labels=None):
         """Delete all resources belong to the deployment."""
-
         LOG.info("Deleting deployment %s", name)
 
         selector = common.convert_dict_to_string(labels)
@@ -134,7 +134,6 @@ class KubernetesManager(base.OrchestratorBase):
             self.conf.kubernetes.namespace,
             label_selector=selector
         )
-
         LOG.info("ReplicaSets in deployment %s deleted.", name)
 
         ret = self.v1.list_namespaced_service(
@@ -146,7 +145,6 @@ class KubernetesManager(base.OrchestratorBase):
                 svc_name,
                 self.conf.kubernetes.namespace,
             )
-
         LOG.info("Services in deployment %s deleted.", name)
 
         self.v1extention.delete_collection_namespaced_deployment(
@@ -154,14 +152,12 @@ class KubernetesManager(base.OrchestratorBase):
             label_selector=selector,
             field_selector='metadata.name=%s' % name
         )
-
         # Should delete pods after deleting deployment to avoid pods are
         # recreated by k8s.
         self.v1.delete_collection_namespaced_pod(
             self.conf.kubernetes.namespace,
             label_selector=selector
         )
-
         LOG.info("Pods in deployment %s deleted.", name)
         LOG.info("Deployment %s deleted.", name)
 
@@ -398,7 +394,8 @@ class KubernetesManager(base.OrchestratorBase):
         if service_url:
             func_url = '%s/execute' % service_url
             data = utils.get_request_data(
-                self.conf, function_id, execution_id, input, entry, trust_id
+                self.conf, function_id, execution_id, input, entry, trust_id,
+                self.qinling_endpoint
             )
             LOG.debug(
                 'Invoke function %s, url: %s, data: %s',

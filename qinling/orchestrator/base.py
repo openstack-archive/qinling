@@ -59,7 +59,7 @@ class OrchestratorBase(object):
         raise NotImplementedError
 
 
-def load_orchestrator(conf):
+def load_orchestrator(conf, qinling_endpoint):
     global ORCHESTRATOR
 
     if not ORCHESTRATOR:
@@ -67,7 +67,7 @@ def load_orchestrator(conf):
             mgr = driver.DriverManager('qinling.orchestrator',
                                        conf.engine.orchestrator,
                                        invoke_on_load=True,
-                                       invoke_args=[conf])
+                                       invoke_args=[conf, qinling_endpoint])
 
             ORCHESTRATOR = mgr.driver
         except Exception as e:

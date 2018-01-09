@@ -114,3 +114,15 @@ def upgrade():
         sa.ForeignKeyConstraint(['function_id'], [u'functions.id']),
         info={"check_ifexists": True}
     )
+
+    op.create_table(
+        'webhooks',
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('project_id', sa.String(length=80), nullable=False),
+        sa.Column('id', sa.String(length=36), nullable=False),
+        sa.Column('description', sa.String(length=255), nullable=True),
+        sa.Column('function_id', sa.String(length=36), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        info={"check_ifexists": True}
+    )

@@ -24,7 +24,7 @@ function install_k8s {
     source tools/gate/setup_gate.sh
     popd
 
-    # Pre-pull the default docker image for python runtime and image function
+    # Pre-fetch the default docker image for python runtime and image function
     # test.
     sudo docker pull $QINLING_PYTHON_RUNTIME_IMAGE
     sudo docker pull openstackqinling/alpine-test
@@ -76,11 +76,11 @@ function configure_qinling {
     iniset $QINLING_CONF_FILE DEFAULT server all
     iniset $QINLING_CONF_FILE DEFAULT logging_context_format_string "%(asctime)s %(process)d %(color)s %(levelname)s [%(request_id)s] %(message)s %(resource)s (%(name)s)"
     iniset $QINLING_CONF_FILE storage file_system_dir $QINLING_FUNCTION_STORAGE_DIR
-    iniset $QINLING_CONF_FILE kubernetes qinling_service_address $DEFAULT_HOST_IP
 
     # Setup keystone_authtoken section
     configure_auth_token_middleware $QINLING_CONF_FILE qinling $QINLING_AUTH_CACHE_DIR
     iniset $QINLING_CONF_FILE keystone_authtoken www_authenticate_uri $KEYSTONE_AUTH_URI_V3
+    iniset $QINLING_CONF_FILE keystone_authtoken region_name "$REGION_NAME"
 
     # Setup RabbitMQ credentials
     iniset_rpc_backend qinling $QINLING_CONF_FILE

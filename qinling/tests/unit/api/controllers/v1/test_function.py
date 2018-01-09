@@ -158,3 +158,16 @@ class TestFunctionController(base.APITest):
         )
 
         self.assertEqual(403, resp.status_int)
+
+    def test_delete_with_webhook(self):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+        self.create_webhook(function_id=db_func.id, prefix=TEST_CASE_NAME)
+
+        resp = self.app.delete(
+            '/v1/functions/%s' % db_func.id,
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)

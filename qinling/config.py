@@ -26,6 +26,13 @@ launch_opt = cfg.ListOpt(
     help='Specifies which qinling server to start by the launch script.'
 )
 
+default_opts = [
+    cfg.StrOpt(
+        'qinling_endpoint',
+        help='Qinling service endpoint.'
+    ),
+]
+
 API_GROUP = 'api'
 api_opts = [
     cfg.StrOpt('host', default='0.0.0.0', help='Qinling API server host.'),
@@ -139,11 +146,6 @@ kubernetes_opts = [
         help='Kubernetes server address, e.g. you can start a proxy to the '
              'Kubernetes API server by using "kubectl proxy" command.'
     ),
-    cfg.IPOpt(
-        'qinling_service_address',
-        default='127.0.0.1',
-        help='Qinling API service ip address.'
-    ),
     cfg.StrOpt(
         'log_devel',
         default='INFO',
@@ -172,7 +174,8 @@ def list_opts():
         (STORAGE_GROUP, storage_opts),
         (KUBERNETES_GROUP, kubernetes_opts),
         (ETCD_GROUP, etcd_opts),
-        (None, [launch_opt])
+        (None, [launch_opt]),
+        (None, default_opts),
     ]
 
     return keystone_middleware_opts + keystone_loading_opts + qinling_opts

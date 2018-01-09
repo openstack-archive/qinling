@@ -11,6 +11,7 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+import re
 
 from oslo_config import cfg
 from oslo_context import context as oslo_context
@@ -22,6 +23,7 @@ from qinling.utils import thread_local
 
 CONF = cfg.CONF
 ALLOWED_WITHOUT_AUTH = ['/', '/v1/']
+WEBHOOK_REG = '^/v1/webhooks/[a-f0-9-]+/invoke$'
 CTX_THREAD_LOCAL_NAME = "QINLING_APP_CTX_THREAD_LOCAL"
 DEFAULT_PROJECT_ID = "default"
 
@@ -46,10 +48,11 @@ def authenticate(req):
 
 class AuthHook(hooks.PecanHook):
     def before(self, state):
+        if not CONF.pecan.auth_enable:
+            return
         if state.request.path in ALLOWED_WITHOUT_AUTH:
             return
-
-        if not CONF.pecan.auth_enable:
+        if re.search(WEBHOOK_REG, state.request.path):
             return
 
         try:

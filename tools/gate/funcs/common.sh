@@ -42,87 +42,6 @@ function base_install {
   fi
 }
 
-function loopback_support_install {
-  if [ "x$HOST_OS" == "xubuntu" ]; then
-    sudo apt-get update -y
-    sudo apt-get install -y --no-install-recommends \
-      targetcli \
-      open-iscsi \
-      lshw
-    sudo systemctl restart iscsid
-  elif [ "x$HOST_OS" == "xcentos" ]; then
-    sudo yum install -y \
-      targetcli \
-      iscsi-initiator-utils \
-      lshw
-  elif [ "x$HOST_OS" == "xfedora" ]; then
-    sudo dnf install -y \
-      targetcli \
-      iscsi-initiator-utils \
-      lshw
-  fi
-}
-
-function loopback_setup {
-  sudo mkdir -p ${LOOPBACK_DIR}
-  for ((LOOPBACK_DEV=1;LOOPBACK_DEV<=${LOOPBACK_DEVS};LOOPBACK_DEV++)); do
-    if [ "x$HOST_OS" == "xubuntu" ]; then
-      sudo targetcli backstores/fileio create loopback-${LOOPBACK_DEV} ${LOOPBACK_DIR}/fileio-${LOOPBACK_DEV} ${LOOPBACK_SIZE}
-    else
-      sudo targetcli backstores/fileio create loopback-${LOOPBACK_DEV} ${LOOPBACK_DIR}/fileio-${LOOPBACK_DEV} ${LOOPBACK_SIZE} write_back=false
-    fi
-  done
-  sudo targetcli iscsi/ create iqn.2016-01.com.example:target
-  if ! [ "x$HOST_OS" == "xubuntu" ]; then
-    sudo targetcli iscsi/iqn.2016-01.com.example:target/tpg1/portals delete 0.0.0.0 3260
-    sudo targetcli iscsi/iqn.2016-01.com.example:target/tpg1/portals create 127.0.0.1 3260
-  else
-    #NOTE (Portdirect): Frustratingly it appears that Ubuntu's targetcli wont
-    # let you bind to localhost.
-    sudo targetcli iscsi/iqn.2016-01.com.example:target/tpg1/portals create 0.0.0.0 3260
-  fi
-  for ((LOOPBACK_DEV=1;LOOPBACK_DEV<=${LOOPBACK_DEVS};LOOPBACK_DEV++)); do
-    sudo targetcli iscsi/iqn.2016-01.com.example:target/tpg1/luns/ create /backstores/fileio/loopback-${LOOPBACK_DEV}
-  done
-  sudo targetcli iscsi/iqn.2016-01.com.example:target/tpg1/acls/ create $(sudo cat /etc/iscsi/initiatorname.iscsi | awk -F '=' '/^InitiatorName/ { print $NF}')
-  if [ "x$HOST_OS" == "xubuntu" ]; then
-    sudo targetcli iscsi/iqn.2016-01.com.example:target/tpg1 set attribute authentication=0
-  fi
-  sudo iscsiadm --mode discovery --type sendtargets --portal 127.0.0.1
-  sudo iscsiadm -m node -T iqn.2016-01.com.example:target -p 127.0.0.1:3260 -l
-  # Display disks
-  sudo lshw -class disk
-}
-
-function ceph_support_install {
-  if [ "x$HOST_OS" == "xubuntu" ]; then
-    sudo apt-get update -y
-    sudo apt-get install -y --no-install-recommends -qq \
-      ceph-common
-  elif [ "x$HOST_OS" == "xcentos" ]; then
-    sudo yum install -y \
-      ceph
-  elif [ "x$HOST_OS" == "xfedora" ]; then
-    sudo dnf install -y \
-      ceph
-  fi
-  sudo modprobe rbd
-}
-
-function nfs_support_install {
-  if [ "x$HOST_OS" == "xubuntu" ]; then
-    sudo apt-get update -y
-    sudo apt-get install -y --no-install-recommends -qq \
-      nfs-common
-  elif [ "x$HOST_OS" == "xcentos" ]; then
-    sudo yum install -y \
-      nfs-utils
-  elif [ "x$HOST_OS" == "xfedora" ]; then
-    sudo dnf install -y \
-      nfs-utils
-  fi
-}
-
 function gate_base_setup {
   # Install base requirements
   base_install
@@ -139,4 +58,11 @@ function gate_base_setup {
   elif [ "x$PVC_BACKEND" == "xnfs" ]; then
     nfs_support_install
   fi
+}
+
+function create_k8s_screen {
+  # Starts a proxy to the Kubernetes API server in a screen session
+  sudo screen -S kube_proxy -X quit || true
+  sudo screen -dmS kube_proxy && sudo screen -S kube_proxy -X screen -t kube_proxy
+  sudo screen -S kube_proxy -p kube_proxy -X stuff 'kubectl proxy --accept-hosts=".*" --address="0.0.0.0"\n'
 }

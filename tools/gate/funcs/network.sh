@@ -42,48 +42,10 @@ function net_hosts_pre_kube {
   sudo sed -i "/127.0.0.1/d" /etc/hosts
   sudo sed -i "1 i 127.0.0.1 localhost" /etc/hosts
 
-  # The var will be used in qinling pre_test_hook.sh
-  export DEFAULT_HOST_IP=$(net_default_host_ip)
-  echo "${DEFAULT_HOST_IP} $(hostname)" | sudo tee -a /etc/hosts
+  host_ip=$(net_default_host_ip)
+  echo "${host_ip} $(hostname)" | sudo tee -a /etc/hosts
 }
 
 function net_hosts_post_kube {
   sudo cp -f /etc/hosts-pre-kube /etc/hosts
-}
-
-function find_subnet_range {
-  if [ "x$HOST_OS" == "xubuntu" ]; then
-    ipcalc $(net_default_host_addr) | awk '/^Network/ { print $2 }'
-  else
-    eval $(ipcalc --network --prefix $(net_default_host_addr))
-    echo "$NETWORK/$PREFIX"
-  fi
-}
-
-function find_multi_subnet_range {
-  : ${PRIMARY_NODE_IP:="$(cat /etc/nodepool/primary_node | tail -1)"}
-  : ${SUB_NODE_IPS:="$(cat /etc/nodepool/sub_nodes)"}
-  NODE_IPS="${PRIMARY_NODE_IP} ${SUB_NODE_IPS}"
-  NODE_IP_UNSORTED=$(mktemp --suffix=.txt)
-  for NODE_IP in $NODE_IPS; do
-    echo $NODE_IP >> ${NODE_IP_UNSORTED}
-  done
-  NODE_IP_SORTED=$(mktemp --suffix=.txt)
-  sort -V ${NODE_IP_UNSORTED} > ${NODE_IP_SORTED}
-  rm -f ${NODE_IP_UNSORTED}
-  FIRST_IP_SUBNET=$(ipcalc "$(head -n 1 ${NODE_IP_SORTED})/24" | awk '/^Network/ { print $2 }')
-  LAST_IP_SUBNET=$(ipcalc "$(tail -n 1 ${NODE_IP_SORTED})/24" | awk '/^Network/ { print $2 }')
-  rm -f ${NODE_IP_SORTED}
-  function ip_diff {
-    echo $(($(echo $LAST_IP_SUBNET | awk -F '.' "{ print \$$1}") - $(echo $FIRST_IP_SUBNET | awk -F '.' "{ print \$$1}")))
-  }
-  for X in {1..4}; do
-    if ! [ "$(ip_diff $X)" -eq "0" ]; then
-      SUBMASK=$(((($X - 1 )) * 8))
-      break
-    elif [ $X -eq "4" ]; then
-      SUBMASK=24
-    fi
-  done
-  echo ${FIRST_IP_SUBNET%/*}/${SUBMASK}
 }

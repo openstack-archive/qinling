@@ -19,6 +19,7 @@ import six
 import tenacity
 
 from qinling import context
+from qinling.utils import constants
 
 LOG = logging.getLogger(__name__)
 
@@ -33,10 +34,11 @@ def url_request(request_session, url, body=None):
         temp[-1] = 'ping'
         ping_url = '/'.join(temp)
         r = tenacity.Retrying(
-            wait=tenacity.wait_fixed(0.5),
-            stop=tenacity.stop_after_attempt(5),
-            retry=tenacity.retry_if_exception_type(IOError))
-        r.call(request_session.get, ping_url, timeout=(3, 3))
+            wait=tenacity.wait_fixed(1),
+            stop=tenacity.stop_after_attempt(30),
+            retry=tenacity.retry_if_exception_type(IOError)
+        )
+        r.call(request_session.get, ping_url, timeout=(3, 3), verify=False)
     except Exception as e:
         LOG.exception(
             "Failed to request url %s, error: %s", ping_url, str(e)
@@ -44,16 +46,24 @@ def url_request(request_session, url, body=None):
         return False, {'error': 'Function execution failed.'}
 
     for a in six.moves.xrange(10):
+        res = None
         try:
             # Default execution max duration is 3min, could be configurable
-            r = request_session.post(url, json=body, timeout=(3, 180))
-            return True, r.json()
+            res = request_session.post(
+                url, json=body, timeout=(3, 180), verify=False
+            )
+            return True, res.json()
         except requests.ConnectionError as e:
             exception = e
-            # NOTE(kong): Could be configurable
             time.sleep(1)
         except Exception as e:
-            LOG.exception("Failed to request url %s, error: %s", url, str(e))
+            LOG.exception(
+                "Failed to request url %s, error: %s", url, str(e)
+            )
+            if res:
+                LOG.error("Response status: %s, content: %s",
+                          res.status_code, res.content)
+
             return False, {'error': 'Function execution timeout.'}
 
     LOG.exception("Could not connect to function service. Reason: %s",
@@ -62,13 +72,12 @@ def url_request(request_session, url, body=None):
     return False, {'error': 'Internal service error.'}
 
 
-def get_request_data(conf, function_id, execution_id, input, entry, trust_id):
+def get_request_data(conf, function_id, execution_id, input, entry, trust_id,
+                     qinling_endpoint):
     ctx = context.get_ctx()
-
     download_url = (
-        'http://%s:%s/v1/functions/%s?download=true' %
-        (conf.kubernetes.qinling_service_address,
-         conf.api.port, function_id)
+        '%s/%s/functions/%s?download=true' %
+        (qinling_endpoint.strip('/'), constants.CURRENT_VERSION, function_id)
     )
     data = {
         'execution_id': execution_id,

@@ -57,6 +57,7 @@ def transaction():
 def delete_all():
     """A helper function for testing."""
     delete_jobs(insecure=True)
+    delete_webhooks(insecure=True)
     delete_executions(insecure=True)
     delete_functions(insecure=True)
     delete_runtimes(insecure=True)
@@ -69,7 +70,7 @@ def conditional_update(model, values, expected_values, **kwargs):
 def get_function(id, insecure=None):
     """Get function from db.
 
-    'insecure' param is needed for job handler.
+    'insecure' param is needed for job handler and webhook.
     """
     return IMPL.get_function(id, insecure=insecure)
 
@@ -176,3 +177,27 @@ def get_jobs():
 
 def delete_jobs(**kwargs):
     return IMPL.delete_jobs(**kwargs)
+
+
+def create_webhook(values):
+    return IMPL.create_webhook(values)
+
+
+def get_webhook(id, insecure=None):
+    return IMPL.get_webhook(id, insecure=insecure)
+
+
+def get_webhooks():
+    return IMPL.get_webhooks()
+
+
+def delete_webhook(id):
+    return IMPL.delete_webhook(id)
+
+
+def update_webhook(id, values):
+    return IMPL.update_webhook(id, values)
+
+
+def delete_webhooks(**kwargs):
+    return IMPL.delete_webhooks(**kwargs)

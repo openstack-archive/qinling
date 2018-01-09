@@ -20,6 +20,7 @@ from qinling.api.controllers.v1 import function
 from qinling.api.controllers.v1 import job
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import runtime
+from qinling.api.controllers.v1 import webhook
 
 
 class RootResource(resources.Resource):
@@ -36,6 +37,7 @@ class Controller(object):
     runtimes = runtime.RuntimesController()
     executions = execution.ExecutionsController()
     jobs = job.JobsController()
+    webhooks = webhook.WebhooksController()
 
     @wsme_pecan.wsexpose(RootResource)
     def index(self):

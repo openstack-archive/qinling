@@ -14,16 +14,24 @@
 
 import json
 
+import six
+
 from tempest.lib.common import rest_client
+
+urlparse = six.moves.urllib.parse
 
 
 class QinlingClientBase(rest_client.RestClient):
     def __init__(self, auth_provider, **kwargs):
         super(QinlingClientBase, self).__init__(auth_provider, **kwargs)
 
-    def get_list_objs(self, obj):
-        resp, body = self.get('/v1/%s' % obj)
+    def get_list_objs(self, obj, params=None):
+        url = '/v1/%s' % obj
+        query_string = ("?%s" % urlparse.urlencode(list(params.items()))
+                        if params else "")
+        url += query_string
 
+        resp, body = self.get(url)
         return resp, json.loads(body)
 
     def delete_obj(self, obj, id):

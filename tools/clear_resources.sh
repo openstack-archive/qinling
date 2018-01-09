@@ -4,6 +4,13 @@ set -e
 # export QINLING_URL=http://127.0.0.1:7070
 
 function delete_resources(){
+    # Delete webhooks
+    ids=$(openstack webhook list -f yaml -c Id | awk '{print $3}')
+    for id in $ids
+    do
+        openstack webhook delete $id
+    done
+
     # Delete jobs
     ids=$(openstack job list -f yaml -c Id | awk '{print $3}')
     for id in $ids

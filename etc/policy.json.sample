@@ -15,4 +15,8 @@
     "function:detach": "rule:context_is_admin",
 
     "execution:get_all:all_projects": "rule:context_is_admin",
+
+    "webhook:get_all:all_projects": "rule:context_is_admin",
+
+    "job:get_all:all_projects": "rule:context_is_admin",
 }

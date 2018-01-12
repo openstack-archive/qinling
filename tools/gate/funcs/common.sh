@@ -42,27 +42,14 @@ function base_install {
   fi
 }
 
-function gate_base_setup {
-  # Install base requirements
-  base_install
-
-  # Install and setup iscsi loopback devices if required.
-  if [ "x$LOOPBACK_CREATE" == "xtrue" ]; then
-    loopback_support_install
-    loopback_setup
-  fi
-
-  # Install support packages for pvc backends
-  if [ "x$PVC_BACKEND" == "xceph" ]; then
-    ceph_support_install
-  elif [ "x$PVC_BACKEND" == "xnfs" ]; then
-    nfs_support_install
-  fi
-}
-
 function create_k8s_screen {
   # Starts a proxy to the Kubernetes API server in a screen session
   sudo screen -S kube_proxy -X quit || true
   sudo screen -dmS kube_proxy && sudo screen -S kube_proxy -X screen -t kube_proxy
   sudo screen -S kube_proxy -p kube_proxy -X stuff 'kubectl proxy --accept-hosts=".*" --address="0.0.0.0"\n'
+}
+
+function gate_base_setup {
+  # Install base requirements
+  base_install
 }

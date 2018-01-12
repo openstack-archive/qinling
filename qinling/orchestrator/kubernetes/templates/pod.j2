@@ -7,7 +7,7 @@ metadata:
     {{ key }}: {{ value }}
   {% endfor %}
 spec:
-  terminationGracePeriodSeconds: 0
+  terminationGracePeriodSeconds: 5
   containers:
     - name: {{ pod_name }}
       image: {{ pod_image }}
@@ -22,7 +22,7 @@ spec:
   resources:
       limits:
         cpu: "0.3"
-        memory: 256Mi
+        memory: 128Mi
       requests:
         cpu: "0.1"
-        memory: 64Mi
+        memory: 32Mi

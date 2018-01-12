@@ -12,6 +12,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from datetime import datetime
+from datetime import timedelta
 import json
 
 import requests
@@ -106,4 +108,15 @@ class QinlingClient(client_base.QinlingClientBase):
     def create_webhook(self, function_id):
         req_body = {"function_id": function_id}
         resp, body = self.post_json('webhooks', req_body)
+        return resp, body
+
+    def create_job(self, function_id, first_execution_time=None):
+        req_body = {"function_id": function_id}
+        if not first_execution_time:
+            first_execution_time = str(
+                datetime.utcnow() + timedelta(hours=1)
+            )
+        req_body.update({'first_execution_time': first_execution_time})
+
+        resp, body = self.post_json('jobs', req_body)
         return resp, body

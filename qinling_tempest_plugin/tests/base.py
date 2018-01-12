@@ -12,6 +12,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import os
+import pkg_resources
+import tempfile
+import zipfile
 
 from tempest import config
 from tempest.lib.common.utils import data_utils
@@ -25,6 +28,8 @@ CONF = config.CONF
 
 class BaseQinlingTest(test.BaseTestCase):
     credentials = ('admin', 'primary', 'alt')
+    create_runtime = True
+    image = 'openstackqinling/python-runtime'
 
     @classmethod
     def skip_checks(cls):
@@ -46,6 +51,26 @@ class BaseQinlingTest(test.BaseTestCase):
         cls.k8s_v1 = clients['v1']
         cls.k8s_v1extention = clients['v1extention']
         cls.namespace = 'qinling'
+
+    @classmethod
+    def resource_setup(cls):
+        super(BaseQinlingTest, cls).resource_setup()
+
+        if cls.create_runtime:
+            cls.runtime_id = None
+            name = data_utils.rand_name('runtime', prefix=cls.name_prefix)
+            _, body = cls.admin_client.create_runtime(cls.image, name)
+            cls.runtime_id = body['id']
+
+    @classmethod
+    def resource_cleanup(cls):
+        if cls.create_runtime and cls.runtime_id:
+            cls.admin_client.delete_resource(
+                'runtimes', cls.runtime_id,
+                ignore_notfound=True
+            )
+
+        super(BaseQinlingTest, cls).resource_cleanup()
 
     @tenacity.retry(
         wait=tenacity.wait_fixed(3),
@@ -69,11 +94,37 @@ class BaseQinlingTest(test.BaseTestCase):
         self.assertEqual(200, resp.status)
         self.assertEqual('success', body['status'])
 
+    def create_package(self, name="python_test.py"):
+        python_file_path = pkg_resources.resource_filename(
+            'qinling_tempest_plugin',
+            "functions/%s" % name
+        )
+        base_name, _ = os.path.splitext(python_file_path)
+        module_name = os.path.basename(base_name)
+        python_zip_file = os.path.join(
+            tempfile.gettempdir(),
+            '%s.zip' % module_name
+        )
+
+        if not os.path.isfile(python_zip_file):
+            zf = zipfile.PyZipFile(python_zip_file, mode='w')
+            try:
+                zf.writepy(python_file_path)
+            finally:
+                zf.close()
+
+        self.addCleanup(os.remove, python_zip_file)
+        return python_zip_file
+
     def create_function(self, package_path=None, image=False):
-        function_name = data_utils.rand_name('function',
-                                             prefix=self.name_prefix)
+        function_name = data_utils.rand_name(
+            'function',
+            prefix=self.name_prefix
+        )
 
         if not image:
+            if not package_path:
+                package_path = self.create_package()
             base_name, _ = os.path.splitext(package_path)
             module_name = os.path.basename(base_name)
             with open(package_path, 'rb') as package_data:
@@ -84,7 +135,6 @@ class BaseQinlingTest(test.BaseTestCase):
                     package_data=package_data,
                     entry='%s.main' % module_name
                 )
-            self.addCleanup(os.remove, package_path)
         else:
             resp, body = self.client.create_function(
                 {"source": "image", "image": "openstackqinling/alpine-test"},
@@ -107,3 +157,15 @@ class BaseQinlingTest(test.BaseTestCase):
                         webhook_id, ignore_notfound=True)
 
         return webhook_id, body['webhook_url']
+
+    def create_job(self, function_id=None):
+        if not function_id:
+            function_id = self.create_function()
+        resp, body = self.client.create_job(function_id)
+        self.assertEqual(201, resp.status)
+        job_id = body['id']
+
+        self.addCleanup(self.client.delete_resource, 'jobs',
+                        job_id, ignore_notfound=True)
+
+        return job_id

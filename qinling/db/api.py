@@ -171,8 +171,8 @@ def update_job(id, values):
     return IMPL.update_job(id, values)
 
 
-def get_jobs():
-    return IMPL.get_jobs()
+def get_jobs(**kwargs):
+    return IMPL.get_jobs(**kwargs)
 
 
 def delete_jobs(**kwargs):
@@ -187,8 +187,8 @@ def get_webhook(id, insecure=None):
     return IMPL.get_webhook(id, insecure=insecure)
 
 
-def get_webhooks():
-    return IMPL.get_webhooks()
+def get_webhooks(**kwargs):
+    return IMPL.get_webhooks(**kwargs)
 
 
 def delete_webhook(id):

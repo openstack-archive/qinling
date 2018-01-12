@@ -209,14 +209,11 @@ class FunctionsController(rest.RestController):
             resources, the param is ignored for normal user.
         :param all_projects: Optional. Get resources of all projects.
         """
-        ctx = context.get_ctx()
-        if project_id and not ctx.is_admin:
-            project_id = context.ctx().projectid
-        if project_id and ctx.is_admin:
-            all_projects = True
-
+        project_id, all_projects = rest_utils.get_project_params(
+            project_id, all_projects
+        )
         if all_projects:
-            acl.enforce('function:get_all:all_projects', ctx)
+            acl.enforce('function:get_all:all_projects', context.get_ctx())
 
         filters = rest_utils.get_filters(
             project_id=project_id,

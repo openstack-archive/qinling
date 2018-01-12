@@ -19,14 +19,12 @@ from qinling_tempest_plugin.tests import base
 
 class RuntimesTest(base.BaseQinlingTest):
     name_prefix = 'RuntimesTest'
+    create_runtime = False
 
     @decorators.idempotent_id('fdc2f07f-dd1d-4981-86d3-5bc7908d9a9b')
     def test_crud_runtime(self):
         name = data_utils.rand_name('runtime', prefix=self.name_prefix)
-
-        resp, body = self.admin_client.create_runtime(
-            'openstackqinling/python-runtime', name
-        )
+        resp, body = self.admin_client.create_runtime(self.image, name)
 
         self.assertEqual(201, resp.status)
         self.assertEqual(name, body['name'])
@@ -72,7 +70,7 @@ class RuntimesTest(base.BaseQinlingTest):
         """
         name = data_utils.rand_name('runtime', prefix=self.name_prefix)
         resp, body = self.admin_client.create_runtime(
-            'openstackqinling/python-runtime', name, is_public=False
+            self.image, name, is_public=False
         )
 
         self.assertEqual(201, resp.status)

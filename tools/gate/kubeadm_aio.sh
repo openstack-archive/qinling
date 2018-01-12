@@ -12,30 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -ex
-export WORK_DIR=$(pwd)
+: ${WORK_DIR:="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"}
 source ${WORK_DIR}/tools/gate/vars.sh
-source ${WORK_DIR}/tools/gate/funcs/common.sh
 source ${WORK_DIR}/tools/gate/funcs/network.sh
+source ${WORK_DIR}/tools/gate/funcs/kube.sh
 
-# Setup the logging location: by default use the working dir as the root.
-rm -rf ${LOGS_DIR} || true
-mkdir -p ${LOGS_DIR}
+kubeadm_aio_reqs_install
 
-function dump_logs () {
-  ${WORK_DIR}/tools/gate/dump_logs.sh
-}
-trap 'dump_logs "$?"' ERR
+# Re-use the docker image pre-built by openstack-helm team.
+sudo docker pull ${KUBEADM_IMAGE} || kubeadm_aio_build
 
-# Do the basic node setup for running the gate
-gate_base_setup
-
-# We setup the network for pre kube here, to enable cluster restarts on
-# development machines
-net_resolv_pre_kube
-net_hosts_pre_kube
-
-# Setup the K8s Cluster
-bash ${WORK_DIR}/tools/gate/kubeadm_aio.sh
-
-# Starts a proxy to the Kubernetes API server in a screen session
-create_k8s_screen
+kubeadm_aio_launch

@@ -77,14 +77,11 @@ class ExecutionsController(rest.RestController):
         :param status: Optional. Filter by execution status.
         :param description: Optional. Filter by description.
         """
-        ctx = context.get_ctx()
-        if project_id and not ctx.is_admin:
-            project_id = context.ctx().projectid
-        if project_id and ctx.is_admin:
-            all_projects = True
-
+        project_id, all_projects = rest_utils.get_project_params(
+            project_id, all_projects
+        )
         if all_projects:
-            acl.enforce('execution:get_all:all_projects', ctx)
+            acl.enforce('execution:get_all:all_projects', context.get_ctx())
 
         filters = rest_utils.get_filters(
             function_id=function_id,

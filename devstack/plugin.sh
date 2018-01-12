@@ -64,7 +64,7 @@ function configure_qinling {
     rm -f "$QINLING_CONF_DIR"/*
 
     mkdir_chown_stack "$QINLING_FUNCTION_STORAGE_DIR"
-    rm -f "$QINLING_FUNCTION_STORAGE_DIR"/*
+    rm -rf "$QINLING_FUNCTION_STORAGE_DIR"/*
 
     cp $QINLING_DIR/etc/policy.json.sample $QINLING_POLICY_FILE
 

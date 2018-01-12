@@ -21,6 +21,7 @@ import six
 import webob
 from wsme import exc as wsme_exc
 
+from qinling import context
 from qinling import exceptions as exc
 
 LOG = logging.getLogger(__name__)
@@ -153,3 +154,14 @@ def _extract_filter_type_and_value(data):
         filter_type = 'eq'
 
     return filter_type, value
+
+
+def get_project_params(project_id, all_projects):
+    ctx = context.get_ctx()
+
+    if project_id and not ctx.is_admin:
+        project_id = context.ctx().projectid
+    if project_id and ctx.is_admin:
+        all_projects = True
+
+    return project_id, all_projects

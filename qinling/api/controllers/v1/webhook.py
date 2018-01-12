@@ -17,6 +17,7 @@ import json
 from oslo_log import log as logging
 import pecan
 from pecan import rest
+from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from qinling.api import access_control as acl
@@ -70,12 +71,21 @@ class WebhooksController(rest.RestController):
         return resources.Webhook.from_dict(self._add_webhook_url(id, webhook))
 
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.Webhooks)
-    def get_all(self):
-        LOG.info("Get all %ss.", self.type)
+    @wsme_pecan.wsexpose(resources.Webhooks, bool, wtypes.text)
+    def get_all(self, all_projects=False, project_id=None):
+        project_id, all_projects = rest_utils.get_project_params(
+            project_id, all_projects
+        )
+        if all_projects:
+            acl.enforce('webhook:get_all:all_projects', context.get_ctx())
 
+        filters = rest_utils.get_filters(
+            project_id=project_id,
+        )
+
+        LOG.info("Get all %ss. filters=%s", self.type, filters)
         webhooks = []
-        for i in db_api.get_webhooks():
+        for i in db_api.get_webhooks(insecure=all_projects, **filters):
             webhooks.append(
                 resources.Webhook.from_dict(
                     self._add_webhook_url(i.id, i.to_dict())

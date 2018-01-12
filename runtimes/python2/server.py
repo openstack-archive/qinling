@@ -79,10 +79,10 @@ def _download_package(url, zip_file, token=None):
         headers = {'X-Auth-Token': token}
 
     try:
-        r = requests.get(url, headers=headers, stream=True,
-                         verify=False, timeout=5)
+        r = requests.get(url, headers=headers, stream=True, timeout=5,
+                         verify=False)
         if r.status_code != 200:
-            return _get_responce(
+            return False, _get_responce(
                 DOWNLOAD_ERROR % (url, r.content), 0, '', False, 500
             )
 
@@ -90,11 +90,13 @@ def _download_package(url, zip_file, token=None):
             for chunk in r.iter_content(chunk_size=65535):
                 fd.write(chunk)
     except Exception as e:
-        return _get_responce(
+        return False, _get_responce(
             DOWNLOAD_ERROR % (url, str(e)), 0, '', False, 500
         )
 
     app.logger.info('Downloaded function package to %s' % zip_file)
+
+    return True, None
 
 
 def _invoke_function(execution_id, zip_file, module_name, method, arg, input,
@@ -165,7 +167,10 @@ def execute():
     if not downloading and not downloaded:
         downloading = True
 
-        _download_package(download_url, zip_file, params.get('token'))
+        ret, resp = _download_package(download_url, zip_file,
+                                      params.get('token'))
+        if not ret:
+            return resp
 
         downloading = False
         downloaded = True

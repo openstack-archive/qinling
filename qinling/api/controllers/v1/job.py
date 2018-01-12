@@ -19,10 +19,13 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import timeutils
 from pecan import rest
+from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
+from qinling.api import access_control as acl
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
+from qinling import context
 from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import status
@@ -90,12 +93,21 @@ class JobsController(rest.RestController):
         return resources.Job.from_dict(job_db.to_dict())
 
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.Jobs)
-    def get_all(self):
-        LOG.info("Get all %ss.", self.type)
+    @wsme_pecan.wsexpose(resources.Jobs, bool, wtypes.text)
+    def get_all(self, all_projects=False, project_id=None):
+        project_id, all_projects = rest_utils.get_project_params(
+            project_id, all_projects
+        )
+        if all_projects:
+            acl.enforce('job:get_all:all_projects', context.get_ctx())
 
+        filters = rest_utils.get_filters(
+            project_id=project_id,
+        )
+        LOG.info("Get all %ss. filters=%s", self.type, filters)
+        db_jobs = db_api.get_jobs(insecure=all_projects, **filters)
         jobs = [resources.Job.from_dict(db_model.to_dict())
-                for db_model in db_api.get_jobs()]
+                for db_model in db_jobs]
 
         return resources.Jobs(jobs=jobs)
 

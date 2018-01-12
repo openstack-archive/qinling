@@ -137,7 +137,7 @@ kubernetes_opts = [
     ),
     cfg.IntOpt(
         'replicas',
-        default=5,
+        default=3,
         help='Number of desired replicas in deployment.'
     ),
     cfg.StrOpt(

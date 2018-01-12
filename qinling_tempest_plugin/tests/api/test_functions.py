@@ -12,11 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import os
-import pkg_resources
-import tempfile
-import zipfile
 
-from tempest.lib.common.utils import data_utils
 from tempest.lib import decorators
 from tempest.lib import exceptions
 import tenacity
@@ -27,54 +23,12 @@ from qinling_tempest_plugin.tests import base
 class FunctionsTest(base.BaseQinlingTest):
     name_prefix = 'FunctionsTest'
 
-    @classmethod
-    def resource_setup(cls):
-        super(FunctionsTest, cls).resource_setup()
-
-        cls.runtime_id = None
-
-        # Create runtime for function tests
-        name = data_utils.rand_name('runtime', prefix=cls.name_prefix)
-        _, body = cls.admin_client.create_runtime(
-            'openstackqinling/python-runtime', name
-        )
-        cls.runtime_id = body['id']
-
-    @classmethod
-    def resource_cleanup(cls):
-        if cls.runtime_id:
-            cls.admin_client.delete_resource('runtimes', cls.runtime_id)
-
-        super(FunctionsTest, cls).resource_cleanup()
-
     def setUp(self):
         super(FunctionsTest, self).setUp()
 
         # Wait until runtime is available
         self.await_runtime_available(self.runtime_id)
-
-        python_file_path = pkg_resources.resource_filename(
-            'qinling_tempest_plugin',
-            "functions/python_test.py"
-        )
-        base_name, extention = os.path.splitext(python_file_path)
-        module_name = os.path.basename(base_name)
-        self.python_zip_file = os.path.join(
-            tempfile.gettempdir(),
-            '%s.zip' % module_name
-        )
-
-        if not os.path.isfile(self.python_zip_file):
-            zf = zipfile.ZipFile(self.python_zip_file, mode='w')
-            try:
-                # Use default compression mode, may change in future.
-                zf.write(
-                    python_file_path,
-                    '%s%s' % (module_name, extention),
-                    compress_type=zipfile.ZIP_STORED
-                )
-            finally:
-                zf.close()
+        self.python_zip_file = self.create_package()
 
     @decorators.idempotent_id('9c36ac64-9a44-4c44-9e44-241dcc6b0933')
     def test_crud_function(self):

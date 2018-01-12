@@ -20,7 +20,7 @@ spec:
         {{ key }}: {{ value }}
       {% endfor %}
     spec:
-      terminationGracePeriodSeconds: 0
+      terminationGracePeriodSeconds: 5
       containers:
       - name: {{ container_name }}
         image: {{ image }}
@@ -30,7 +30,7 @@ spec:
         resources:
           limits:
             cpu: "0.3"
-            memory: 256Mi
+            memory: 128Mi
           requests:
             cpu: "0.1"
-            memory: 64Mi
+            memory: 32Mi

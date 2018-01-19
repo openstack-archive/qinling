@@ -86,7 +86,7 @@ class FunctionsController(rest.RestController):
             raise exc.InputException('Swift object not supported.')
 
         if not swift_util.check_object(container, object):
-            raise exc.InputException('Object does not exist in Swift.')
+            raise exc.InputException('Failed to validate object in Swift.')
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose()

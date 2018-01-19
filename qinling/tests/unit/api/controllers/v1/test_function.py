@@ -21,6 +21,7 @@ import mock
 from qinling import status
 from qinling.tests.unit.api import base
 from qinling.tests.unit import base as unit_base
+from qinling.utils import constants
 
 TEST_CASE_NAME = 'TestFunctionController'
 
@@ -53,6 +54,35 @@ class TestFunctionController(base.APITest):
 
         body.update({'entry': 'main.main', 'code': {"source": "package"}})
         self._assertDictContainsSubset(resp.json, body)
+
+    @mock.patch('qinling.utils.openstack.keystone.get_swiftclient')
+    @mock.patch('qinling.context.AuthHook.before')
+    def test_post_swift_size_exceed(self, mock_auth, mock_client):
+        self.override_config('auth_enable', True, group='pecan')
+        swift_conn = mock.Mock()
+        mock_client.return_value = swift_conn
+        swift_conn.head_object.return_value = {
+            'accept-ranges': 'bytes',
+            'content-length': str(constants.MAX_PACKAGE_SIZE + 1)
+        }
+
+        body = {
+            'name': 'swift_function',
+            'code': json.dumps(
+                {
+                    "source": "swift",
+                    "swift": {"container": "container", "object": "object"}
+                }
+            ),
+            'runtime_id': self.runtime_id,
+        }
+        resp = self.app.post(
+            '/v1/functions',
+            params=body,
+            expect_errors=True
+        )
+
+        self.assertEqual(400, resp.status_int)
 
     def test_get(self):
         db_func = self.create_function(

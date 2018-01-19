@@ -16,6 +16,7 @@ from oslo_log import log as logging
 from swiftclient.exceptions import ClientException
 
 from qinling.utils import common
+from qinling.utils import constants
 from qinling.utils.openstack import keystone
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +24,10 @@ LOG = logging.getLogger(__name__)
 
 @common.disable_ssl_warnings
 def check_object(container, object):
-    """Check if object exists in Swift.
+    """Check object in Swift.
+
+    1. If the object exists.
+    2. Object size.
 
     :param container: Container name.
     :param object: Object name.
@@ -32,13 +36,18 @@ def check_object(container, object):
     swift_conn = keystone.get_swiftclient()
 
     try:
-        swift_conn.head_object(container, object)
-        return True
+        header = swift_conn.head_object(container, object)
     except ClientException:
         LOG.error(
             'The object %s in container %s was not found', object, container
         )
         return False
+
+    if int(header['content-length']) > constants.MAX_PACKAGE_SIZE:
+        LOG.error('Object size is greater than %s', constants.MAX_PACKAGE_SIZE)
+        return False
+
+    return True
 
 
 @common.disable_ssl_warnings

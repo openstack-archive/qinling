@@ -22,3 +22,5 @@ PERIODIC_FUNC_MAPPING_HANDLER = 'function_mapping_handler'
 PACKAGE_FUNCTION = 'package'
 SWIFT_FUNCTION = 'swift'
 IMAGE_FUNCTION = 'image'
+
+MAX_PACKAGE_SIZE = 51 * 1024 * 1024

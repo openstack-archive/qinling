@@ -116,7 +116,7 @@ class BaseQinlingTest(test.BaseTestCase):
         self.addCleanup(os.remove, python_zip_file)
         return python_zip_file
 
-    def create_function(self, package_path=None, image=False):
+    def create_function(self, package_path=None, image=False, md5sum=None):
         function_name = data_utils.rand_name(
             'function',
             prefix=self.name_prefix
@@ -125,11 +125,15 @@ class BaseQinlingTest(test.BaseTestCase):
         if not image:
             if not package_path:
                 package_path = self.create_package()
+
+            code = {"source": "package"}
+            if md5sum:
+                code.update({"md5sum": md5sum})
             base_name, _ = os.path.splitext(package_path)
             module_name = os.path.basename(base_name)
             with open(package_path, 'rb') as package_data:
                 resp, body = self.client.create_function(
-                    {"source": "package"},
+                    code,
                     self.runtime_id,
                     name=function_name,
                     package_data=package_data,

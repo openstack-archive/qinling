@@ -27,7 +27,7 @@ class PackageStorage(object):
     """PackageStorage interface."""
 
     @abc.abstractmethod
-    def store(self, project_id, funtion, data):
+    def store(self, project_id, funtion, data, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod

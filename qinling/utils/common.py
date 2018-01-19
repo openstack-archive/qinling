@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 import functools
+import hashlib
 import pdb
 import sys
 import warnings
@@ -122,3 +123,16 @@ class ForkedPdb(pdb.Pdb):
             pdb.Pdb.interaction(self, *args, **kwargs)
         finally:
             sys.stdin = _stdin
+
+
+def md5(file=None, content=None):
+    hash_md5 = hashlib.md5()
+
+    if file:
+        with open(file, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+    elif content:
+        hash_md5.update(content)
+
+    return hash_md5.hexdigest()

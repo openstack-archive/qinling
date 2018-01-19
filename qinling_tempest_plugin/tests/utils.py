@@ -12,6 +12,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import hashlib
+
 from kubernetes.client import api_client
 from kubernetes.client.apis import core_v1_api
 from kubernetes.client.apis import extensions_v1beta1_api
@@ -32,3 +34,16 @@ def get_k8s_clients(conf):
     }
 
     return clients
+
+
+def md5(file=None, content=None):
+    hash_md5 = hashlib.md5()
+
+    if file:
+        with open(file, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+    elif content:
+        hash_md5.update(content)
+
+    return hash_md5.hexdigest()

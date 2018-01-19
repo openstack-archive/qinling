@@ -21,6 +21,7 @@ from oslo_utils import fileutils
 
 from qinling import exceptions as exc
 from qinling.storage import base
+from qinling.utils import common
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -32,12 +33,12 @@ class FileSystemStorage(base.PackageStorage):
     def __init__(self, *args, **kwargs):
         fileutils.ensure_tree(CONF.storage.file_system_dir)
 
-    def store(self, project_id, function, data):
+    def store(self, project_id, function, data, md5sum=None):
         """Store the function package data to local file system.
 
         :param project_id: Project ID.
         :param function: Function ID.
-        :param data: Package data.
+        :param data: Package file content.
         """
         LOG.debug(
             'Store package, function: %s, project: %s', function, project_id
@@ -48,6 +49,13 @@ class FileSystemStorage(base.PackageStorage):
 
         new_func_zip = os.path.join(project_path, '%s.zip.new' % function)
         func_zip = os.path.join(project_path, '%s.zip' % function)
+
+        # Check md5
+        md5_actual = common.md5(content=data)
+        if md5sum and md5_actual != md5sum:
+            raise exc.InputException("Package md5 mismatch.")
+
+        # Store package
         with open(new_func_zip, 'wb') as fd:
             fd.write(data)
 

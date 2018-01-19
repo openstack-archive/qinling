@@ -60,7 +60,8 @@ class QinlingClient(client_base.QinlingClientBase):
         """Create function.
 
         Tempest rest client doesn't support multipart upload, so use requests
-        lib instead.
+        lib instead. As a result, we can not use self.assertRaises function for
+        negative tests.
         """
         headers = {'X-Auth-Token': self.auth_provider.get_token()}
         req_body = {

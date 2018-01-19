@@ -18,6 +18,7 @@ from tempest.lib import exceptions
 import tenacity
 
 from qinling_tempest_plugin.tests import base
+from qinling_tempest_plugin.tests import utils
 
 
 class FunctionsTest(base.BaseQinlingTest):
@@ -33,7 +34,8 @@ class FunctionsTest(base.BaseQinlingTest):
     @decorators.idempotent_id('9c36ac64-9a44-4c44-9e44-241dcc6b0933')
     def test_crud_function(self):
         # Create function
-        function_id = self.create_function(self.python_zip_file)
+        md5sum = utils.md5(self.python_zip_file)
+        function_id = self.create_function(self.python_zip_file, md5sum=md5sum)
 
         # Get functions
         resp, body = self.client.get_resources('functions')
@@ -51,6 +53,20 @@ class FunctionsTest(base.BaseQinlingTest):
         # Delete function
         resp = self.client.delete_resource('functions', function_id)
         self.assertEqual(204, resp.status)
+
+    @decorators.idempotent_id('1fec41cd-b753-4cad-90c5-c89d7e710317')
+    def test_create_function_md5mismatch(self):
+        fake_md5 = "e807f1fcf82d132f9bb018ca6738a19f"
+
+        with open(self.python_zip_file, 'rb') as package_data:
+            resp, body = self.client.create_function(
+                {"source": "package", "md5sum": fake_md5},
+                self.runtime_id,
+                name='test_create_function_md5mismatch',
+                package_data=package_data
+            )
+
+        self.assertEqual(400, resp.status_code)
 
     @decorators.idempotent_id('051f3106-df01-4fcd-a0a3-c81c99653163')
     def test_get_all_admin(self):

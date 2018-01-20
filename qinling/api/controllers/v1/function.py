@@ -168,6 +168,7 @@ class FunctionsController(rest.RestController):
         create_trust = True
         if source == constants.PACKAGE_FUNCTION:
             store = True
+            md5sum = values['code'].get('md5sum')
             data = kwargs['package'].file.read()
         elif source == constants.SWIFT_FUNCTION:
             swift_info = values['code'].get('swift', {})
@@ -190,12 +191,14 @@ class FunctionsController(rest.RestController):
             func_db = db_api.create_function(values)
 
             if store:
-                ctx = context.get_ctx()
-                self.storage_provider.store(
-                    ctx.projectid,
-                    func_db.id,
-                    data
-                )
+                try:
+                    ctx = context.get_ctx()
+                    self.storage_provider.store(ctx.projectid, func_db.id,
+                                                data, md5sum=md5sum)
+                except Exception as e:
+                    LOG.exception("Failed to store function package.")
+                    keystone_util.delete_trust(values['trust_id'])
+                    raise e
 
         pecan.response.status = 201
         return resources.Function.from_dict(func_db.to_dict()).to_dict()

@@ -22,7 +22,7 @@ rm -rf ${LOGS_DIR} || true
 mkdir -p ${LOGS_DIR}
 
 function dump_logs () {
-  ${WORK_DIR}/tools/gate/dump_logs.sh
+  bash ${WORK_DIR}/tools/gate/dump_logs.sh
 }
 trap 'dump_logs "$?"' ERR
 

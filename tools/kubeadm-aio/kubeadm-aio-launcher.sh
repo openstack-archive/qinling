@@ -84,7 +84,7 @@ end=$(($(date +%s) + 600))
 READY="False"
 while true; do
   READY=$(kubectl get nodes --no-headers=true | awk "{ print \$2 }" | head -1)
-  [ $READY == "Ready" ] && break || true
+  [ "$READY" == "Ready" ] && break || true
   sleep 1
   now=$(date +%s)
   [ $now -gt $end ] && \

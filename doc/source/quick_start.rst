@@ -17,7 +17,7 @@ have been installed in the devstack environment.
 
 Qinling can work with OpenStack Keystone for authentication, or it can work
 without authentication at all. By default, authentication is enabled, set
-``auth_enable = False`` to enable authentication.
+``auth_enable = False`` to disable authentication.
 
 Getting started with Qinling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

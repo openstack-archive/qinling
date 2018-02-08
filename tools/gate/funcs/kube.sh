@@ -71,6 +71,7 @@ function kube_wait_for_nodes {
 }
 
 function kubeadm_aio_reqs_install {
+  GET_DOCKER="True"
   if [ "x$HOST_OS" == "xubuntu" ]; then
     sudo apt-get install -y --no-install-recommends -qq \
             jq
@@ -80,6 +81,7 @@ function kubeadm_aio_reqs_install {
     sudo yum install -y \
             docker-latest \
             jq
+    GET_DOCKER="False"
     sudo cp -f /usr/lib/systemd/system/docker-latest.service /etc/systemd/system/docker.service
     sudo sed -i "s|/var/lib/docker-latest|/var/lib/docker|g" /etc/systemd/system/docker.service
     sudo sed -i 's/^OPTIONS/#OPTIONS/g' /etc/sysconfig/docker-latest
@@ -90,6 +92,7 @@ function kubeadm_aio_reqs_install {
     sudo systemctl daemon-reload
     sudo systemctl restart docker
   elif [ "x$HOST_OS" == "xfedora" ]; then
+    GET_DOCKER="False"
     sudo dnf install -y \
             docker-latest \
             jq
@@ -108,8 +111,10 @@ function kubeadm_aio_reqs_install {
   chmod +x ${TMP_DIR}/kubectl
   sudo mv ${TMP_DIR}/kubectl /usr/local/bin/kubectl
 
-  curl -fsSL get.docker.com -o ${TMP_DIR}/get-docker.sh
-  sudo sh ${TMP_DIR}/get-docker.sh
+  if [ "$GET_DOCKER" == "True" ]; then
+    curl -fsSL get.docker.com -o ${TMP_DIR}/get-docker.sh
+    sudo sh ${TMP_DIR}/get-docker.sh
+  fi
 
   rm -rf ${TMP_DIR}
 }

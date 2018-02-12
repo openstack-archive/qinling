@@ -85,7 +85,7 @@ function kubeadm_aio_reqs_install {
     sudo cp -f /usr/lib/systemd/system/docker-latest.service /etc/systemd/system/docker.service
     sudo sed -i "s|/var/lib/docker-latest|/var/lib/docker|g" /etc/systemd/system/docker.service
     sudo sed -i 's/^OPTIONS/#OPTIONS/g' /etc/sysconfig/docker-latest
-    sudo sed -i "s|^MountFlags=slave|MountFlags=share|g" /etc/systemd/system/docker.service
+    sudo sed -i "s|^MountFlags=slave|MountFlags=shared|g" /etc/systemd/system/docker.service
     sudo sed -i "/--seccomp-profile/,+1 d" /etc/systemd/system/docker.service
     echo "DOCKER_STORAGE_OPTIONS=--storage-driver=overlay" | sudo tee /etc/sysconfig/docker-latest-storage
     sudo setenforce 0 || true

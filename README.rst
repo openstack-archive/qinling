@@ -18,6 +18,6 @@ plugin mechanism.
 * Free software: Apache license
 * Documentation: http://qinling.readthedocs.io/
 * Source: http://git.openstack.org/cgit/openstack/qinling
-* Features: https://blueprints.launchpad.net/qinling
-* Bug Track: http://bugs.launchpad.net/qinling
+* Features: https://storyboard.openstack.org/#!/project/927
+* Bug Track: https://storyboard.openstack.org/#!/project/927
 * IRC channel on Freenode: #openstack-qinling

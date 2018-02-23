@@ -74,6 +74,16 @@ class TestRuntimeController(base.APITest):
         self._assertDictContainsSubset(resp.json, body)
         mock_create_time.assert_called_once_with(resp.json['id'])
 
+    @mock.patch('qinling.rpc.EngineClient.create_runtime')
+    def test_post_without_image(self, mock_create_time):
+        body = {
+            'name': self.rand_name('runtime', prefix='TestRuntimeController'),
+        }
+        resp = self.app.post_json('/v1/runtimes', body, expect_errors=True)
+
+        self.assertEqual(400, resp.status_int)
+        mock_create_time.assert_not_called()
+
     @mock.patch('qinling.rpc.EngineClient.delete_runtime')
     def test_delete(self, mock_delete_runtime):
         resp = self.app.delete('/v1/runtimes/%s' % self.runtime_id)
@@ -81,13 +91,16 @@ class TestRuntimeController(base.APITest):
         self.assertEqual(204, resp.status_int)
         mock_delete_runtime.assert_called_once_with(self.runtime_id)
 
-    def test_delete_runtime_with_function_associated(self):
+    @mock.patch('qinling.rpc.EngineClient.delete_runtime')
+    def test_delete_runtime_with_function_associated(self,
+                                                     mock_delete_runtime):
         self.create_function(self.runtime_id, prefix='TestRuntimeController')
         resp = self.app.delete(
             '/v1/runtimes/%s' % self.runtime_id, expect_errors=True
         )
 
         self.assertEqual(403, resp.status_int)
+        mock_delete_runtime.assert_not_called()
 
     def test_put_name(self):
         resp = self.app.put_json(
@@ -117,9 +130,8 @@ class TestRuntimeController(base.APITest):
 
         self.assertEqual(409, resp.status_int)
 
-    @mock.patch('qinling.utils.etcd_util.get_service_url')
     @mock.patch('qinling.rpc.EngineClient.update_runtime')
-    def test_put_image(self, mock_update_runtime, mock_etcd_url):
+    def test_put_image(self, mock_update_runtime):
         resp = self.app.put_json(
             '/v1/runtimes/%s' % self.runtime_id, {'image': 'new_image'}
         )
@@ -131,3 +143,19 @@ class TestRuntimeController(base.APITest):
             image='new_image',
             pre_image=self.db_runtime.image
         )
+
+    @mock.patch('qinling.utils.etcd_util.get_service_url')
+    @mock.patch('qinling.rpc.EngineClient.update_runtime')
+    def test_put_image_not_allowed(self, mock_update_runtime, mock_etcd_url):
+        mock_etcd_url.return_value = True
+        function_id = self.create_function(
+            self.runtime_id, prefix='TestRuntimeController').id
+
+        resp = self.app.put_json(
+            '/v1/runtimes/%s' % self.runtime_id, {'image': 'new_image'},
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)
+        mock_update_runtime.assert_not_called()
+        mock_etcd_url.assert_called_once_with(function_id)

@@ -224,3 +224,17 @@ class DbTestCase(BaseTest):
         webhook = db_api.create_webhook(webhook_params)
 
         return webhook
+
+    def create_execution(self, function_id=None, prefix=None, **kwargs):
+        if not function_id:
+            function_id = self.create_function(prefix=prefix).id
+
+        execution_params = {
+            'function_id': function_id,
+            'project_id': DEFAULT_PROJECT_ID,
+            'status': status.RUNNING,
+        }
+        execution_params.update(kwargs)
+        execution = db_api.create_execution(execution_params)
+
+        return execution

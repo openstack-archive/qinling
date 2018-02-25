@@ -13,7 +13,7 @@ api_workers=1
 function_service_expiration = 86400
 
 [database]
-connection=mysql://root:password@localhost:3306/qinling
+connection=mysql+pymysql://root:password@localhost:3306/qinling
 
 [oslo_messaging_rabbit]
 rabbit_password=password

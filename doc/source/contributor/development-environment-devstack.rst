@@ -109,6 +109,6 @@ all-in-one environment (and some other related tools, e.g. kubectl) is also
 setup during devstack installation.
 
 The idea and most of the scripts come from
-`OpenStack-Helm <http://openstack-helm.readthedocs.io/en/latest/index.html>`_
+`OpenStack-Helm <https://docs.openstack.org/openstack-helm/latest/index.html>`_
 project originally, but may be probably changed as the project evolving in
 future.

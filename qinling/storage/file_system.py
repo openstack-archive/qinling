@@ -15,7 +15,6 @@
 import os
 import zipfile
 
-from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import fileutils
 
@@ -24,14 +23,13 @@ from qinling.storage import base
 from qinling.utils import common
 
 LOG = logging.getLogger(__name__)
-CONF = cfg.CONF
 
 
 class FileSystemStorage(base.PackageStorage):
     """Interact with file system for function package storage."""
 
-    def __init__(self, *args, **kwargs):
-        fileutils.ensure_tree(CONF.storage.file_system_dir)
+    def __init__(self, conf):
+        self.base_path = conf.storage.file_system_dir
 
     def store(self, project_id, function, data, md5sum=None):
         """Store the function package data to local file system.
@@ -44,7 +42,7 @@ class FileSystemStorage(base.PackageStorage):
             'Store package, function: %s, project: %s', function, project_id
         )
 
-        project_path = os.path.join(CONF.storage.file_system_dir, project_id)
+        project_path = os.path.join(self.base_path, project_id)
         fileutils.ensure_tree(project_path)
 
         new_func_zip = os.path.join(project_path, '%s.zip.new' % function)
@@ -77,8 +75,7 @@ class FileSystemStorage(base.PackageStorage):
         )
 
         func_zip = os.path.join(
-            CONF.storage.file_system_dir,
-            '%s/%s.zip' % (project_id, function)
+            self.base_path, '%s/%s.zip' % (project_id, function)
         )
 
         if not os.path.exists(func_zip):
@@ -99,8 +96,7 @@ class FileSystemStorage(base.PackageStorage):
         )
 
         func_zip = os.path.join(
-            CONF.storage.file_system_dir,
-            '%s/%s.zip' % (project_id, function)
+            self.base_path, '%s/%s.zip' % (project_id, function)
         )
 
         if os.path.exists(func_zip):

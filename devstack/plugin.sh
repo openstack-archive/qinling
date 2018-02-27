@@ -104,15 +104,15 @@ function start_qinling {
 }
 
 
-function stop_qingling {
+function stop_qinling {
     local serv
-    for serv in qinling-api qingling-engine; do
+    for serv in qinling-api qinling-engine; do
         stop_process $serv
     done
 }
 
 
-function cleanup_qingling {
+function cleanup_qinling {
     sudo rm -rf $QINLING_AUTH_CACHE_DIR
     sudo rm -rf $QINLING_CONF_DIR
 }
@@ -147,13 +147,13 @@ if is_service_enabled qinling; then
     fi
 
     if [[ "$1" == "unstack" ]]; then
-        echo_summary "Shutting down qingling"
-        stop_qingling
+        echo_summary "Shutting down qinling"
+        stop_qinling
     fi
 
     if [[ "$1" == "clean" ]]; then
-        echo_summary "Cleaning qingling"
-        cleanup_qingling
+        echo_summary "Cleaning qinling"
+        cleanup_qinling
     fi
 fi
 

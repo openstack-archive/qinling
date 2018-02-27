@@ -23,7 +23,7 @@ service_option = cfg.BoolOpt(
 )
 
 
-qingling_group = cfg.OptGroup(name="qingling", title="Qinling Service Options")
+qinling_group = cfg.OptGroup(name="qinling", title="Qinling Service Options")
 
 QinlingGroup = [
     cfg.StrOpt("region",

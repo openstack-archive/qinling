@@ -36,13 +36,13 @@ class QinlingTempestPlugin(plugins.TempestPlugin):
             qinling_config.service_option, group='service_available'
         )
 
-        conf.register_group(qinling_config.qingling_group)
+        conf.register_group(qinling_config.qinling_group)
         conf.register_opts(qinling_config.QinlingGroup, group='qinling')
 
     def get_opt_lists(self):
         return [
             ('service_available', [qinling_config.service_option]),
-            (qinling_config.qingling_group.name, qinling_config.QinlingGroup)
+            (qinling_config.qinling_group.name, qinling_config.QinlingGroup)
         ]
 
     def get_service_clients(self):

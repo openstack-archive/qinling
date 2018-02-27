@@ -36,7 +36,7 @@ git checkout -
 [[ -n $uncommitted ]] && git stash pop > /dev/null
 
 # Generate and save coverage report
-current_report=$(mktemp -t qingling_coverageXXXXXXX)
+current_report=$(mktemp -t qinling_coverageXXXXXXX)
 find . -type f -name "*.py[c|o]" -delete && stestr run "$TESTR_ARGS" && coverage combine && coverage html -d cover
 coverage report --ignore-errors > $current_report
 current_missing=$(awk 'END { print $3 }' $current_report)

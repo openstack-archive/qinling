@@ -30,7 +30,7 @@ DEFAULT_PROJECT_ID = "default"
 
 def authenticate(req):
     # Refer to:
-    # https://docs.openstack.org/developer/keystonemiddleware/middlewarearchitecture.html#exchanging-user-information
+    # https://docs.openstack.org/keystonemiddleware/latest/middlewarearchitecture.html#exchanging-user-information
     identity_status = req.headers.get('X-Identity-Status')
     service_identity_status = req.headers.get('X-Service-Identity-Status')
 

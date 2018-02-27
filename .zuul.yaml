@@ -9,6 +9,9 @@
       - openstack/python-qinlingclient
       - openstack/qinling
       - openstack/tempest
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*
 
 - project:
     check:

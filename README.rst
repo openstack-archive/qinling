@@ -16,7 +16,7 @@ different function package storage backends (local/Swift/S3) by nature using
 plugin mechanism.
 
 * Free software: Apache license
-* Documentation: http://qinling.readthedocs.io/
+* Documentation: https://docs.openstack.org/qinling/latest/
 * Source: http://git.openstack.org/cgit/openstack/qinling
 * Features: https://storyboard.openstack.org/#!/project/927
 * Bug Track: https://storyboard.openstack.org/#!/project/927

@@ -6,9 +6,8 @@ Installation
 
 A fast and simple way to try Qinling is to create a Devstack environment
 including all related components and dependencies of Qinling service. Please
-refer to
-http://qinling.readthedocs.io/en/latest/contributor/development-environment-devstack.html
-for how to install Qinling service in OpenStack devstack environment.
+refer to `Setting up a development environment with devstack`_ for how to
+install Qinling service in OpenStack devstack environment.
 
 Qinling is a FaaS implemented on top of container orchestration system such as
 Kubernetes, Swarm, etc. Particularly, Kubernetes is a reference backend
@@ -18,6 +17,9 @@ have been installed in the devstack environment.
 Qinling can work with OpenStack Keystone for authentication, or it can work
 without authentication at all. By default, authentication is enabled, set
 ``auth_enable = False`` to disable authentication.
+
+.. _Setting up a development environment with devstack: https://docs.openstack.org/qinling/latest/contributor/development-environment-devstack.html
+
 
 Getting started with Qinling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

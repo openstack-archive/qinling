@@ -6,7 +6,7 @@ Files under this directory tree are used for generating the documentation
 for the qinling source code.
 
 Developer documentation is built to:
-http://qinling.readthedocs.io/en/latest/
+https://docs.openstack.org/qinling/latest/
 
 Tools
 =====

@@ -17,24 +17,22 @@ import resource
 import time
 
 
-def main(number=128, **kwargs):
-    for name, desc in [
-        ('RLIMIT_NPROC', 'number of processes'),
-    ]:
-        limit_num = getattr(resource, name)
-        soft, hard = resource.getrlimit(limit_num)
-        print('Maximum %-25s (%-15s) : %20s %20s' % (desc, name, soft, hard))
+def main(number=10, **kwargs):
+    soft, hard = resource.getrlimit(resource.RLIMIT_NPROC)
+    print('(soft, hard): %20s %20s' % (soft, hard))
+
+    # We set a small number inside the function to avoid being affected by
+    # outside.
+    resource.setrlimit(resource.RLIMIT_NPROC, (number, hard))
 
     processes = []
-
-    for i in range(0, number):
+    for i in range(0, number+1):
         p = Process(
             target=_sleep,
             args=(i,)
         )
         p.start()
         processes.append(p)
-
     for p in processes:
         p.join()
 

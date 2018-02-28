@@ -12,6 +12,6 @@ submitted for review via the Gerrit tool:
 
 Pull requests submitted through GitHub will be ignored.
 
-Bugs should be filed on Launchpad, not GitHub:
+Bugs should be filed on StoryBoard, not Launchpad or GitHub:
 
-   https://bugs.launchpad.net/qinling
+   https://storyboard.openstack.org/#!/project/927

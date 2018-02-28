@@ -1,0 +1,46 @@
+---
+- name: disable swap
+  shell: swapoff -a
+
+- name: drain the node if needed
+  shell: kubectl drain {{ ansible_nodename }} --delete-local-data --force --ignore-daemonsets
+  ignore_errors: True
+
+- name: delete node if needed
+  shell: kubectl delete node {{ ansible_nodename }}
+  ignore_errors: True
+
+- name: reset kubeadm setup
+  shell: kubeadm reset
+  ignore_errors: True
+
+- name: Init master
+  shell: kubeadm init --pod-network-cidr=192.168.0.0/16 --kubernetes-version=1.9.3
+  register: kubeadm_init
+
+- fail:
+    msg: "kubeadm init command failed."
+  when: kubeadm_init.stdout.find ("kubeadm join") == -1
+
+- name: Store kubeadm join string
+  set_fact:
+    join_str: "{{ kubeadm_init.stdout | regex_search('kubeadm join(.*)$') }}"
+
+- name: Prepare kube config
+  shell: mkdir -p {{ item }}/.kube && cp -a /etc/kubernetes/admin.conf {{ item }}/.kube/config && chmod 755 {{ item }}/.kube/config
+  with_items:
+    - "{{ ansible_env.HOME }}"
+    - /home/ubuntu
+    - /opt/stack/new
+
+- name: Allow pod on master
+  shell: kubectl taint nodes --all node-role.kubernetes.io/master-
+
+- name: Download calico yaml
+  get_url:
+    url: https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml
+    dest: "{{ ansible_env.HOME }}/calico.yaml"
+    force: no
+
+- name: Install network plugin
+  shell: kubectl apply -f {{ ansible_env.HOME }}/calico.yaml

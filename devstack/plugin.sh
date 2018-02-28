@@ -21,7 +21,7 @@ function install_qinlingclient {
 
 function install_k8s {
     pushd $QINLING_DIR
-    source tools/gate/setup_gate.sh
+    source tools/gate/kubeadm/setup_gate.sh
     popd
 
     # Pre-fetch the default docker image for python runtime and image function

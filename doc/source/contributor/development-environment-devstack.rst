@@ -65,7 +65,6 @@ configuration:
     RABBIT_PASSWORD=password
     LOGFILE=$DEST/logs/stack.sh.log
     LOG_COLOR=False
-    LOGFILE=$DEST/logs/stack.sh.log
     LOGDAYS=1
 
     ENABLED_SERVICES=rabbit,mysql,key,tempest

@@ -106,9 +106,8 @@ Kubernetes Integration
 
 By default, Qinling uses Kubernetes as its orchestrator backend, so a k8s
 all-in-one environment (and some other related tools, e.g. kubectl) is also
-setup during devstack installation.
+set up during devstack installation.
 
-The idea and most of the scripts come from
-`OpenStack-Helm <https://docs.openstack.org/openstack-helm/latest/index.html>`_
-project originally, but may be probably changed as the project evolving in
-future.
+Qinling devstack script uses `kubeadm <https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/>`_
+for Kubernetes installation, refer to ``tools/gate/kubeadm/setup_gate.sh`` for
+more detailed information about Qinling devstack installation.

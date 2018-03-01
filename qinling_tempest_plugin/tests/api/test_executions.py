@@ -212,6 +212,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual('failed', body['status'])
 
         result = jsonutils.loads(body['result'])
+        self.assertNotIn('error', result)
         self.assertIn(
             'Too many open files', result['output']
         )
@@ -229,6 +230,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual('failed', body['status'])
 
         result = jsonutils.loads(body['result'])
+        self.assertNotIn('error', result)
         self.assertIn(
             'too much resource consumption', result['output']
         )

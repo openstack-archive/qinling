@@ -14,10 +14,10 @@
 
 import importlib
 import json
-import logging
 from multiprocessing import Manager
 from multiprocessing import Process
 import os
+import resource
 import sys
 import time
 import traceback
@@ -27,33 +27,35 @@ from flask import request
 from flask import Response
 from keystoneauth1.identity import generic
 from keystoneauth1 import session
+from oslo_concurrency import lockutils
 import requests
 
 app = Flask(__name__)
-downloaded = False
-downloading = False
 
 DOWNLOAD_ERROR = "Failed to download function package from %s, error: %s"
 INVOKE_ERROR = "Function execution failed because of too much resource " \
                "consumption"
 
 
-def setup_logger(loglevel):
-    global app
-    root = logging.getLogger()
-    root.setLevel(loglevel)
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(loglevel)
-    ch.setFormatter(
-        logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    )
-    app.logger.addHandler(ch)
-
-
 def _print_trace():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
     print(''.join(line for line in lines))
+
+
+def _set_ulimit():
+    """Limit resources usage for the current process and/or its children.
+
+    Refer to https://docs.python.org/2.7/library/resource.html
+    """
+    customized_limits = {
+        resource.RLIMIT_NOFILE: 1024,
+        resource.RLIMIT_NPROC: 128,
+        resource.RLIMIT_FSIZE: 61440
+    }
+    for t, soft in customized_limits.items():
+        _, hard = resource.getrlimit(t)
+        resource.setrlimit(t, (soft, hard))
 
 
 def _get_responce(output, duration, logs, success, code):
@@ -71,8 +73,13 @@ def _get_responce(output, duration, logs, success, code):
     )
 
 
+@lockutils.synchronized('download_function', external=True,
+                        lock_path='/var/lock/qinling')
 def _download_package(url, zip_file, token=None):
-    app.logger.info('Downloading function, download_url:%s' % url)
+    if os.path.isfile(zip_file):
+        return True, None
+
+    print('Downloading function, download_url:%s' % url)
 
     headers = {}
     if token:
@@ -94,8 +101,7 @@ def _download_package(url, zip_file, token=None):
             DOWNLOAD_ERROR % (url, str(e)), 0, '', False, 500
         )
 
-    app.logger.info('Downloaded function package to %s' % zip_file)
-
+    print('Downloaded function package to %s' % zip_file)
     return True, None
 
 
@@ -135,9 +141,6 @@ def execute():
       reason, e.g. unlimited memory allocation)
     - Deal with os error for process (e.g. Resource temporarily unavailable)
     """
-    global downloading
-    global downloaded
-
     params = request.get_json() or {}
     input = params.get('input') or {}
     execution_id = params['execution_id']
@@ -155,25 +158,20 @@ def execute():
     if entry:
         function_module, function_method = tuple(entry.rsplit('.', 1))
 
-    app.logger.info(
+    print(
         'Request received, request_id: %s, execution_id: %s, input: %s, '
         'auth_url: %s' %
         (request_id, execution_id, input, auth_url)
     )
 
-    while downloading:
-        time.sleep(3)
-
-    if not downloading and not downloaded:
-        downloading = True
-
-        ret, resp = _download_package(download_url, zip_file,
-                                      params.get('token'))
-        if not ret:
-            return resp
-
-        downloading = False
-        downloaded = True
+    # Download function package if needed.
+    ret, resp = _download_package(
+        download_url,
+        zip_file,
+        params.get('token')
+    )
+    if not ret:
+        return resp
 
     # Provide an openstack session to user's function
     os_session = None
@@ -187,6 +185,9 @@ def execute():
         )
         os_session = session.Session(auth=auth, verify=False)
     input.update({'context': {'os_session': os_session}})
+
+    # Set resource limit
+    _set_ulimit()
 
     manager = Manager()
     return_dict = manager.dict()
@@ -223,10 +224,3 @@ def execute():
 @app.route('/ping')
 def ping():
     return 'pong'
-
-
-setup_logger(logging.DEBUG)
-app.logger.info("Starting server")
-
-# Just for testing purpose
-app.run(host='0.0.0.0', port=9090, threaded=True)

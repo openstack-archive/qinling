@@ -101,11 +101,11 @@ class KubernetesManager(base.OrchestratorBase):
 
         return ret.status.replicas == ret.status.available_replicas
 
-    def create_pool(self, name, image, labels=None):
+    def create_pool(self, name, image):
         deployment_body = self.deployment_template.render(
             {
                 "name": name,
-                "labels": labels if labels else {},
+                "labels": {'runtime_id': name},
                 "replicas": self.conf.kubernetes.replicas,
                 "container_name": 'worker',
                 "image": image,
@@ -125,10 +125,11 @@ class KubernetesManager(base.OrchestratorBase):
 
         LOG.info("Deployment for runtime %s created.", name)
 
-    def delete_pool(self, name, labels=None):
+    def delete_pool(self, name):
         """Delete all resources belong to the deployment."""
         LOG.info("Deleting deployment %s", name)
 
+        labels = {'runtime_id': name}
         selector = common.convert_dict_to_string(labels)
 
         self.v1extention.delete_collection_namespaced_replica_set(
@@ -162,7 +163,7 @@ class KubernetesManager(base.OrchestratorBase):
         LOG.info("Pods in deployment %s deleted.", name)
         LOG.info("Deployment %s deleted.", name)
 
-    def update_pool(self, name, labels=None, image=None):
+    def update_pool(self, name, image=None):
         """Deployment rolling-update.
 
         Return True if successful, otherwise return False after rolling back.
@@ -209,7 +210,7 @@ class KubernetesManager(base.OrchestratorBase):
                     "revision": 0
                 }
             }
-            self.v1extention.create_namespaced_deployment_rollback_rollback(
+            self.v1extention.create_namespaced_deployment_rollback(
                 name, self.conf.kubernetes.namespace, body
             )
 
@@ -217,28 +218,28 @@ class KubernetesManager(base.OrchestratorBase):
 
         return True
 
-    def _choose_available_pod(self, labels, count=1, function_id=None):
-        selector = common.convert_dict_to_string(labels)
-
+    def _choose_available_pods(self, labels, count=1, function_id=None):
         # If there is already a pod for function, reuse it.
         if function_id:
             ret = self.v1.list_namespaced_pod(
                 self.conf.kubernetes.namespace,
                 label_selector='function_id=%s' % function_id
             )
-            if len(ret.items) > 0:
+            if len(ret.items) >= count:
                 LOG.debug(
-                    "Function %s already associates to a pod.", function_id
+                    "Function %s already associates to a pod with at least "
+                    "%d worker(s). ", function_id, count
                 )
                 return ret.items[:count]
 
+        selector = common.convert_dict_to_string(labels)
         ret = self.v1.list_namespaced_pod(
             self.conf.kubernetes.namespace,
             label_selector='!function_id,%s' % selector
         )
 
-        if len(ret.items) == 0:
-            return None
+        if len(ret.items) < count:
+            return []
 
         return ret.items[-count:]
 
@@ -315,10 +316,10 @@ class KubernetesManager(base.OrchestratorBase):
     def _create_pod(self, image, pod_name, labels, input):
         if not input:
             input_list = []
-        elif input.get('__function_input'):
+        elif isinstance(input, dict) and input.get('__function_input'):
             input_list = input.get('__function_input').split()
         else:
-            input_list = [json.dumps(input)]
+            input_list = list(json.loads(input))
 
         pod_body = self.pod_template.render(
             {
@@ -338,7 +339,7 @@ class KubernetesManager(base.OrchestratorBase):
             body=yaml.safe_load(pod_body),
         )
 
-    def _update_pod_label(self, pod, new_label=None):
+    def _update_pod_label(self, pod, new_label):
         name = pod.metadata.name
 
         pod_labels = copy.deepcopy(pod.metadata.labels) or {}
@@ -366,21 +367,23 @@ class KubernetesManager(base.OrchestratorBase):
         For normal function, choose a pod from the pool and expose a service,
         return the service URL.
         """
-        pod = None
+        pods = None
+
+        labels = labels or {'function_id': function_id}
 
         if image:
             self._create_pod(image, identifier, labels, input)
             return identifier, None
         else:
-            pod = self._choose_available_pod(labels, function_id=function_id)
+            pods = self._choose_available_pods(labels, function_id=function_id)
 
-        if not pod:
+        if not pods:
             LOG.critical('No worker available.')
             raise exc.OrchestratorException('Execution preparation failed.')
 
         try:
             pod_name, url = self._prepare_pod(
-                pod[0], identifier, function_id, labels
+                pods[0], identifier, function_id, labels
             )
             return pod_name, url
         except Exception:
@@ -435,6 +438,7 @@ class KubernetesManager(base.OrchestratorBase):
             return True, output
 
     def delete_function(self, function_id, labels=None):
+        labels = labels or {'function_id': function_id}
         selector = common.convert_dict_to_string(labels)
 
         ret = self.v1.list_namespaced_service(
@@ -455,7 +459,7 @@ class KubernetesManager(base.OrchestratorBase):
     def scaleup_function(self, function_id, identifier=None, count=1):
         pod_names = []
         labels = {'runtime_id': identifier}
-        pods = self._choose_available_pod(labels, count=count)
+        pods = self._choose_available_pods(labels, count=count)
 
         if not pods:
             raise exc.OrchestratorException('Not enough workers available.')

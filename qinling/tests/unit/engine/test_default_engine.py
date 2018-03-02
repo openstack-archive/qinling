@@ -45,7 +45,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.create_runtime(mock.Mock(), runtime_id)
 
         self.orchestrator.create_pool.assert_called_once_with(
-            runtime_id, runtime.image, labels={'runtime_id': runtime_id})
+            runtime_id, runtime.image)
         runtime = db_api.get_runtime(runtime_id)
         self.assertEqual(status.AVAILABLE, runtime.status)
 
@@ -59,7 +59,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.create_runtime(mock.Mock(), runtime_id)
 
         self.orchestrator.create_pool.assert_called_once_with(
-            runtime_id, runtime.image, labels={'runtime_id': runtime_id})
+            runtime_id, runtime.image)
         runtime = db_api.get_runtime(runtime_id)
         self.assertEqual(status.ERROR, runtime.status)
 
@@ -70,7 +70,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.delete_runtime(mock.Mock(), runtime_id)
 
         self.orchestrator.delete_pool.assert_called_once_with(
-            runtime_id, labels={'runtime_id': runtime_id})
+            runtime_id)
         self.assertRaisesRegexp(
             exc.DBEntityNotFoundError,
             "^Runtime not found \[id=%s\]$" % runtime_id,
@@ -89,7 +89,7 @@ class TestDefaultEngine(base.DbTestCase):
             mock.Mock(), runtime_id, image, pre_image)
 
         self.orchestrator.update_pool.assert_called_once_with(
-            runtime_id, labels={'runtime_id': runtime_id}, image=image)
+            runtime_id, image=image)
         runtime = db_api.get_runtime(runtime_id)
         self.assertEqual(runtime.status, status.AVAILABLE)
 
@@ -106,7 +106,7 @@ class TestDefaultEngine(base.DbTestCase):
             mock.Mock(), runtime_id, image, pre_image)
 
         self.orchestrator.update_pool.assert_called_once_with(
-            runtime_id, labels={'runtime_id': runtime_id}, image=image)
+            runtime_id, image=image)
         runtime = db_api.get_runtime(runtime_id)
         self.assertEqual(runtime.image, pre_image)
         self.assertEqual(runtime.status, status.AVAILABLE)
@@ -262,12 +262,12 @@ class TestDefaultEngine(base.DbTestCase):
             mock.call(function_id,
                       image=function.code['image'],
                       identifier=mock.ANY,
-                      labels={'function_id': function_id},
+                      labels=None,
                       input=None),
             mock.call(function_id,
                       image=function.code['image'],
                       identifier=mock.ANY,
-                      labels={'function_id': function_id},
+                      labels=None,
                       input='input')]
         self.orchestrator.prepare_execution.assert_has_calls(prepare_calls)
         self.assertEqual(2, self.orchestrator.prepare_execution.call_count)
@@ -382,7 +382,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.delete_function(mock.Mock(), function_id)
 
         self.orchestrator.delete_function.assert_called_once_with(
-            function_id, labels={'function_id': function_id})
+            function_id)
 
     @mock.patch('qinling.utils.etcd_util.create_service_url')
     @mock.patch('qinling.utils.etcd_util.create_worker')

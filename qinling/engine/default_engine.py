@@ -38,13 +38,11 @@ class DefaultEngine(object):
 
         with db_api.transaction():
             runtime = db_api.get_runtime(runtime_id)
-            labels = {'runtime_id': runtime_id}
 
             try:
                 self.orchestrator.create_pool(
                     runtime_id,
-                    runtime.image,
-                    labels=labels,
+                    runtime.image
                 )
                 runtime.status = status.AVAILABLE
                 LOG.info('Runtime %s created.', runtime_id)
@@ -59,8 +57,7 @@ class DefaultEngine(object):
     def delete_runtime(self, ctx, runtime_id):
         LOG.info('Start to delete runtime %s.', runtime_id)
 
-        labels = {'runtime_id': runtime_id}
-        self.orchestrator.delete_pool(runtime_id, labels=labels)
+        self.orchestrator.delete_pool(runtime_id)
         db_api.delete_runtime(runtime_id)
 
         LOG.info('Deleted runtime %s.', runtime_id)
@@ -71,9 +68,8 @@ class DefaultEngine(object):
             runtime_id, image, pre_image
         )
 
-        labels = {'runtime_id': runtime_id}
         ret = self.orchestrator.update_pool(
-            runtime_id, labels=labels, image=image
+            runtime_id, image=image
         )
 
         if ret:
@@ -171,7 +167,6 @@ class DefaultEngine(object):
                           (common.generate_unicode_uuid(dashed=False),
                            function_id)
                           )[:63]
-            labels = {'function_id': function_id}
         else:
             identifier = runtime_id
             labels = {'runtime_id': runtime_id}
@@ -221,8 +216,7 @@ class DefaultEngine(object):
         """Deletes underlying resources allocated for function."""
         LOG.info('Start to delete function %s.', function_id)
 
-        labels = {'function_id': function_id}
-        self.orchestrator.delete_function(function_id, labels=labels)
+        self.orchestrator.delete_function(function_id)
 
         LOG.info('Deleted function %s.', function_id)
 

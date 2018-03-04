@@ -130,7 +130,7 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('f22097dc-37db-484d-83d3-3a97e72ec576')
     def test_execution_concurrency_no_scale(self):
-        package = self.create_package(name='test_python_sleep.py')
+        package = self.create_package(name='python/test_python_sleep.py')
         function_id = self.create_function(package_path=package)
 
         def _create_execution():
@@ -158,7 +158,7 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('a5ed173a-19b7-4c92-ac78-c8862ad1d1d2')
     def test_execution_concurrency_scale_up(self):
-        package = self.create_package(name='test_python_sleep.py')
+        package = self.create_package(name='python/test_python_sleep.py')
         function_id = self.create_function(package_path=package)
 
         def _create_execution():
@@ -185,7 +185,9 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('ccfe67ce-e467-11e7-916c-00224d6b7bc1')
     def test_python_execution_positional_args(self):
-        package = self.create_package(name='test_python_positional_args.py')
+        package = self.create_package(
+            name='python/test_python_positional_args.py'
+        )
         function_id = self.create_function(package_path=package)
 
         resp, body = self.client.create_execution(function_id,
@@ -201,7 +203,7 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('a948382a-84af-4f0e-ad08-4297345e302c')
     def test_python_execution_file_limit(self):
-        package = self.create_package(name='test_python_file_limit.py')
+        package = self.create_package(name='python/test_python_file_limit.py')
         function_id = self.create_function(package_path=package)
 
         resp, body = self.client.create_execution(function_id)
@@ -219,7 +221,9 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('bf6f8f35-fa88-469b-8878-7aa85a8ce5ab')
     def test_python_execution_process_number(self):
-        package = self.create_package(name='test_python_process_limit.py')
+        package = self.create_package(
+            name='python/test_python_process_limit.py'
+        )
         function_id = self.create_function(package_path=package)
 
         resp, body = self.client.create_execution(function_id)

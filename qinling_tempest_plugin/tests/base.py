@@ -95,27 +95,24 @@ class BaseQinlingTest(test.BaseTestCase):
         self.assertEqual(200, resp.status)
         self.assertEqual('success', body['status'])
 
-    def create_package(self, name="python_test.py"):
-        python_file_path = pkg_resources.resource_filename(
+    def create_package(self, name="python/test_python_basic.py"):
+        file_path = pkg_resources.resource_filename(
             'qinling_tempest_plugin',
             "functions/%s" % name
         )
-        base_name, _ = os.path.splitext(python_file_path)
+        base_name, extention = os.path.splitext(file_path)
         module_name = os.path.basename(base_name)
-        python_zip_file = os.path.join(
-            tempfile.gettempdir(),
-            '%s.zip' % module_name
-        )
+        zip_file = os.path.join(tempfile.gettempdir(), '%s.zip' % module_name)
 
-        if not os.path.isfile(python_zip_file):
-            zf = zipfile.PyZipFile(python_zip_file, mode='w')
+        if not os.path.isfile(zip_file):
+            zf = zipfile.ZipFile(zip_file, mode='w')
             try:
-                zf.writepy(python_file_path)
+                zf.write(file_path, '%s%s' % (module_name, extention))
             finally:
                 zf.close()
 
-        self.addCleanup(os.remove, python_zip_file)
-        return python_zip_file
+        self.addCleanup(os.remove, zip_file)
+        return zip_file
 
     def create_function(self, package_path=None, image=False, md5sum=None):
         function_name = data_utils.rand_name(

@@ -12,10 +12,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import uuid
-
 import etcd3gw
 from oslo_config import cfg
+from oslo_utils import uuidutils
 
 CONF = cfg.CONF
 CLIENT = None
@@ -39,7 +38,7 @@ def get_worker_lock():
 def create_worker(function_id, worker):
     client = get_client()
     client.create(
-        '%s/worker_%s' % (function_id, str(uuid.uuid4())),
+        '%s/worker_%s' % (function_id, uuidutils.generate_uuid()),
         worker
     )
 

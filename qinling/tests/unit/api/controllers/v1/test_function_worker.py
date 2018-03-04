@@ -11,10 +11,10 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-import uuid
 
 import mock
 
+from oslo_utils import uuidutils
 from qinling.tests.unit.api import base
 
 TEST_CASE_NAME = 'TestFunctionWorkerController'
@@ -23,7 +23,7 @@ TEST_CASE_NAME = 'TestFunctionWorkerController'
 class TestFunctionWorkerController(base.APITest):
     @mock.patch('qinling.utils.etcd_util.get_workers')
     def test_get_all_workers(self, mock_get_workers):
-        function_id = str(uuid.uuid4())
+        function_id = uuidutils.generate_uuid()
         mock_get_workers.return_value = ['test_worker0', 'test_worker1']
 
         resp = self.app.get('/v1/functions/%s/workers' % function_id)

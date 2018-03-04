@@ -13,6 +13,7 @@
 #    limitations under the License.
 
 from kubernetes.client import api_client
+# from kubernetes.client.apis import apps_v1_api
 from kubernetes.client.apis import core_v1_api
 from kubernetes.client.apis import extensions_v1beta1_api
 from kubernetes.client import configuration as k8s_config
@@ -25,9 +26,11 @@ def get_k8s_clients(conf):
     client = api_client.ApiClient(configuration=config)
     v1 = core_v1_api.CoreV1Api(client)
     v1extention = extensions_v1beta1_api.ExtensionsV1beta1Api(client)
+    # apps_v1 = apps_v1_api.AppsV1Api(client)
 
     clients = {
         'v1': v1,
+        # 'apps_v1': apps_v1
         'v1extention': v1extention
     }
 

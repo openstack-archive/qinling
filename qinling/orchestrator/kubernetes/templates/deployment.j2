@@ -21,12 +21,19 @@ spec:
       {% endfor %}
     spec:
       terminationGracePeriodSeconds: 5
+      automountServiceAccountToken: false
+      volumes:
+      - name: package-folder
+        emptyDir: {}
       containers:
       - name: {{ container_name }}
         image: {{ image }}
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9090
+        volumeMounts:
+          - name: package-folder
+            mountPath: /var/qinling/packages
         resources:
           limits:
             cpu: "0.3"
@@ -34,3 +41,11 @@ spec:
           requests:
             cpu: "0.1"
             memory: 32Mi
+      - name: sidecar
+        image: openstackqinling/sidecar
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 9091
+        volumeMounts:
+          - name: package-folder
+            mountPath: /var/qinling/packages

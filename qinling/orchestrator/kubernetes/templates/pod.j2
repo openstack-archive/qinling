@@ -8,6 +8,7 @@ metadata:
   {% endfor %}
 spec:
   terminationGracePeriodSeconds: 5
+  automountServiceAccountToken: false
   containers:
     - name: {{ pod_name }}
       image: {{ pod_image }}

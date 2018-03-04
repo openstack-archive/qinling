@@ -27,7 +27,6 @@ from flask import request
 from flask import Response
 from keystoneauth1.identity import generic
 from keystoneauth1 import session
-from oslo_concurrency import lockutils
 import requests
 
 app = Flask(__name__)
@@ -73,41 +72,12 @@ def _get_responce(output, duration, logs, success, code):
     )
 
 
-@lockutils.synchronized('download_function', external=True,
-                        lock_path='/var/lock/qinling')
-def _download_package(url, zip_file, token=None):
-    if os.path.isfile(zip_file):
-        return True, None
-
-    print('Downloading function, download_url:%s' % url)
-
-    headers = {}
-    if token:
-        headers = {'X-Auth-Token': token}
-
-    try:
-        r = requests.get(url, headers=headers, stream=True, timeout=5,
-                         verify=False)
-        if r.status_code != 200:
-            return False, _get_responce(
-                DOWNLOAD_ERROR % (url, r.content), 0, '', False, 500
-            )
-
-        with open(zip_file, 'wb') as fd:
-            for chunk in r.iter_content(chunk_size=65535):
-                fd.write(chunk)
-    except Exception as e:
-        return False, _get_responce(
-            DOWNLOAD_ERROR % (url, str(e)), 0, '', False, 500
-        )
-
-    print('Downloaded function package to %s' % zip_file)
-    return True, None
-
-
 def _invoke_function(execution_id, zip_file, module_name, method, arg, input,
                      return_dict):
     """Thie function is supposed to be running in a child process."""
+    # Set resource limit for current sub-process
+    _set_ulimit()
+
     sys.path.insert(0, zip_file)
     sys.stdout = open("%s.out" % execution_id, "w", 0)
 
@@ -152,7 +122,7 @@ def execute():
     auth_url = params.get('auth_url')
     username = params.get('username')
     password = params.get('password')
-    zip_file = '%s.zip' % function_id
+    zip_file = '/var/qinling/packages/%s.zip' % function_id
 
     function_module, function_method = 'main', 'main'
     if entry:
@@ -164,16 +134,28 @@ def execute():
         (request_id, execution_id, input, auth_url)
     )
 
-    # Download function package if needed.
-    ret, resp = _download_package(
-        download_url,
-        zip_file,
-        params.get('token')
+    ####################################################################
+    #
+    # Download function package by calling sidecar service. We don't check the
+    # zip file existence here to avoid using partial file during downloading.
+    #
+    ####################################################################
+    resp = requests.post(
+        'http://localhost:9091/download',
+        json={
+            'download_url': download_url,
+            'function_id': function_id,
+            'token': params.get('token')
+        }
     )
-    if not ret:
-        return resp
+    if not resp.ok:
+        return _get_responce(resp.content, 0, '', False, 500)
 
+    ####################################################################
+    #
     # Provide an openstack session to user's function
+    #
+    ####################################################################
     os_session = None
     if auth_url:
         auth = generic.Password(
@@ -186,9 +168,11 @@ def execute():
         os_session = session.Session(auth=auth, verify=False)
     input.update({'context': {'os_session': os_session}})
 
-    # Set resource limit
-    _set_ulimit()
-
+    ####################################################################
+    #
+    # Create a new process to run user's function
+    #
+    ####################################################################
     manager = Manager()
     return_dict = manager.dict()
     return_dict['success'] = False
@@ -203,6 +187,11 @@ def execute():
     p.start()
     p.join()
 
+    ####################################################################
+    #
+    # Get execution output(log, duration, etc.)
+    #
+    ####################################################################
     duration = round(time.time() - start, 3)
 
     # Process was killed unexpectedly or finished with error.

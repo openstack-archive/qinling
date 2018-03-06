@@ -27,6 +27,7 @@ function install_k8s {
     # Pre-fetch the default docker image for python runtime and image function
     # test.
     sudo docker pull $QINLING_PYTHON_RUNTIME_IMAGE
+    sudo docker pull openstackqinling/sidecar
     sudo docker pull openstackqinling/alpine-test
 }
 

@@ -42,6 +42,7 @@ class KubernetesManager(base.OrchestratorBase):
         clients = k8s_util.get_k8s_clients(self.conf)
         self.v1 = clients['v1']
         self.v1extention = clients['v1extention']
+        # self.apps_v1 = clients['apps_v1']
 
         # Create namespace if not exists
         self._ensure_namespace()

@@ -50,6 +50,7 @@ class BaseQinlingTest(test.BaseTestCase):
         clients = utils.get_k8s_clients(CONF)
         cls.k8s_v1 = clients['v1']
         cls.k8s_v1extention = clients['v1extention']
+        # cls.k8s_apps_v1 = clients['apps_v1']
         cls.namespace = 'qinling'
 
     @classmethod

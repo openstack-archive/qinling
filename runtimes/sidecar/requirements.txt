@@ -1,0 +1,3 @@
+Flask>=0.10,!=0.11,<1.0  # BSD
+oslo.concurrency>=3.25.0  # Apache-2.0
+requests>=2.18.4

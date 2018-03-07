@@ -12,6 +12,8 @@
     irrelevant-files:
       - ^.*\.rst$
       - ^doc/.*
+      - ^qinling/tests/unit/.*$
+      - ^releasenotes/.*$
 
 - project:
     check:

@@ -71,6 +71,18 @@ configuration:
 
 .. end
 
+.. note::
+
+   For multiple network cards, you need to update the Kubernetes apiserver's advertise address
+   to the address on the interface which is used to get to the default gateway by adding one
+   environment variable.
+
+   .. code-block:: console
+
+       export EXTRA_KUBEADM_INIT_OPTS="--apiserver-advertise-address <default-host-ip>"
+
+   .. end
+
 Running devstack
 ----------------
 

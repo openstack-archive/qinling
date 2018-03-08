@@ -50,7 +50,7 @@ Administration/Operation Guide
 .. toctree::
    :maxdepth: 1
 
-   administration/index
+   admin/index
 
 Contributor/Developer Guide
 ---------------------------

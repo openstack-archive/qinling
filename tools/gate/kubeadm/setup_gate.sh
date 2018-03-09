@@ -28,6 +28,8 @@ sudo apt-add-repository --yes ppa:ansible/ansible && sudo apt-get update -y -qq 
 ansible-playbook ${WORK_DIR}/tools/gate/kubeadm/playbook/deploy_k8s.yaml
 
 # waits until kubectl can access the api server
+mkdir -p ${HOME}/.kube
+sudo cp /etc/kubernetes/admin.conf ${HOME}/.kube/config
 sudo chown $(id -u):$(id -g) ${HOME}/.kube/config
 end=$(($(date +%s) + 600))
 READY="False"

@@ -27,11 +27,9 @@
     join_str: "{{ kubeadm_init.stdout | regex_search('kubeadm join(.*)$') }}"
 
 - name: Prepare kube config
-  shell: mkdir -p {{ item }}/.kube && cp -a /etc/kubernetes/admin.conf {{ item }}/.kube/config && chmod 755 {{ item }}/.kube/config
+  shell: mkdir -p {{ item }}/.kube && cp -a /etc/kubernetes/admin.conf {{ item }}/.kube/config && chmod 644 {{ item }}/.kube/config
   with_items:
     - "{{ ansible_env.HOME }}"
-    - /home/ubuntu
-    - /opt/stack/new
 
 - name: Allow pod on master
   shell: kubectl taint nodes --all node-role.kubernetes.io/master-

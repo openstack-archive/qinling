@@ -34,13 +34,6 @@ spec:
         volumeMounts:
           - name: package-folder
             mountPath: /var/qinling/packages
-        resources:
-          limits:
-            cpu: "0.3"
-            memory: 128Mi
-          requests:
-            cpu: "0.1"
-            memory: 32Mi
       - name: sidecar
         image: openstackqinling/sidecar
         imagePullPolicy: IfNotPresent

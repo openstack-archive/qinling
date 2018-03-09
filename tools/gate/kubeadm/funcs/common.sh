@@ -14,6 +14,7 @@
 
 function base_install {
   if [ "x$HOST_OS" == "xubuntu" ]; then
+    sudo apt-add-repository --yes ppa:ansible/ansible
     sudo apt-get update -y
     sudo apt-get install -y --no-install-recommends \
       iproute2 \
@@ -21,7 +22,8 @@ function base_install {
       ipcalc \
       nmap \
       lshw \
-      screen
+      screen \
+      ansible
   elif [ "x$HOST_OS" == "xcentos" ]; then
     sudo yum install -y \
       epel-release
@@ -31,14 +33,16 @@ function base_install {
       iptables \
       initscripts \
       nmap \
-      lshw
+      lshw \
+      ansible
   elif [ "x$HOST_OS" == "xfedora" ]; then
     sudo dnf install -y \
       iproute \
       iptables \
       ipcalc \
       nmap \
-      lshw
+      lshw \
+      ansible
   fi
 }
 

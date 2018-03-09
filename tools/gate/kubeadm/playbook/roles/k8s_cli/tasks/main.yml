@@ -1,14 +1,14 @@
 ---
-- name: Add Kubernetes GPG key
-  apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-    state: present
+- include: ubuntu.yml
+  when:
+    ansible_pkg_mgr == 'apt'
 
-- name: Set up Kubernetes repository
-  apt_repository: repo='deb http://apt.kubernetes.io/ kubernetes-xenial main' state=present
+- include: centos.yml
+  when:
+    ansible_pkg_mgr == 'yum'
 
 - name: Install kube CLIs
-  apt:
+  package:
     name: "{{ item }}"
     state: present
     update_cache: yes
@@ -16,5 +16,11 @@
     - kubelet
     - kubeadm
     - kubectl
+
+- name: Start kubelet
+  systemd:
+    name: kubelet
+    state: started
+    daemon_reload: yes
 
 - import_tasks: install_kube_prompt_tasks.yml

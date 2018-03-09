@@ -24,7 +24,6 @@ net_resolv_pre_kube
 net_hosts_pre_kube
 
 # Setup the K8s Cluster
-sudo apt-add-repository --yes ppa:ansible/ansible && sudo apt-get update -y -qq && sudo apt-get install ansible -y -qq
 ansible-playbook ${WORK_DIR}/tools/gate/kubeadm/playbook/deploy_k8s.yaml
 
 # waits until kubectl can access the api server

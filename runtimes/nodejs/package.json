@@ -1,0 +1,24 @@
+{
+  "name": "qinling-nodejs-runtime",
+  "version": "1.0.0",
+  "description": "NodeJS runtime container for Qinling",
+  "main": "server.js",
+  "engine": {
+    "node": ">=8.10.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openstack/qinling.git"
+  },
+  "author": "Lingxian Kong",
+  "homepage": "https://docs.openstack.org/qinling/latest/",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "morgan": "^1.9.0",
+    "process": "^0.11.10",
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2"
+  }
+}

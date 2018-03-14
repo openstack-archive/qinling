@@ -52,7 +52,9 @@
         TEMPEST_PLUGINS: '/opt/stack/qinling'
       tox_envlist: all-plugin
       tempest_test_regex:  '^(qinling_tempest_plugin.)'
-      tempest_concurrency: 1
+      # Set tempest concurrency to qinling's default number of replicas in a
+      # deployment to avoid tests failing of no avaliable pod.
+      tempest_concurrency: 3
 
 - project:
     check:

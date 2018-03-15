@@ -1,21 +1,14 @@
 ---
 - name: Install packages
-  apt: name={{ item }} state=present update_cache=yes
+  package: name={{ item }} state=present update_cache=yes
   with_items:
-    - apt-transport-https
     - ca-certificates
     - curl
 
-- name: Add Docker’s official GPG key
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+- include: ubuntu.yml
+  when:
+    ansible_pkg_mgr == 'apt'
 
-- name: Set up the stable repository
-  apt_repository: repo='deb https://download.docker.com/linux/ubuntu xenial stable' state=present
-
-- name: Install docker-ce
-  apt:
-    name: docker-ce={{ docker_version }}
-    state: present
-    update_cache: yes
+- include: centos.yml
+  when:
+    ansible_pkg_mgr == 'yum'

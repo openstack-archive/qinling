@@ -6,18 +6,15 @@
   gather_facts: false
 
   pre_tasks:
-    - name: install python 2
-      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+    - name: Install packages
+      package: name={{ item }} state=present update_cache=yes
+      with_items:
+        - python
+        - unzip
+        - httpie
 
     - name: Gather facts after python installation
       setup: filter=ansible_*
-
-    - name: Install packages
-      apt: name={{ item }} state=present update_cache=yes
-      with_items:
-        - ansible
-        - unzip
-        - httpie
 
   roles:
     - docker

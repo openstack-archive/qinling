@@ -1,0 +1,22 @@
+---
+- name: Install APT transport-https
+  apt:
+    name: apt-transport-https
+    state: present
+    update_cache: yes
+
+- name: Add Docker’s official GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Set up the stable repository
+  apt_repository:
+    repo: 'deb https://download.docker.com/linux/ubuntu xenial stable'
+    state: present
+
+- name: Install docker-ce
+  apt:
+    name: docker-ce={{ docker_version }}
+    state: present
+    update_cache: yes

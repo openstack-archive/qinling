@@ -1,0 +1,44 @@
+---
+- name: Set up docker stable repository on CentOS
+  yum_repository:
+    name: docker-ce-stable
+    description: Docker CE Stable - $basearch
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: https://download.docker.com/linux/centos/gpg
+
+- name: Install docker-ce
+  #   yum:
+  #     name: docker-ce-17.03.2.ce
+  #     state: present
+  #     update_cache: yes
+  # NOTE(huntxu): This workaround is required for docker-ce-17.03.2 as its
+  # dependency docker-ce-selinux is marked as obsolete. Hopefully this can
+  # be removed once a newer version of docker can be used.
+  shell: yum install -y --setopt=obsoletes=0 \
+         docker-ce-17.03.2.ce-1.el7.centos \
+         docker-ce-selinux-17.03.2.ce-1.el7.centos
+
+- name: Ensure docker.service.d directory
+  file:
+    path: /etc/systemd/system/docker.service.d
+    recurse: yes
+    state: directory
+
+- name: Change docker cgroup driver
+  copy:
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/dockerd --exec-opt native.cgroupdriver=systemd
+    dest: /etc/systemd/system/docker.service.d/10-docker-kubeadm.conf
+    mode: 0644
+    group: root
+    owner: root
+
+- name: Restart docker service
+  systemd:
+    name: docker
+    daemon_reload: yes
+    state: restarted

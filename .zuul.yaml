@@ -1,8 +1,6 @@
 - job:
-    name: qinling-dsvm-tempest
-    parent: legacy-dsvm-base
-    run: playbooks/legacy/qinling-dsvm-tempest/run.yaml
-    post-run: playbooks/legacy/qinling-dsvm-tempest/post.yaml
+    name: qinling-tempest
+    parent: devstack-tempest
     timeout: 7800
     required-projects:
       - openstack-infra/devstack-gate
@@ -14,9 +12,50 @@
       - ^doc/.*
       - ^qinling/tests/unit/.*$
       - ^releasenotes/.*$
+    vars:
+      devstack_services:
+        # Disable unneeded services.
+        # These services are enabled in the devstack base job and are not
+        # needed for qinling.
+        etcd3: false
+        peakmem_tracker: false
+        tls-proxy: false
+        g-api: false
+        g-reg: false
+        n-api: false
+        n-api-meta: false
+        n-cauth: false
+        n-cond: false
+        n-cpu: false
+        n-novnc: false
+        n-obj: false
+        n-sch: false
+        placement-api: false
+        q-agt: false
+        q-dhcp: false
+        q-l3: false
+        q-meta: false
+        q-metering: false
+        q-svc: false
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+        c-api: false
+        c-bak: false
+        c-sch: false
+        c-vol: false
+        cinder: false
+      devstack_plugins:
+        qinling: https://git.openstack.org/openstack/qinling
+      devstack_localrc:
+        TEMPEST_PLUGINS: '/opt/stack/qinling'
+      tox_envlist: all-plugin
+      tempest_test_regex:  '^(qinling_tempest_plugin.)'
+      tempest_concurrency: 1
 
 - project:
     check:
       jobs:
-        - qinling-dsvm-tempest:
+        - qinling-tempest:
             voting: false

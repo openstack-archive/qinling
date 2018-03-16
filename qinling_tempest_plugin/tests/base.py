@@ -102,7 +102,8 @@ class BaseQinlingTest(test.BaseTestCase):
         )
         base_name, extention = os.path.splitext(file_path)
         module_name = os.path.basename(base_name)
-        zip_file = os.path.join(tempfile.gettempdir(), '%s.zip' % module_name)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = os.path.join(temp_dir, '%s.zip' % module_name)
 
         if not os.path.isfile(zip_file):
             zf = zipfile.ZipFile(zip_file, mode='w')
@@ -111,6 +112,7 @@ class BaseQinlingTest(test.BaseTestCase):
             finally:
                 zf.close()
 
+        self.addCleanup(os.rmdir, temp_dir)
         self.addCleanup(os.remove, zip_file)
         return zip_file
 

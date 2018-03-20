@@ -12,6 +12,8 @@
       - ^doc/.*
       - ^qinling/tests/unit/.*$
       - ^releasenotes/.*$
+    pre-run: playbooks/pre.yaml
+    post-run: playbooks/post.yaml
     vars:
       devstack_services:
         # Disable unneeded services.

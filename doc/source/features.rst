@@ -32,3 +32,12 @@ Webhook
 
 Webhooks are a low-effort way to invoke the functions in Qinling. They do
 not require a bot user or authentication to use.
+
+Sync/Async Function Executions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Qinling allows the functions to be executed either synchronously or
+asynchronously. For synchronous functions, the caller will be blocked to wait
+for the responses. Asynchronous functions will be executed at the same time
+point and the responses will be returned to the caller immediately, the caller
+could check the result later on.

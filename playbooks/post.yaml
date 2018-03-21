@@ -1,0 +1,8 @@
+- hosts: all
+  tasks:
+    - name: cleanup the Neutron config dir
+      become: true
+      file:
+        path: /etc/neutron
+        state: absent
+

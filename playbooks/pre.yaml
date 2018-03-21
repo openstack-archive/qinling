@@ -1,0 +1,10 @@
+- hosts: all
+  tasks:
+    - name: create Neutron config dir for devstack job
+      become: true
+      file:
+        path: /etc/neutron
+        owner: stack
+        recurse: yes
+        state: directory
+

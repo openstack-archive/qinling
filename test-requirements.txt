@@ -11,4 +11,4 @@ testtools>=2.2.0 # MIT
 tempest>=17.1.0 # Apache-2.0
 futurist>=1.2.0 # Apache-2.0
 
-kubernetes>=4.0.0 # Apache-2.0
+kubernetes>=5.0.0 # Apache-2.0

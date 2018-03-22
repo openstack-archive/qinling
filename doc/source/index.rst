@@ -56,9 +56,10 @@ Contributor/Developer Guide
 ---------------------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    contributor/index
+   specs/index
 
 Function Programming Guide
 --------------------------

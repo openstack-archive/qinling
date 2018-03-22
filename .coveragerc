@@ -1,6 +1,9 @@
 [run]
 branch = True
 source = qinling
+omit =
+    qinling/tests/*
+    qinling/db/sqlalchemy/migration/alembic_migrations/versions/*
 
 [report]
 ignore_errors = True

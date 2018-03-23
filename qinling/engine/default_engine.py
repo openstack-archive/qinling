@@ -245,5 +245,6 @@ class DefaultEngine(object):
         for worker in workers:
             LOG.debug('Removing worker %s', worker)
             self.orchestrator.delete_worker(worker)
+            etcd_util.delete_worker(function_id, worker)
 
         LOG.info('Finished scaling down function %s.', function_id)

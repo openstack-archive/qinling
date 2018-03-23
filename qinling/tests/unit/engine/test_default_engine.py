@@ -430,23 +430,33 @@ class TestDefaultEngine(base.DbTestCase):
         etcd_util_create_service_url_mock.assert_called_once_with(
             function_id, 'url')
 
+    @mock.patch('qinling.utils.etcd_util.delete_worker')
     @mock.patch('qinling.utils.etcd_util.get_workers')
-    def test_scaledown_function(self, etcd_util_get_workers_mock):
+    def test_scaledown_function(
+            self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
+    ):
         function_id = common.generate_unicode_uuid()
-        etcd_util_get_workers_mock.return_value = range(4)
+        etcd_util_get_workers_mock.return_value = [
+            'worker_%d' % i for i in range(4)
+        ]
 
         self.default_engine.scaledown_function(mock.Mock(), function_id)
 
         etcd_util_get_workers_mock.assert_called_once_with(
             function_id)
-        self.orchestrator.delete_worker.assert_called_once_with(0)
+        self.orchestrator.delete_worker.assert_called_once_with('worker_0')
+        etcd_util_delete_workers_mock.assert_called_once_with(
+            function_id, 'worker_0')
 
+    @mock.patch('qinling.utils.etcd_util.delete_worker')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     def test_scaledown_function_multiple_workers(
-            self, etcd_util_get_workers_mock
+            self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
     ):
         function_id = common.generate_unicode_uuid()
-        etcd_util_get_workers_mock.return_value = range(4)
+        etcd_util_get_workers_mock.return_value = [
+            'worker_%d' % i for i in range(4)
+        ]
 
         self.default_engine.scaledown_function(
             mock.Mock(), function_id, count=2)
@@ -454,16 +464,25 @@ class TestDefaultEngine(base.DbTestCase):
         etcd_util_get_workers_mock.assert_called_once_with(
             function_id)
         # First two workers will be deleted.
-        expected = [mock.call(0), mock.call(1)]
+        expected = [mock.call('worker_0'), mock.call('worker_1')]
         self.orchestrator.delete_worker.assert_has_calls(expected)
         self.assertEqual(2, self.orchestrator.delete_worker.call_count)
+        expected = [
+            mock.call(function_id, 'worker_0'),
+            mock.call(function_id, 'worker_1')
+        ]
+        etcd_util_delete_workers_mock.assert_has_calls(expected)
+        self.assertEqual(2, etcd_util_delete_workers_mock.call_count)
 
+    @mock.patch('qinling.utils.etcd_util.delete_worker')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     def test_scaledown_function_leaving_one_worker(
-            self, etcd_util_get_workers_mock
+            self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
     ):
         function_id = common.generate_unicode_uuid()
-        etcd_util_get_workers_mock.return_value = range(4)
+        etcd_util_get_workers_mock.return_value = [
+            'worker_%d' % i for i in range(4)
+        ]
 
         self.default_engine.scaledown_function(
             mock.Mock(), function_id, count=5)  # count > len(workers)
@@ -471,6 +490,15 @@ class TestDefaultEngine(base.DbTestCase):
         etcd_util_get_workers_mock.assert_called_once_with(
             function_id)
         # Only the first three workers will be deleted
-        expected = [mock.call(0), mock.call(1), mock.call(2)]
+        expected = [
+            mock.call('worker_0'), mock.call('worker_1'), mock.call('worker_2')
+        ]
         self.orchestrator.delete_worker.assert_has_calls(expected)
         self.assertEqual(3, self.orchestrator.delete_worker.call_count)
+        expected = [
+            mock.call(function_id, 'worker_0'),
+            mock.call(function_id, 'worker_1'),
+            mock.call(function_id, 'worker_2')
+        ]
+        etcd_util_delete_workers_mock.assert_has_calls(expected)
+        self.assertEqual(3, etcd_util_delete_workers_mock.call_count)

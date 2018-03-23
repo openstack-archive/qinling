@@ -14,7 +14,6 @@
 
 import etcd3gw
 from oslo_config import cfg
-from oslo_utils import uuidutils
 
 CONF = cfg.CONF
 CLIENT = None
@@ -36,11 +35,23 @@ def get_worker_lock():
 
 
 def create_worker(function_id, worker):
+    """Create the worker info in etcd.
+
+    The worker parameter is assumed to be unique.
+    """
+    # NOTE(huntxu): for the kubernetes orchestrator, which is the the only
+    # available orchestrator at the moment, the value of the worker param
+    # is the name of the pod so it is unique.
     client = get_client()
     client.create(
-        '%s/worker_%s' % (function_id, uuidutils.generate_uuid()),
+        '%s/worker_%s' % (function_id, worker),
         worker
     )
+
+
+def delete_worker(function_id, worker):
+    client = get_client()
+    client.delete('%s/worker_%s' % (function_id, worker))
 
 
 def get_workers(function_id, conf=None):

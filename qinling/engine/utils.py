@@ -19,6 +19,8 @@ import six
 import tenacity
 
 from qinling import context
+from qinling.db import api as db_api
+from qinling import status
 from qinling.utils import constants
 
 LOG = logging.getLogger(__name__)
@@ -99,3 +101,42 @@ def get_request_data(conf, function_id, execution_id, input, entry, trust_id,
         )
 
     return data
+
+
+def db_set_execution_status(execution_id, execution_status, logs, res):
+    db_api.update_execution(
+        execution_id,
+        {
+            'status': execution_status,
+            'logs': logs,
+            'result': res
+        }
+    )
+
+
+def finish_execution(execution_id, success, res, is_image_source=False):
+    logs = ''
+    if is_image_source:
+        # If the function is created from docker image, the result is
+        # direct output, here we convert to a dict to fit into the db
+        # schema.
+        res = {'output': res}
+    else:
+        # Execution log is only available for non-image source execution.
+        logs = res.pop('logs', '')
+        success = success and res.pop('success')
+
+    LOG.debug(
+        'Finished execution %s, success: %s', execution_id, success
+    )
+    db_set_execution_status(
+        execution_id, status.SUCCESS if success else status.FAILED,
+        logs, res
+    )
+
+
+def handle_execution_exception(execution_id, exc_str):
+    LOG.error(
+        'Error running execution %s: %s', execution_id, exc_str
+    )
+    db_set_execution_status(execution_id, status.ERROR, '', {})

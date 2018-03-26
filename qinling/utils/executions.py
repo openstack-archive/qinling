@@ -75,10 +75,22 @@ def create_execution(engine_client, params):
     params.update({'status': status.RUNNING})
     db_model = db_api.create_execution(params)
 
-    engine_client.create_execution(
-        db_model.id, function_id, runtime_id,
-        input=params.get('input'), is_sync=is_sync
-    )
+    try:
+        engine_client.create_execution(
+            db_model.id, function_id, runtime_id,
+            input=params.get('input'), is_sync=is_sync
+        )
+    except exc.QinlingException:
+        # Catch RPC errors for executions:
+        #   - for RemoteError in an RPC call, the execution status would be
+        #     handled in the engine side;
+        #   - for other exceptions in an RPC call or cast, the execution status
+        #     would remain RUNNING so we should update it.
+        db_model = db_api.get_execution(db_model.id)
+        if db_model.status == status.RUNNING:
+            db_model = db_api.update_execution(db_model.id,
+                                               {'status': status.ERROR})
+        return db_model
 
     if is_sync:
         # The execution should already be updated by engine service for sync

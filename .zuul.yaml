@@ -63,3 +63,7 @@
       jobs:
         - qinling-tempest:
             voting: false
+        - openstack-tox-lower-constraints
+    gate:
+      jobs:
+        - openstack-tox-lower-constraints

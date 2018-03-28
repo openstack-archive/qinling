@@ -58,6 +58,11 @@
       # deployment to avoid tests failing of no avaliable pod.
       tempest_concurrency: 3
 
+- job:
+    name: qinling-tempest-centos7
+    parent: qinling-tempest
+    nodeset: devstack-single-node-centos-7
+
 - project:
     check:
       jobs:
@@ -67,3 +72,6 @@
     gate:
       jobs:
         - openstack-tox-lower-constraints
+    experimental:
+      jobs:
+        - qinling-tempest-centos7

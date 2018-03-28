@@ -34,6 +34,7 @@ function base_install {
       initscripts \
       nmap \
       lshw \
+      screen \
       ansible
   elif [ "x$HOST_OS" == "xfedora" ]; then
     sudo dnf install -y \

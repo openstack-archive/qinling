@@ -11,7 +11,6 @@
       with_items:
         - python
         - unzip
-        - httpie
 
     - name: Gather facts after python installation
       setup: filter=ansible_*

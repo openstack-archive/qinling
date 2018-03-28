@@ -201,3 +201,75 @@ class TestFunctionController(base.APITest):
         )
 
         self.assertEqual(403, resp.status_int)
+
+    @mock.patch('qinling.rpc.EngineClient.scaleup_function')
+    def test_scale_up(self, scaleup_function_mock):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+
+        body = {'count': 1}
+        resp = self.app.post(
+            '/v1/functions/%s/scale_up' % db_func.id,
+            params=json.dumps(body),
+            content_type='application/json'
+        )
+
+        self.assertEqual(202, resp.status_int)
+        scaleup_function_mock.assert_called_once_with(
+            db_func.id, runtime_id=self.runtime_id, count=1)
+
+    @mock.patch('qinling.utils.etcd_util.get_workers')
+    @mock.patch('qinling.rpc.EngineClient.scaledown_function')
+    def test_scale_down(self, scaledown_function_mock, get_workers_mock):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+        get_workers_mock.return_value = [mock.Mock(), mock.Mock()]
+
+        body = {'count': 1}
+        resp = self.app.post(
+            '/v1/functions/%s/scale_down' % db_func.id,
+            params=json.dumps(body),
+            content_type='application/json'
+        )
+
+        self.assertEqual(202, resp.status_int)
+        scaledown_function_mock.assert_called_once_with(db_func.id, count=1)
+
+    @mock.patch('qinling.utils.etcd_util.get_workers')
+    @mock.patch('qinling.rpc.EngineClient.scaledown_function')
+    def test_scale_down_no_need(
+            self, scaledown_function_mock, get_workers_mock
+    ):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+        get_workers_mock.return_value = [mock.Mock()]
+
+        body = {'count': 1}
+        resp = self.app.post(
+            '/v1/functions/%s/scale_down' % db_func.id,
+            params=json.dumps(body),
+            content_type='application/json'
+        )
+
+        self.assertEqual(202, resp.status_int)
+        scaledown_function_mock.assert_not_called()
+
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    def test_detach(
+            self, engine_delete_function_mock, etcd_delete_function_mock
+    ):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+
+        resp = self.app.post(
+            '/v1/functions/%s/detach' % db_func.id
+        )
+
+        self.assertEqual(202, resp.status_int)
+        engine_delete_function_mock.assert_called_once_with(db_func.id)
+        etcd_delete_function_mock.assert_called_once_with(db_func.id)

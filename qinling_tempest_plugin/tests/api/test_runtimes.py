@@ -43,18 +43,9 @@ class RuntimesTest(base.BaseQinlingTest):
         )
 
         # Wait for runtime to be available
+        # We don't have to check k8s resource, if runtime's status has changed
+        # to available, then kubernetes deployment is assumed to be ok.
         self.await_runtime_available(runtime_id)
-
-        # Check k8s resource
-        deploy = self.k8s_v1extention.read_namespaced_deployment(
-            runtime_id,
-            namespace=self.namespace
-        )
-
-        self.assertEqual(runtime_id, deploy.metadata.name)
-        self.assertEqual(
-            deploy.status.replicas, deploy.status.available_replicas
-        )
 
         # Delete runtime
         resp = self.admin_client.delete_resource('runtimes', runtime_id)

@@ -6,7 +6,18 @@
     baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
     enabled: yes
     gpgcheck: yes
-    repo_gpgcheck: yes
+    # Got "repomd.xml signature could not be verified for kubernetes" on zuul
+    repo_gpgcheck: no
     gpgkey:
       - https://packages.cloud.google.com/yum/doc/yum-key.gpg
       - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+- name: Install kube CLIs
+  package:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - kubelet-1.9.3
+    - kubectl-1.9.3
+    - kubeadm-1.9.3

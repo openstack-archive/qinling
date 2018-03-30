@@ -8,3 +8,13 @@
   apt_repository:
     repo: 'deb http://apt.kubernetes.io/ kubernetes-xenial main'
     state: present
+
+- name: Install kube CLIs
+  package:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - kubelet=1.9.3-00
+    - kubectl=1.9.3-00
+    - kubeadm=1.9.3-00

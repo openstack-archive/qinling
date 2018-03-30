@@ -7,16 +7,6 @@
   when:
     ansible_pkg_mgr == 'yum'
 
-- name: Install kube CLIs
-  package:
-    name: "{{ item }}"
-    state: present
-    update_cache: yes
-  with_items:
-    - kubelet
-    - kubeadm
-    - kubectl
-
 - name: Start kubelet
   systemd:
     name: kubelet

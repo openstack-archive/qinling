@@ -28,6 +28,8 @@ Specs
 .. toctree::
     :maxdepth: 1
 
+    function_versioning
+
 Template
 --------
 

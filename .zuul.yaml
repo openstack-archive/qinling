@@ -66,11 +66,11 @@
 - project:
     check:
       jobs:
-        - qinling-tempest:
-            voting: false
+        - qinling-tempest
         - openstack-tox-lower-constraints
     gate:
       jobs:
+        - qinling-tempest
         - openstack-tox-lower-constraints
     experimental:
       jobs:

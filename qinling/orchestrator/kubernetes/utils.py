@@ -22,7 +22,12 @@ from kubernetes.client import configuration as k8s_config
 def get_k8s_clients(conf):
     config = k8s_config.Configuration()
     config.host = conf.kubernetes.kube_host
-    config.verify_ssl = False
+    if conf.kubernetes.use_api_certificate:
+        config.ssl_ca_cert = conf.kubernetes.ssl_ca_cert
+        config.cert_file = conf.kubernetes.cert_file
+        config.key_file = conf.kubernetes.key_file
+    else:
+        config.verify_ssl = False
     client = api_client.ApiClient(configuration=config)
     v1 = core_v1_api.CoreV1Api(client)
     v1extention = extensions_v1beta1_api.ExtensionsV1beta1Api(client)

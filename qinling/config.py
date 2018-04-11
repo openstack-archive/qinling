@@ -146,6 +146,30 @@ kubernetes_opts = [
         help='Kubernetes server address, e.g. you can start a proxy to the '
              'Kubernetes API server by using "kubectl proxy" command.'
     ),
+    cfg.BoolOpt(
+        'use_api_certificate',
+        default=True,
+        help='Whether to use client certificates to connect to the '
+             'Kubernetes API server.'
+    ),
+    cfg.StrOpt(
+        'ssl_ca_cert',
+        default='/etc/qinling/pki/kubernetes/ca.crt',
+        help='Path to the CA certificate for qinling to use to connect to '
+             'the Kubernetes API server.'
+    ),
+    cfg.StrOpt(
+        'cert_file',
+        default='/etc/qinling/pki/kubernetes/qinling.crt',
+        help='Path to the client certificate for qinling to use to '
+             'connect to the Kubernetes API server.'
+    ),
+    cfg.StrOpt(
+        'key_file',
+        default='/etc/qinling/pki/kubernetes/qinling.key',
+        help='Path to the client certificate key file for qinling to use to '
+             'connect to the Kubernetes API server.'
+    ),
     cfg.StrOpt(
         'log_devel',
         default='INFO',

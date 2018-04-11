@@ -40,7 +40,10 @@ while true; do
   [ $now -gt $end ] && echo "Failed to setup kubernetes cluster in time" && exit -1
 done
 
-create_k8s_screen
+if [ "$QINLING_K8S_APISERVER_TLS" != "True" ]; then
+  # Kubernetes proxy is needed if we don't use secure connections.
+  create_k8s_screen
+fi
 
 #net_hosts_post_kube
 #net_resolv_post_kube

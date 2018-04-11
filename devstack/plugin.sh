@@ -58,6 +58,26 @@ function mkdir_chown_stack {
 }
 
 
+function configure_k8s_certificates {
+    pushd $QINLING_DIR
+    mkdir_chown_stack "$QINLING_CONF_DIR"/pki/kubernetes
+
+    curl -L https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -o /tmp/cfssl
+    chmod +x /tmp/cfssl
+    curl -L https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 -o /tmp/cfssljson
+    chmod +x /tmp/cfssljson
+
+    sudo /tmp/cfssl gencert -ca=/etc/kubernetes/pki/ca.crt -ca-key=/etc/kubernetes/pki/ca.key -config=example/kubernetes/cfssl-ca-config.json -profile=client example/kubernetes/cfssl-client-csr.json | /tmp/cfssljson -bare client
+    # The command above outputs client-key.pem and client.pem
+    mv client-key.pem "$QINLING_CONF_DIR"/pki/kubernetes/qinling.key
+    mv client.pem "$QINLING_CONF_DIR"/pki/kubernetes/qinling.crt
+
+    cp /etc/kubernetes/pki/ca.crt "$QINLING_CONF_DIR"/pki/kubernetes/ca.crt
+
+    popd
+}
+
+
 function configure_qinling {
     mkdir_chown_stack "$QINLING_AUTH_CACHE_DIR"
     rm -f "$QINLING_AUTH_CACHE_DIR"/*
@@ -89,6 +109,15 @@ function configure_qinling {
 
     # Configure the database.
     iniset $QINLING_CONF_FILE database connection `database_connection_url qinling`
+
+    # Configure Kubernetes API server certificates for qinling if required.
+    if [ "$QINLING_K8S_APISERVER_TLS" == "True" ]; then
+        iniset $QINLING_CONF_FILE kubernetes kube_host https://$(hostname -f):6443
+        configure_k8s_certificates
+        sudo kubectl create -f $QINLING_DIR/example/kubernetes/k8s_qinling_role.yaml
+    else
+        iniset $QINLING_CONF_FILE kubernetes use_api_certificate False
+    fi
 }
 
 

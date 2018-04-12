@@ -54,6 +54,7 @@ class Execution(model_base.QinlingSecureModelBase):
     __tablename__ = 'executions'
 
     function_id = sa.Column(sa.String(36), nullable=False)
+    function_version = sa.Column(sa.Integer, default=0)
     status = sa.Column(sa.String(32), nullable=False)
     sync = sa.Column(sa.BOOLEAN, default=True)
     input = sa.Column(st.JsonLongDictType())
@@ -77,6 +78,7 @@ class Job(model_base.QinlingSecureModelBase):
     )
     function = relationship('Function', back_populates="jobs")
     function_input = sa.Column(sa.String(255), nullable=True)
+    function_version = sa.Column(sa.Integer, default=0)
 
     def to_dict(self):
         d = super(Job, self).to_dict()
@@ -92,7 +94,29 @@ class Webhook(model_base.QinlingSecureModelBase):
         sa.String(36),
         sa.ForeignKey(Function.id)
     )
+    function_version = sa.Column(sa.Integer, default=0)
     description = sa.Column(sa.String(255))
+
+
+class FunctionVersion(model_base.QinlingSecureModelBase):
+    __tablename__ = 'function_versions'
+
+    __table_args__ = (
+        sa.UniqueConstraint('project_id', 'function_id', 'version_number'),
+        sa.Index(
+            '%s_project_id_function_id_version_number' % __tablename__,
+            'project_id',
+            'function_id',
+            'version_number'
+        )
+    )
+
+    function_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey(Function.id)
+    )
+    description = sa.Column(sa.String(255), nullable=True)
+    version_number = sa.Column(sa.Integer, default=0)
 
 
 Runtime.functions = relationship("Function", back_populates="runtime")

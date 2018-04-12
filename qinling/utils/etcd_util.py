@@ -34,6 +34,12 @@ def get_worker_lock():
     return client.lock(id='function_worker')
 
 
+def get_function_version_lock(function_id):
+    client = get_client()
+    lock_id = "function_version_%s" % function_id
+    return client.lock(id=lock_id)
+
+
 def create_worker(function_id, worker):
     """Create the worker info in etcd.
 

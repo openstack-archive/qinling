@@ -48,6 +48,11 @@ def upgrade():
     )
 
     op.add_column(
+        'functions',
+        sa.Column('latest_version', sa.Integer, nullable=False),
+    )
+
+    op.add_column(
         'executions',
         sa.Column('function_version', sa.Integer, nullable=False),
     )

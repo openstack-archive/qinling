@@ -412,3 +412,21 @@ class Webhooks(ResourceList):
         self._type = 'webhooks'
 
         super(Webhooks, self).__init__(**kwargs)
+
+
+class FunctionVersion(Resource):
+    id = types.uuid
+    description = wtypes.text
+    function_version = wsme.wsattr(int, readonly=True)
+    project_id = wsme.wsattr(wtypes.text, readonly=True)
+    created_at = wsme.wsattr(wtypes.text, readonly=True)
+    updated_at = wsme.wsattr(wtypes.text, readonly=True)
+
+
+class FunctionVersions(ResourceList):
+    function_versions = [FunctionVersion]
+
+    def __init__(self, **kwargs):
+        self._type = 'function_versions'
+
+        super(FunctionVersions, self).__init__(**kwargs)

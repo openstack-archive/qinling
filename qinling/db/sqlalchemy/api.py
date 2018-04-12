@@ -491,3 +491,26 @@ def update_webhook(id, values, session=None):
 @db_base.session_aware()
 def delete_webhooks(session=None, insecure=None, **kwargs):
     return _delete_all(models.Webhook, insecure=insecure, **kwargs)
+
+
+@db_base.session_aware()
+def increase_function_version(function_id, old_version, session=None,
+                              **kwargs):
+    """This function is supposed to be invoked within locking section."""
+    version = models.FunctionVersion()
+    kwargs.update(
+        {
+            "function_id": function_id,
+            "version_number": old_version + 1
+        }
+    )
+    version.update(kwargs.copy())
+
+    try:
+        version.save(session=session)
+    except oslo_db_exc.DBDuplicateEntry as e:
+        raise exc.DBError(
+            "Duplicate entry for function_versions: %s" % e.columns
+        )
+
+    return version

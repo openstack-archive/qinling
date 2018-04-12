@@ -26,6 +26,7 @@ from wsme import types as wtypes
 import wsmeext.pecan as wsme_pecan
 
 from qinling.api import access_control as acl
+from qinling.api.controllers.v1 import function_version
 from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
 from qinling import context
@@ -66,6 +67,7 @@ class FunctionWorkerController(rest.RestController):
 
 class FunctionsController(rest.RestController):
     workers = FunctionWorkerController()
+    versions = function_version.FunctionVersionsController()
 
     _custom_actions = {
         'scale_up': ['POST'],

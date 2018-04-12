@@ -91,7 +91,7 @@ class BaseQinlingTest(test.BaseTestCase):
             'qinling_tempest_plugin',
             "functions/%s" % name
         )
-        base_name, extention = os.path.splitext(file_path)
+        base_name, extension = os.path.splitext(file_path)
         module_name = os.path.basename(base_name)
         temp_dir = tempfile.mkdtemp()
         zip_file = os.path.join(temp_dir, '%s.zip' % module_name)
@@ -99,7 +99,7 @@ class BaseQinlingTest(test.BaseTestCase):
         if not os.path.isfile(zip_file):
             zf = zipfile.ZipFile(zip_file, mode='w')
             try:
-                zf.write(file_path, '%s%s' % (module_name, extention))
+                zf.write(file_path, '%s%s' % (module_name, extension))
             finally:
                 zf.close()
 

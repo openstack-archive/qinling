@@ -41,7 +41,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         clients = k8s_util.get_k8s_clients(self.conf)
         self.v1 = clients['v1']
-        self.v1extention = clients['v1extention']
+        self.v1extension = clients['v1extension']
         # self.apps_v1 = clients['apps_v1']
 
         # Create namespace if not exists
@@ -91,7 +91,7 @@ class KubernetesManager(base.OrchestratorBase):
         retry=tenacity.retry_if_result(lambda result: not result)
     )
     def _wait_deployment_available(self, name):
-        ret = self.v1extention.read_namespaced_deployment(
+        ret = self.v1extension.read_namespaced_deployment(
             name,
             self.conf.kubernetes.namespace
         )
@@ -116,7 +116,7 @@ class KubernetesManager(base.OrchestratorBase):
             "Creating deployment for runtime %s: \n%s", name, deployment_body
         )
 
-        self.v1extention.create_namespaced_deployment(
+        self.v1extension.create_namespaced_deployment(
             body=yaml.safe_load(deployment_body),
             namespace=self.conf.kubernetes.namespace
         )
@@ -132,7 +132,7 @@ class KubernetesManager(base.OrchestratorBase):
         labels = {'runtime_id': name}
         selector = common.convert_dict_to_string(labels)
 
-        self.v1extention.delete_collection_namespaced_replica_set(
+        self.v1extension.delete_collection_namespaced_replica_set(
             self.conf.kubernetes.namespace,
             label_selector=selector
         )
@@ -149,7 +149,7 @@ class KubernetesManager(base.OrchestratorBase):
             )
         LOG.info("Services in deployment %s deleted.", name)
 
-        self.v1extention.delete_collection_namespaced_deployment(
+        self.v1extension.delete_collection_namespaced_deployment(
             self.conf.kubernetes.namespace,
             label_selector=selector,
             field_selector='metadata.name=%s' % name
@@ -185,7 +185,7 @@ class KubernetesManager(base.OrchestratorBase):
                 }
             }
         }
-        self.v1extention.patch_namespaced_deployment(
+        self.v1extension.patch_namespaced_deployment(
             name, self.conf.kubernetes.namespace, body
         )
 
@@ -196,7 +196,7 @@ class KubernetesManager(base.OrchestratorBase):
             time.sleep(5)
             retry = retry - 1
 
-            deploy = self.v1extention.read_namespaced_deployment_status(
+            deploy = self.v1extension.read_namespaced_deployment_status(
                 name,
                 self.conf.kubernetes.namespace
             )
@@ -210,7 +210,7 @@ class KubernetesManager(base.OrchestratorBase):
                     "revision": 0
                 }
             }
-            self.v1extention.create_namespaced_deployment_rollback(
+            self.v1extension.create_namespaced_deployment_rollback(
                 name, self.conf.kubernetes.namespace, body
             )
 

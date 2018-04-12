@@ -27,15 +27,31 @@ class PackageStorage(object):
     """PackageStorage interface."""
 
     @abc.abstractmethod
-    def store(self, project_id, funtion, data, **kwargs):
+    def store(self, project_id, function, data, **kwargs):
+        """Store the function package data.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :param data: Package file content.
+        :param kwargs: A dict may including
+            - md5sum: The MD5 provided by the user.
+        :return: MD5 value of the package.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def retrieve(self, project_id, function):
+    def retrieve(self, project_id, function, md5sum):
+        """Get function package data.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :param md5sum: The function MD5.
+        :return: File descriptor that needs to close outside.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete(self, project_id, function):
+    def delete(self, project_id, function, md5sum):
         raise NotImplementedError
 
 

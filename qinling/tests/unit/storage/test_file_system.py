@@ -21,6 +21,7 @@ from qinling import config
 from qinling import exceptions as exc
 from qinling.storage import file_system
 from qinling.tests.unit import base
+from qinling.utils import common
 
 CONF = cfg.CONF
 FAKE_STORAGE_PATH = 'TMP_DIR'
@@ -46,20 +47,23 @@ class TestFileSystemStorage(base.BaseTest):
         function = self.rand_name('function', prefix='TestFileSystemStorage')
         # For python3, data should be encoded into bytes before hashing.
         function_data = "Some data".encode('utf8')
+        md5 = common.md5(content=function_data)
 
         self.storage.store(self.project_id, function, function_data)
 
+        temp_package_path = os.path.join(FAKE_STORAGE_PATH, self.project_id,
+                                         '%s.zip.new' % function)
+        package_path = os.path.join(
+            FAKE_STORAGE_PATH,
+            file_system.PACKAGE_PATH_TEMPLATE % (self.project_id, function,
+                                                 md5)
+        )
         ensure_tree_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id))
+            os.path.join(FAKE_STORAGE_PATH, self.project_id)
+        )
         fake_fd.write.assert_called_once_with(function_data)
-        is_zipfile_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip.new' % function))
-        rename_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip.new' % function),
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip' % function))
+        is_zipfile_mock.assert_called_once_with(temp_package_path)
+        rename_mock.assert_called_once_with(temp_package_path, package_path)
 
     @mock.patch('oslo_utils.fileutils.ensure_tree')
     def test_store_md5_mismatch(self, ensure_tree_mock):
@@ -113,15 +117,15 @@ class TestFileSystemStorage(base.BaseTest):
         open_mock.return_value = fake_fd
         function = self.rand_name('function', prefix='TestFileSystemStorage')
 
-        ret = self.storage.retrieve(self.project_id, function)
+        ret = self.storage.retrieve(self.project_id, function, "fake_md5")
 
-        exists_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip' % function))
-        open_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip' % function),
-            'rb')
+        package_path = os.path.join(
+            FAKE_STORAGE_PATH,
+            file_system.PACKAGE_PATH_TEMPLATE % (self.project_id, function,
+                                                 "fake_md5")
+        )
+        exists_mock.assert_called_once_with(package_path)
+        open_mock.assert_called_once_with(package_path, 'rb')
         self.assertEqual(fake_fd, ret)
 
     @mock.patch('os.path.exists')
@@ -134,11 +138,17 @@ class TestFileSystemStorage(base.BaseTest):
             "^Package of function %s for project %s not found\.$" % (
                 function, self.project_id),
             self.storage.retrieve,
-            self.project_id, function)
+            self.project_id,
+            function,
+            "fake_md5"
+        )
 
-        exists_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip' % function))
+        package_path = os.path.join(
+            FAKE_STORAGE_PATH,
+            file_system.PACKAGE_PATH_TEMPLATE % (self.project_id, function,
+                                                 "fake_md5")
+        )
+        exists_mock.assert_called_once_with(package_path)
 
     @mock.patch('os.path.exists')
     @mock.patch('os.remove')
@@ -146,14 +156,15 @@ class TestFileSystemStorage(base.BaseTest):
         exists_mock.return_value = True
         function = self.rand_name('function', prefix='TestFileSystemStorage')
 
-        self.storage.delete(self.project_id, function)
+        self.storage.delete(self.project_id, function, "fake_md5")
 
-        exists_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip' % function))
-        remove_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip' % function))
+        package_path = os.path.join(
+            FAKE_STORAGE_PATH,
+            file_system.PACKAGE_PATH_TEMPLATE % (self.project_id, function,
+                                                 "fake_md5")
+        )
+        exists_mock.assert_called_once_with(package_path)
+        remove_mock.assert_called_once_with(package_path)
 
     @mock.patch('os.path.exists')
     @mock.patch('os.remove')
@@ -161,9 +172,12 @@ class TestFileSystemStorage(base.BaseTest):
         exists_mock.return_value = False
         function = self.rand_name('function', prefix='TestFileSystemStorage')
 
-        self.storage.delete(self.project_id, function)
+        self.storage.delete(self.project_id, function, "fake_md5")
 
-        exists_mock.assert_called_once_with(
-            os.path.join(FAKE_STORAGE_PATH, self.project_id,
-                         '%s.zip' % function))
+        package_path = os.path.join(
+            FAKE_STORAGE_PATH,
+            file_system.PACKAGE_PATH_TEMPLATE % (self.project_id, function,
+                                                 "fake_md5")
+        )
+        exists_mock.assert_called_once_with(package_path)
         remove_mock.assert_not_called()

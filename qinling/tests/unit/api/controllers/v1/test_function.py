@@ -37,6 +37,8 @@ class TestFunctionController(base.APITest):
 
     @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
     def test_post(self, mock_store):
+        mock_store.return_value = 'fake_md5'
+
         with tempfile.NamedTemporaryFile() as f:
             body = {
                 'name': self.rand_name('function', prefix=TEST_CASE_NAME),
@@ -52,7 +54,12 @@ class TestFunctionController(base.APITest):
         self.assertEqual(201, resp.status_int)
         self.assertEqual(1, mock_store.call_count)
 
-        body.update({'entry': 'main.main', 'code': {"source": "package"}})
+        body.update(
+            {
+                'entry': 'main.main',
+                'code': {"source": "package", "md5sum": "fake_md5"}
+            }
+        )
         self._assertDictContainsSubset(resp.json, body)
 
     @mock.patch('qinling.utils.openstack.keystone.get_swiftclient')
@@ -90,7 +97,7 @@ class TestFunctionController(base.APITest):
         )
         expected = {
             'id': db_func.id,
-            "code": {"source": "package"},
+            "code": {"source": "package", "md5sum": "fake_md5"},
             "name": db_func.name,
             'entry': 'main.main',
             "project_id": unit_base.DEFAULT_PROJECT_ID,
@@ -107,7 +114,6 @@ class TestFunctionController(base.APITest):
         )
         expected = {
             'id': db_func.id,
-            "code": json.dumps({"source": "package"}),
             "name": db_func.name,
             'entry': 'main.main',
             "project_id": unit_base.DEFAULT_PROJECT_ID,
@@ -140,6 +146,7 @@ class TestFunctionController(base.APITest):
         db_func = self.create_function(
             runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
         )
+        mock_store.return_value = "fake_md5_changed"
 
         with tempfile.NamedTemporaryFile() as f:
             resp = self.app.put(
@@ -150,8 +157,28 @@ class TestFunctionController(base.APITest):
 
         self.assertEqual(200, resp.status_int)
         self.assertEqual(1, mock_store.call_count)
+        self.assertEqual('fake_md5_changed', resp.json['code'].get('md5sum'))
         mock_delete_func.assert_called_once_with(db_func.id)
         mock_etcd_del.assert_called_once_with(db_func.id)
+
+    def test_put_package_same_md5(self):
+        db_func = self.create_function(
+            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
+        )
+
+        with tempfile.NamedTemporaryFile() as f:
+            resp = self.app.put(
+                '/v1/functions/%s' % db_func.id,
+                params={
+                    "code": json.dumps(
+                        {"md5sum": "fake_md5", "source": "package"}
+                    )
+                },
+                upload_files=[('package', f.name, f.read())],
+                expect_errors=True
+            )
+
+        self.assertEqual(400, resp.status_int)
 
     @mock.patch('qinling.utils.etcd_util.delete_function')
     @mock.patch('qinling.rpc.EngineClient.delete_function')
@@ -164,7 +191,7 @@ class TestFunctionController(base.APITest):
 
         self.assertEqual(204, resp.status_int)
         mock_delete.assert_called_once_with(
-            unit_base.DEFAULT_PROJECT_ID, db_func.id
+            unit_base.DEFAULT_PROJECT_ID, db_func.id, "fake_md5"
         )
         mock_delete_func.assert_called_once_with(db_func.id)
         mock_etcd_delete.assert_called_once_with(db_func.id)

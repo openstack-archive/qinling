@@ -30,13 +30,13 @@ def get_k8s_clients(conf):
         config.verify_ssl = False
     client = api_client.ApiClient(configuration=config)
     v1 = core_v1_api.CoreV1Api(client)
-    v1extention = extensions_v1beta1_api.ExtensionsV1beta1Api(client)
+    v1extension = extensions_v1beta1_api.ExtensionsV1beta1Api(client)
     # apps_v1 = apps_v1_api.AppsV1Api(client)
 
     clients = {
         'v1': v1,
         # 'apps_v1': apps_v1
-        'v1extention': v1extention
+        'v1extension': v1extension
     }
 
     return clients

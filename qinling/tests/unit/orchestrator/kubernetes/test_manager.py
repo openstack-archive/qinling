@@ -39,7 +39,7 @@ class TestKubernetesManager(base.BaseTest):
         self.k8s_v1_api = mock.Mock()
         self.k8s_v1_ext = mock.Mock()
         clients = {'v1': self.k8s_v1_api,
-                   'v1extention': self.k8s_v1_ext}
+                   'v1extension': self.k8s_v1_ext}
         mock.patch(
             'qinling.orchestrator.kubernetes.utils.get_k8s_clients',
             return_value=clients

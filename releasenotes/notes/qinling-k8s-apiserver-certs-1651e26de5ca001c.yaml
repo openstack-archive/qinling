@@ -1,0 +1,21 @@
+---
+prelude: >
+    Qinling now can and by default connect to Kubernetes API server with TLS
+    certificates.
+features:
+  - |
+    Qinling can connect to Kubernetes API server with TLS certificates, which
+    ensures that the connection between Qinling and Kubernetes API server is
+    secure, and the access to the Kubernetes API from Qinling is authenticated
+    and authroized. For more information, please refer to
+    `Kubernetes authenticating with X509 client certs <https://kubernetes.io/docs/admin/authentication/#x509-client-certs>`__
+    and `using RBAC authorization in Kubernetes <https://kubernetes.io/docs/admin/authorization/rbac/>`__.
+upgrade:
+  - |
+    Qinling now by default will connect to Kubernetes API server using TLS
+    certificates. For testing environments, users can set the
+    ``use_api_certificate`` option to ``False`` under the ``kubernetes``
+    section in the Qinling configuration file to continue using insecure
+    connection between Qinling and Kubernetes API server. For production
+    environments, it is recommended to generate client certs for Qinling
+    to access the Kubernetes API.

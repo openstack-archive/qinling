@@ -29,6 +29,7 @@ Specs
     :maxdepth: 1
 
     function_versioning
+    customize_resource
 
 Template
 --------

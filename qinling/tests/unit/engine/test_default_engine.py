@@ -298,6 +298,42 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(execution_2.result, {'output': 'failed result'})
 
     @mock.patch('qinling.utils.etcd_util.get_service_url')
+    def test_create_execution_prepare_execution_exception(
+            self,
+            etcd_util_get_service_url_mock
+    ):
+        function = self.create_function(prefix='TestDefaultEngine')
+        function_id = function.id
+        runtime_id = function.runtime_id
+        db_api.update_function(
+            function_id,
+            {
+                'code': {
+                    'source': constants.IMAGE_FUNCTION,
+                    'image': self.rand_name('image',
+                                            prefix='TestDefaultEngine')
+                }
+            }
+        )
+        function = db_api.get_function(function_id)
+        execution = self.create_execution(
+            function_id=function_id, prefix='TestDefaultEngine')
+        execution_id = execution.id
+        prepare_execution = self.orchestrator.prepare_execution
+        prepare_execution.side_effect = exc.OrchestratorException(
+            'Exception in prepare_execution'
+        )
+        etcd_util_get_service_url_mock.return_value = None
+
+        self.default_engine.create_execution(
+            mock.Mock(), execution_id, function_id, runtime_id)
+
+        execution = db_api.get_execution(execution_id)
+        self.assertEqual(execution.status, status.ERROR)
+        self.assertEqual(execution.logs, '')
+        self.assertEqual(execution.result, {})
+
+    @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_create_execution_not_image_source(
             self,
             etcd_util_get_service_url_mock
@@ -334,6 +370,27 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(execution.status, status.SUCCESS)
         self.assertEqual(execution.logs, 'execution log')
         self.assertEqual(execution.result, {'output': 'success output'})
+
+    def test_create_execution_not_image_source_scaleup_exception(self):
+        function = self.create_function(prefix='TestDefaultEngine')
+        function_id = function.id
+        runtime_id = function.runtime_id
+        execution = self.create_execution(
+            function_id=function_id, prefix='TestDefaultEngine')
+        execution_id = execution.id
+        self.default_engine.function_load_check = mock.Mock(
+            side_effect=exc.OrchestratorException(
+                'Exception in scaleup_function'
+            )
+        )
+
+        self.default_engine.create_execution(
+            mock.Mock(), execution_id, function_id, runtime_id)
+
+        execution = db_api.get_execution(execution_id)
+        self.assertEqual(execution.status, status.ERROR)
+        self.assertEqual(execution.logs, '')
+        self.assertEqual(execution.result, {})
 
     @mock.patch('qinling.engine.utils.get_request_data')
     @mock.patch('qinling.engine.utils.url_request')

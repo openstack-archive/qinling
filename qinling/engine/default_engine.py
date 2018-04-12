@@ -18,6 +18,7 @@ import tenacity
 
 from qinling.db import api as db_api
 from qinling.engine import utils
+from qinling import exceptions as exc
 from qinling import status
 from qinling.utils import common
 from qinling.utils import constants
@@ -123,10 +124,15 @@ class DefaultEngine(object):
         identifier = None
         labels = None
         svc_url = None
+        is_image_source = source == constants.IMAGE_FUNCTION
 
         # Auto scale workers if needed
-        if source != constants.IMAGE_FUNCTION:
-            svc_url = self.function_load_check(function_id, runtime_id)
+        if not is_image_source:
+            try:
+                svc_url = self.function_load_check(function_id, runtime_id)
+            except exc.OrchestratorException as e:
+                utils.handle_execution_exception(execution_id, str(e))
+                return
 
         temp_url = etcd_util.get_service_url(function_id)
         svc_url = svc_url or temp_url
@@ -145,20 +151,9 @@ class DefaultEngine(object):
             success, res = utils.url_request(
                 self.session, func_url, body=data
             )
-            success = success and res.pop('success')
 
-            LOG.debug(
-                'Finished execution %s, success: %s', execution_id, success
-            )
-
-            db_api.update_execution(
-                execution_id,
-                {
-                    'status': status.SUCCESS if success else status.FAILED,
-                    'logs': res.pop('logs', ''),
-                    'result': res
-                }
-            )
+            utils.finish_execution(
+                execution_id, success, res, is_image_source=is_image_source)
             return
 
         if source == constants.IMAGE_FUNCTION:
@@ -171,13 +166,18 @@ class DefaultEngine(object):
             identifier = runtime_id
             labels = {'runtime_id': runtime_id}
 
-        _, svc_url = self.orchestrator.prepare_execution(
-            function_id,
-            image=image,
-            identifier=identifier,
-            labels=labels,
-            input=input,
-        )
+        try:
+            _, svc_url = self.orchestrator.prepare_execution(
+                function_id,
+                image=image,
+                identifier=identifier,
+                labels=labels,
+                input=input,
+            )
+        except exc.OrchestratorException as e:
+            utils.handle_execution_exception(execution_id, str(e))
+            return
+
         success, res = self.orchestrator.run_execution(
             execution_id,
             function_id,
@@ -188,29 +188,8 @@ class DefaultEngine(object):
             trust_id=function.trust_id
         )
 
-        logs = ''
-        # Execution log is only available for non-image source execution.
-        if svc_url:
-            logs = res.pop('logs', '')
-            success = success and res.pop('success')
-        else:
-            # If the function is created from docker image, the result is
-            # direct output, here we convert to a dict to fit into the db
-            # schema.
-            res = {'output': res}
-
-        LOG.debug(
-            'Finished execution %s, success: %s', execution_id, success
-        )
-
-        db_api.update_execution(
-            execution_id,
-            {
-                'status': status.SUCCESS if success else status.FAILED,
-                'logs': logs,
-                'result': res
-            }
-        )
+        utils.finish_execution(
+            execution_id, success, res, is_image_source=is_image_source)
 
     def delete_function(self, ctx, function_id):
         """Deletes underlying resources allocated for function."""

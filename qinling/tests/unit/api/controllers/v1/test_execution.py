@@ -14,6 +14,8 @@
 
 import mock
 
+from qinling import exceptions as exc
+from qinling import status
 from qinling.tests.unit.api import base
 
 TEST_CASE_NAME = 'TestExecutionController'
@@ -38,6 +40,17 @@ class TestExecutionController(base.APITest):
         resp = self.app.get('/v1/functions/%s' % self.func_id)
 
         self.assertEqual(1, resp.json.get('count'))
+
+    @mock.patch('qinling.rpc.EngineClient.create_execution')
+    def test_create_rpc_error(self, mock_create_execution):
+        mock_create_execution.side_effect = exc.QinlingException
+        body = {
+            'function_id': self.func_id,
+        }
+        resp = self.app.post_json('/v1/executions', body)
+
+        self.assertEqual(201, resp.status_int)
+        self.assertEqual(status.ERROR, resp.json.get('status'))
 
     @mock.patch('qinling.rpc.EngineClient.create_execution')
     def test_get(self, mock_create_execution):

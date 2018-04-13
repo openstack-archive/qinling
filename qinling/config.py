@@ -222,7 +222,8 @@ def parse_args(args=None, usage=None, default_config_files=None):
         'keystoneclient=INFO',
         'requests.packages.urllib3.connectionpool=CRITICAL',
         'urllib3.connectionpool=CRITICAL',
-        'cotyledon=INFO'
+        'cotyledon=INFO',
+        'futurist.periodics=WARN'
     ]
     default_log_levels = log.get_default_log_levels()
     default_log_levels.extend(_DEFAULT_LOG_LEVELS)

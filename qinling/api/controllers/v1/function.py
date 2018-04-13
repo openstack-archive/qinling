@@ -107,7 +107,8 @@ class FunctionsController(rest.RestController):
             source = func_db.code['source']
 
             if source == constants.PACKAGE_FUNCTION:
-                f = self.storage_provider.retrieve(ctx.projectid, id)
+                f = self.storage_provider.retrieve(ctx.projectid, id,
+                                                   func_db.code['md5sum'])
             elif source == constants.SWIFT_FUNCTION:
                 container = func_db.code['swift']['container']
                 obj = func_db.code['swift']['object']
@@ -187,14 +188,19 @@ class FunctionsController(rest.RestController):
                     'Trust creation failed for function.'
                 )
 
+        # Create function and store the package data inside a db transaction so
+        # that the function won't be created if any error happened during
+        # package store.
         with db_api.transaction():
             func_db = db_api.create_function(values)
-
             if store:
                 try:
                     ctx = context.get_ctx()
-                    self.storage_provider.store(ctx.projectid, func_db.id,
-                                                data, md5sum=md5sum)
+                    actual_md5 = self.storage_provider.store(
+                        ctx.projectid, func_db.id, data, md5sum=md5sum
+                    )
+                    values['code'].update({"md5sum": actual_md5})
+                    func_db = db_api.update_function(func_db.id, values)
                 except Exception as e:
                     LOG.exception("Failed to store function package.")
                     keystone_util.delete_trust(values['trust_id'])
@@ -254,7 +260,8 @@ class FunctionsController(rest.RestController):
 
             source = func_db.code['source']
             if source == constants.PACKAGE_FUNCTION:
-                self.storage_provider.delete(func_db.project_id, id)
+                self.storage_provider.delete(func_db.project_id, id,
+                                             func_db.code['md5sum'])
 
             # Delete all resources created by orchestrator asynchronously.
             self.engine_client.delete_function(id)
@@ -282,6 +289,8 @@ class FunctionsController(rest.RestController):
         values = {}
         for key in UPDATE_ALLOWED:
             if kwargs.get(key) is not None:
+                if key == "code":
+                    kwargs[key] = json.loads(kwargs[key])
                 values.update({key: kwargs[key]})
 
         LOG.info('Update function %s, params: %s', id, values)
@@ -291,6 +300,7 @@ class FunctionsController(rest.RestController):
             func_db = db_api.update_function(id, values)
         else:
             source = values.get('code', {}).get('source')
+            md5sum = values.get('code', {}).get('md5sum')
             with db_api.transaction():
                 pre_func = db_api.get_function(id)
 
@@ -300,9 +310,14 @@ class FunctionsController(rest.RestController):
                     )
 
                 pre_source = pre_func.code['source']
+                pre_md5sum = pre_func.code['md5sum']
                 if source and source != pre_source:
                     raise exc.InputException(
                         "The function code type can not be changed."
+                    )
+                if md5sum and md5sum == pre_md5sum:
+                    raise exc.InputException(
+                        "The function code checksum is not changed."
                     )
                 if source == constants.IMAGE_FUNCTION:
                     raise exc.InputException(
@@ -312,10 +327,14 @@ class FunctionsController(rest.RestController):
                         values.get('package') is not None):
                     # Update the package data.
                     data = values['package'].file.read()
-                    self.storage_provider.store(
+                    md5sum = self.storage_provider.store(
                         ctx.projectid,
                         id,
-                        data
+                        data,
+                        md5sum=md5sum
+                    )
+                    values.setdefault('code', {}).update(
+                        {"md5sum": md5sum, "source": pre_source}
                     )
                     values.pop('package')
                 if pre_source == constants.SWIFT_FUNCTION:

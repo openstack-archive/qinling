@@ -186,7 +186,7 @@ class DbTestCase(BaseTest):
             {
                 'name': self.rand_name('function', prefix=prefix),
                 'runtime_id': runtime_id,
-                'code': {"source": "package"},
+                'code': {"source": "package", "md5sum": "fake_md5"},
                 'entry': 'main.main',
                 # 'auth_enable' is disabled by default, we create runtime for
                 # default tenant.

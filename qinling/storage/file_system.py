@@ -23,6 +23,9 @@ from qinling.storage import base
 from qinling.utils import common
 
 LOG = logging.getLogger(__name__)
+PACKAGE_NAME_TEMPLATE = "%s_%s.zip"
+# Package path name including project ID
+PACKAGE_PATH_TEMPLATE = "%s/%s_%s.zip"
 
 
 class FileSystemStorage(base.PackageStorage):
@@ -37,6 +40,8 @@ class FileSystemStorage(base.PackageStorage):
         :param project_id: Project ID.
         :param function: Function ID.
         :param data: Package file content.
+        :param md5sum: The MD5 provided by the user.
+        :return: MD5 value of the package.
         """
         LOG.debug(
             'Store package, function: %s, project: %s', function, project_id
@@ -45,13 +50,15 @@ class FileSystemStorage(base.PackageStorage):
         project_path = os.path.join(self.base_path, project_id)
         fileutils.ensure_tree(project_path)
 
-        new_func_zip = os.path.join(project_path, '%s.zip.new' % function)
-        func_zip = os.path.join(project_path, '%s.zip' % function)
-
         # Check md5
         md5_actual = common.md5(content=data)
         if md5sum and md5_actual != md5sum:
             raise exc.InputException("Package md5 mismatch.")
+
+        # The md5 is contained in the package path.
+        new_func_zip = os.path.join(project_path, '%s.zip.new' % function)
+        func_zip = os.path.join(project_path,
+                                PACKAGE_NAME_TEMPLATE % (function, md5_actual))
 
         # Store package
         with open(new_func_zip, 'wb') as fd:
@@ -62,20 +69,24 @@ class FileSystemStorage(base.PackageStorage):
             raise exc.InputException("Package is not a valid ZIP package.")
 
         os.rename(new_func_zip, func_zip)
+        return md5_actual
 
-    def retrieve(self, project_id, function):
+    def retrieve(self, project_id, function, md5sum):
         """Get function package data.
 
         :param project_id: Project ID.
         :param function: Function ID.
+        :param md5sum: The function MD5.
         :return: File descriptor that needs to close outside.
         """
         LOG.debug(
-            'Get package data, function: %s, project: %s', function, project_id
+            'Getting package data, function: %s, md5sum: %s, project: %s',
+            function, md5sum, project_id
         )
 
         func_zip = os.path.join(
-            self.base_path, '%s/%s.zip' % (project_id, function)
+            self.base_path,
+            PACKAGE_PATH_TEMPLATE % (project_id, function, md5sum)
         )
 
         if not os.path.exists(func_zip):
@@ -85,18 +96,19 @@ class FileSystemStorage(base.PackageStorage):
             )
 
         f = open(func_zip, 'rb')
-        LOG.debug('Found package data')
+        LOG.debug('Found package data for function %s', function)
 
         return f
 
-    def delete(self, project_id, function):
+    def delete(self, project_id, function, md5sum):
         LOG.debug(
-            'Delete package data, function: %s, project: %s', function,
-            project_id
+            'Deleting package data, function: %s, md5sum: %s, project: %s',
+            function, md5sum, project_id
         )
 
         func_zip = os.path.join(
-            self.base_path, '%s/%s.zip' % (project_id, function)
+            self.base_path,
+            PACKAGE_PATH_TEMPLATE % (project_id, function, md5sum)
         )
 
         if os.path.exists(func_zip):

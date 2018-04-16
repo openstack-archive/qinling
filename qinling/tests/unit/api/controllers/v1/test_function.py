@@ -141,8 +141,10 @@ class TestFunctionController(base.APITest):
 
     @mock.patch('qinling.utils.etcd_util.delete_function')
     @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')
     @mock.patch('qinling.rpc.EngineClient.delete_function')
-    def test_put_package(self, mock_delete_func, mock_store, mock_etcd_del):
+    def test_put_package(self, mock_delete_func, mock_delete, mock_store,
+                         mock_etcd_del):
         db_func = self.create_function(
             runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
         )
@@ -158,8 +160,11 @@ class TestFunctionController(base.APITest):
         self.assertEqual(200, resp.status_int)
         self.assertEqual(1, mock_store.call_count)
         self.assertEqual('fake_md5_changed', resp.json['code'].get('md5sum'))
+
         mock_delete_func.assert_called_once_with(db_func.id)
         mock_etcd_del.assert_called_once_with(db_func.id)
+        mock_delete.assert_called_once_with(unit_base.DEFAULT_PROJECT_ID,
+                                            db_func.id, "fake_md5")
 
     def test_put_package_same_md5(self):
         db_func = self.create_function(

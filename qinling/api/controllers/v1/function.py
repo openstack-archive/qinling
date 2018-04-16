@@ -310,21 +310,27 @@ class FunctionsController(rest.RestController):
                     )
 
                 pre_source = pre_func.code['source']
-                pre_md5sum = pre_func.code['md5sum']
+                pre_md5sum = pre_func.code.get('md5sum')
+
                 if source and source != pre_source:
                     raise exc.InputException(
                         "The function code type can not be changed."
                     )
-                if md5sum and md5sum == pre_md5sum:
-                    raise exc.InputException(
-                        "The function code checksum is not changed."
-                    )
-                if source == constants.IMAGE_FUNCTION:
+
+                if pre_source == constants.IMAGE_FUNCTION:
                     raise exc.InputException(
                         "The image type function code can not be changed."
                     )
+
+                # Package type function. 'code' and 'entry' make sense only if
+                # 'package' is provided
                 if (pre_source == constants.PACKAGE_FUNCTION and
                         values.get('package') is not None):
+                    if md5sum and md5sum == pre_md5sum:
+                        raise exc.InputException(
+                            "The function code checksum is not changed."
+                        )
+
                     # Update the package data.
                     data = values['package'].file.read()
                     md5sum = self.storage_provider.store(
@@ -337,16 +343,22 @@ class FunctionsController(rest.RestController):
                         {"md5sum": md5sum, "source": pre_source}
                     )
                     values.pop('package')
+
+                # Swift type function
                 if pre_source == constants.SWIFT_FUNCTION:
                     swift_info = values['code'].get('swift', {})
                     self._check_swift(swift_info.get('container'),
                                       swift_info.get('object'))
 
-                # Delete allocated resources in orchestrator and etcd keys.
+                # Delete allocated resources in orchestrator and etcd.
                 self.engine_client.delete_function(id)
                 etcd_util.delete_function(id)
 
                 func_db = db_api.update_function(id, values)
+
+            # Delete function package if needed
+            if pre_md5sum:
+                self.storage_provider.delete(ctx.projectid, id, pre_md5sum)
 
         pecan.response.status = 200
         return resources.Function.from_dict(func_db.to_dict()).to_dict()

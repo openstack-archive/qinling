@@ -54,7 +54,7 @@ function mkdir_chown_stack {
     if [[ ! -d "$1" ]]; then
         sudo mkdir -p "$1"
     fi
-    sudo chown $STACK_USER "$1"
+    sudo chown $STACK_USER:$STACK_USER "$1"
 }
 
 
@@ -68,9 +68,10 @@ function configure_k8s_certificates {
     chmod +x /tmp/cfssljson
 
     sudo /tmp/cfssl gencert -ca=/etc/kubernetes/pki/ca.crt -ca-key=/etc/kubernetes/pki/ca.key -config=example/kubernetes/cfssl-ca-config.json -profile=client example/kubernetes/cfssl-client-csr.json | /tmp/cfssljson -bare client
-    # The command above outputs client-key.pem and client.pem
+    # The command above outputs client-key.pem, client.pem and client.csr
     mv client-key.pem "$QINLING_CONF_DIR"/pki/kubernetes/qinling.key
     mv client.pem "$QINLING_CONF_DIR"/pki/kubernetes/qinling.crt
+    rm -f client.csr
 
     cp /etc/kubernetes/pki/ca.crt "$QINLING_CONF_DIR"/pki/kubernetes/ca.crt
 
@@ -80,10 +81,10 @@ function configure_k8s_certificates {
 
 function configure_qinling {
     mkdir_chown_stack "$QINLING_AUTH_CACHE_DIR"
-    rm -f "$QINLING_AUTH_CACHE_DIR"/*
+    rm -rf "$QINLING_AUTH_CACHE_DIR"/*
 
     mkdir_chown_stack "$QINLING_CONF_DIR"
-    rm -f "$QINLING_CONF_DIR"/*
+    rm -rf "$QINLING_CONF_DIR"/*
 
     mkdir_chown_stack "$QINLING_FUNCTION_STORAGE_DIR"
     rm -rf "$QINLING_FUNCTION_STORAGE_DIR"/*
@@ -144,8 +145,8 @@ function stop_qinling {
 
 
 function cleanup_qinling {
-    sudo rm -rf $QINLING_AUTH_CACHE_DIR
-    sudo rm -rf $QINLING_CONF_DIR
+    sudo rm -rf $QINLING_AUTH_CACHE_DIR/*
+    sudo rm -rf $QINLING_CONF_DIR/*
 }
 
 

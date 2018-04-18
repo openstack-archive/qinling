@@ -48,6 +48,7 @@ class Function(model_base.QinlingSecureModelBase):
     entry = sa.Column(sa.String(80), nullable=True)
     count = sa.Column(sa.Integer, default=0)
     trust_id = sa.Column(sa.String(80))
+    latest_version = sa.Column(sa.Integer, default=0)
 
 
 class Execution(model_base.QinlingSecureModelBase):
@@ -113,7 +114,7 @@ class FunctionVersion(model_base.QinlingSecureModelBase):
 
     function_id = sa.Column(
         sa.String(36),
-        sa.ForeignKey(Function.id)
+        sa.ForeignKey(Function.id, ondelete='CASCADE')
     )
     description = sa.Column(sa.String(255), nullable=True)
     version_number = sa.Column(sa.Integer, default=0)
@@ -131,3 +132,10 @@ Function.jobs = relationship(
     )
 )
 Function.webhook = relationship("Webhook", uselist=False, backref="function")
+Function.versions = relationship(
+    "FunctionVersion",
+    order_by="FunctionVersion.version_number",
+    uselist=True,
+    lazy='select',
+    cascade="all, delete-orphan"
+)

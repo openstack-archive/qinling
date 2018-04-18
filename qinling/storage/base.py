@@ -54,6 +54,33 @@ class PackageStorage(object):
     def delete(self, project_id, function, md5sum):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def changed_since(self, project_id, function, l_md5, version):
+        """Check if the function package has changed.
+
+        Check if the function package has changed between lastest and the
+        specified version.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :param l_md5: Latest function package md5sum.
+        :param version: The version number compared with.
+        :return: True if changed otherwise False.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def copy(self, project_id, function, l_md5, old_version):
+        """Copy function package for a new version.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :param l_md5: Latest function package md5sum.
+        :param old_version: The version number that should copy from.
+        :return: None
+        """
+        raise NotImplementedError
+
 
 def load_storage_provider(conf):
     global STORAGE_PROVIDER

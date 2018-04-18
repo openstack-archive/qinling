@@ -13,6 +13,7 @@
 #    limitations under the License.
 
 import os
+import shutil
 import zipfile
 
 from oslo_log import log as logging
@@ -26,6 +27,8 @@ LOG = logging.getLogger(__name__)
 PACKAGE_NAME_TEMPLATE = "%s_%s.zip"
 # Package path name including project ID
 PACKAGE_PATH_TEMPLATE = "%s/%s_%s.zip"
+# Package path name including version
+PACKAGE_VERSION_TEMPLATE = "%s_%s_%s.zip"
 
 
 class FileSystemStorage(base.PackageStorage):
@@ -113,3 +116,53 @@ class FileSystemStorage(base.PackageStorage):
 
         if os.path.exists(func_zip):
             os.remove(func_zip)
+
+    def changed_since(self, project_id, function, l_md5, version):
+        """Check if the function package has changed.
+
+        Check if the function package has changed between lastest and the
+        specified version.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :param l_md5: Latest function package md5sum.
+        :param version: The version number compared with.
+        :return: True if changed otherwise False.
+        """
+        # If it's the first version creation, don't check.
+        if version == 0:
+            return True
+
+        version_path = os.path.join(
+            self.base_path, project_id,
+            PACKAGE_VERSION_TEMPLATE % (function, version, l_md5)
+        )
+        if os.path.exists(version_path):
+            return False
+
+        return True
+
+    def copy(self, project_id, function, l_md5, old_version):
+        """Copy function package for a new version.
+
+        :param project_id: Project ID.
+        :param function: Function ID.
+        :param l_md5: Latest function package md5sum.
+        :param old_version: The version number that should copy from.
+        :return: None
+        """
+        src_package = os.path.join(self.base_path,
+                                   project_id,
+                                   PACKAGE_NAME_TEMPLATE % (function, l_md5)
+                                   )
+        dest_package = os.path.join(self.base_path,
+                                    project_id,
+                                    PACKAGE_VERSION_TEMPLATE %
+                                    (function, old_version + 1, l_md5))
+
+        try:
+            shutil.copyfile(src_package, dest_package)
+        except Exception:
+            msg = "Failed to create new function version."
+            LOG.exception(msg)
+            raise exc.StorageProviderException(msg)

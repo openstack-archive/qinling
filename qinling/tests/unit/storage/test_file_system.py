@@ -181,3 +181,48 @@ class TestFileSystemStorage(base.BaseTest):
         )
         exists_mock.assert_called_once_with(package_path)
         remove_mock.assert_not_called()
+
+    def test_changed_since_first_version(self):
+        ret = self.storage.changed_since(self.project_id, "fake_function",
+                                         "fake_md5", 0)
+
+        self.assertTrue(ret)
+
+    @mock.patch('os.path.exists')
+    def test_changed_since_exists(self, mock_exists):
+        mock_exists.return_value = True
+
+        ret = self.storage.changed_since(self.project_id, "fake_function",
+                                         "fake_md5", 1)
+
+        self.assertFalse(ret)
+
+        expect_path = os.path.join(FAKE_STORAGE_PATH, self.project_id,
+                                   "fake_function_1_fake_md5.zip")
+
+        mock_exists.assert_called_once_with(expect_path)
+
+    @mock.patch('os.path.exists')
+    def test_changed_since_not_exists(self, mock_exists):
+        mock_exists.return_value = False
+
+        ret = self.storage.changed_since(self.project_id, "fake_function",
+                                         "fake_md5", 1)
+
+        self.assertTrue(ret)
+
+        expect_path = os.path.join(FAKE_STORAGE_PATH, self.project_id,
+                                   "fake_function_1_fake_md5.zip")
+
+        mock_exists.assert_called_once_with(expect_path)
+
+    @mock.patch("shutil.copyfile")
+    def test_copy(self, mock_copy):
+        self.storage.copy(self.project_id, "fake_function", "fake_md5", 0)
+
+        expect_src = os.path.join(FAKE_STORAGE_PATH, self.project_id,
+                                  "fake_function_fake_md5.zip")
+        expect_dest = os.path.join(FAKE_STORAGE_PATH, self.project_id,
+                                   "fake_function_1_fake_md5.zip")
+
+        mock_copy.assert_called_once_with(expect_src, expect_dest)

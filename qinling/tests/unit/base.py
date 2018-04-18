@@ -238,3 +238,12 @@ class DbTestCase(BaseTest):
         execution = db_api.create_execution(execution_params)
 
         return execution
+
+    def create_function_version(self, old_version, function_id=None,
+                                prefix=None, **kwargs):
+        if not function_id:
+            function_id = self.create_function(prefix=prefix).id
+
+        db_api.increase_function_version(function_id, old_version, **kwargs)
+        db_api.update_function(function_id,
+                               {"latest_version": old_version + 1})

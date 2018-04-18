@@ -170,6 +170,7 @@ class Function(Resource):
     code = types.jsontype
     entry = wtypes.text
     count = wsme.wsattr(int, readonly=True)
+    latest_version = wsme.wsattr(int, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wtypes.text
     updated_at = wtypes.text
@@ -186,6 +187,7 @@ class Function(Resource):
             code={'zip': True},
             entry='main',
             count=10,
+            latest_version=0,
             project_id='default',
             created_at='1970-01-01T00:00:00.000000',
             updated_at='1970-01-01T00:00:00.000000'
@@ -417,7 +419,7 @@ class Webhooks(ResourceList):
 class FunctionVersion(Resource):
     id = types.uuid
     description = wtypes.text
-    function_version = wsme.wsattr(int, readonly=True)
+    version_number = wsme.wsattr(int, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wsme.wsattr(wtypes.text, readonly=True)
     updated_at = wsme.wsattr(wtypes.text, readonly=True)

@@ -121,3 +121,19 @@ class FunctionVersionsController(rest.RestController):
                                                 **values)
 
         return resources.FunctionVersion.from_dict(version.to_dict())
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(resources.FunctionVersions, types.uuid)
+    def get_all(self, function_id):
+        acl.enforce('function_version:get_all', context.get_ctx())
+        LOG.info("Getting function versions for function %s.", function_id)
+
+        # Getting function and versions needs to happen in a db transaction
+        with db_api.transaction():
+            func_db = db_api.get_function(function_id)
+            db_versions = func_db.versions
+
+        versions = [resources.FunctionVersion.from_dict(v.to_dict())
+                    for v in db_versions]
+
+        return resources.FunctionVersions(function_versions=versions)

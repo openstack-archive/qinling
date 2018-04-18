@@ -527,3 +527,9 @@ def get_function_version(function_id, version, session=None):
         )
 
     return version_db
+
+
+@db_base.session_aware()
+def delete_function_version(function_id, version, session=None):
+    version_db = get_function_version(function_id, version)
+    session.delete(version_db)

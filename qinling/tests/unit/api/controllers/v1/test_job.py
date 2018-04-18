@@ -27,12 +27,12 @@ class TestJobController(base.APITest):
 
         # Insert a function record in db for each test case. The data will be
         # removed automatically in db clean up.
-        db_function = self.create_function(prefix='TestJobController')
+        db_function = self.create_function()
         self.function_id = db_function.id
 
     def test_post(self):
         body = {
-            'name': self.rand_name('job', prefix='TestJobController'),
+            'name': self.rand_name('job', prefix=self.prefix),
             'first_execution_time': str(
                 datetime.utcnow() + timedelta(hours=1)),
             'function_id': self.function_id
@@ -43,7 +43,7 @@ class TestJobController(base.APITest):
 
     def test_post_pattern(self):
         body = {
-            'name': self.rand_name('job', prefix='TestJobController'),
+            'name': self.rand_name('job', prefix=self.prefix),
             'function_id': self.function_id,
             'pattern': '0 21 * * *',
             'count': 10
@@ -54,7 +54,7 @@ class TestJobController(base.APITest):
 
     def test_delete(self):
         job_id = self.create_job(
-            self.function_id, prefix='TestJobController',
+            self.function_id,
             first_execution_time=datetime.utcnow(),
             next_execution_time=datetime.utcnow() + timedelta(hours=1),
             status=status.RUNNING,
@@ -68,7 +68,6 @@ class TestJobController(base.APITest):
     def test_update_one_shot_job(self):
         job_id = self.create_job(
             self.function_id,
-            prefix='TestJobController',
             first_execution_time=datetime.utcnow(),
             next_execution_time=datetime.utcnow() + timedelta(hours=1),
             status=status.RUNNING,
@@ -95,7 +94,6 @@ class TestJobController(base.APITest):
     def test_update_one_shot_job_failed(self):
         job_id = self.create_job(
             self.function_id,
-            prefix='TestJobController',
             first_execution_time=datetime.utcnow(),
             next_execution_time=datetime.utcnow() + timedelta(hours=1),
             status=status.RUNNING,
@@ -138,7 +136,6 @@ class TestJobController(base.APITest):
     def test_update_recurring_job(self):
         job_id = self.create_job(
             self.function_id,
-            prefix='TestJobController',
             first_execution_time=datetime.utcnow() + timedelta(hours=1),
             next_execution_time=datetime.utcnow() + timedelta(hours=1),
             pattern='0 */1 * * *',
@@ -195,7 +192,6 @@ class TestJobController(base.APITest):
     def test_update_recurring_job_failed(self):
         job_id = self.create_job(
             self.function_id,
-            prefix='TestJobController',
             first_execution_time=datetime.utcnow() + timedelta(hours=1),
             next_execution_time=datetime.utcnow() + timedelta(hours=1),
             pattern='0 */1 * * *',

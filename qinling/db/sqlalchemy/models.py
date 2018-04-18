@@ -116,6 +116,7 @@ class FunctionVersion(model_base.QinlingSecureModelBase):
         sa.String(36),
         sa.ForeignKey(Function.id, ondelete='CASCADE')
     )
+    function = relationship('Function', back_populates="versions")
     description = sa.Column(sa.String(255), nullable=True)
     version_number = sa.Column(sa.Integer, default=0)
 

@@ -12,21 +12,23 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from datetime import datetime
+from datetime import timedelta
+
 import mock
 
 from qinling import context
 from qinling.db import api as db_api
+from qinling import status
 from qinling.tests.unit.api import base
 from qinling.tests.unit import base as unit_base
-
-TESTCASE_NAME = 'TestFunctionVersionController'
 
 
 class TestFunctionVersionController(base.APITest):
     def setUp(self):
         super(TestFunctionVersionController, self).setUp()
 
-        db_func = self.create_function(prefix=TESTCASE_NAME)
+        db_func = self.create_function()
         self.func_id = db_func.id
 
     @mock.patch('qinling.storage.file_system.FileSystemStorage.copy')
@@ -117,3 +119,52 @@ class TestFunctionVersionController(base.APITest):
 
         self.assertEqual(200, resp.status_int)
         self.assertEqual("version 1", resp.json.get('description'))
+
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')
+    def test_delete(self, mock_delete):
+        db_api.increase_function_version(self.func_id, 0,
+                                         description="version 1")
+
+        resp = self.app.delete('/v1/functions/%s/versions/1' % self.func_id)
+
+        self.assertEqual(204, resp.status_int)
+        mock_delete.assert_called_once_with(unit_base.DEFAULT_PROJECT_ID,
+                                            self.func_id, None, version=1)
+
+        # We need to set context as it was removed after the API call
+        context.set_ctx(self.ctx)
+
+        with db_api.transaction():
+            func_db = db_api.get_function(self.func_id)
+            self.assertEqual(0, len(func_db.versions))
+            self.assertEqual(0, func_db.latest_version)
+
+    def test_delete_with_running_job(self):
+        db_api.increase_function_version(self.func_id, 0,
+                                         description="version 1")
+        self.create_job(
+            self.func_id,
+            function_version=1,
+            status=status.RUNNING,
+            first_execution_time=datetime.utcnow(),
+            next_execution_time=datetime.utcnow() + timedelta(hours=1),
+        )
+
+        resp = self.app.delete(
+            '/v1/functions/%s/versions/1' % self.func_id,
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)
+
+    def test_delete_with_webhook(self):
+        db_api.increase_function_version(self.func_id, 0,
+                                         description="version 1")
+        self.create_webhook(self.func_id, function_version=1)
+
+        resp = self.app.delete(
+            '/v1/functions/%s/versions/1' % self.func_id,
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)

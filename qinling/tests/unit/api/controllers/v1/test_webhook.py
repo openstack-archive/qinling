@@ -14,13 +14,11 @@
 
 from qinling.tests.unit.api import base
 
-TEST_CASE_NAME = 'TestWebhookController'
-
 
 class TestWebhookController(base.APITest):
     def setUp(self):
         super(TestWebhookController, self).setUp()
-        db_func = self.create_function(prefix=TEST_CASE_NAME)
+        db_func = self.create_function()
         self.func_id = db_func.id
 
     def test_crud(self):

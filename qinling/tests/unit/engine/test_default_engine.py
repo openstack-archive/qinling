@@ -33,11 +33,10 @@ class TestDefaultEngine(base.DbTestCase):
 
     def _create_running_executions(self, function_id, num):
         for _i in range(num):
-            self.create_execution(function_id=function_id,
-                                  prefix='TestDefaultEngine')
+            self.create_execution(function_id=function_id)
 
     def test_create_runtime(self):
-        runtime = self.create_runtime(prefix='TestDefaultEngine')
+        runtime = self.create_runtime()
         runtime_id = runtime.id
         # Set status to verify it is changed during creation.
         db_api.update_runtime(runtime_id, {'status': status.CREATING})
@@ -50,7 +49,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(status.AVAILABLE, runtime.status)
 
     def test_create_runtime_failed(self):
-        runtime = self.create_runtime(prefix='TestDefaultEngine')
+        runtime = self.create_runtime()
         runtime_id = runtime.id
         # Set status to verify it is changed during creation.
         db_api.update_runtime(runtime_id, {'status': status.CREATING})
@@ -64,7 +63,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(status.ERROR, runtime.status)
 
     def test_delete_runtime(self):
-        runtime = self.create_runtime(prefix='TestDefaultEngine')
+        runtime = self.create_runtime()
         runtime_id = runtime.id
 
         self.default_engine.delete_runtime(mock.Mock(), runtime_id)
@@ -77,12 +76,12 @@ class TestDefaultEngine(base.DbTestCase):
             db_api.get_runtime, runtime_id)
 
     def test_update_runtime(self):
-        runtime = self.create_runtime(prefix='TestDefaultEngine')
+        runtime = self.create_runtime()
         runtime_id = runtime.id
         # Set status to verify it is changed during update.
         db_api.update_runtime(runtime_id, {'status': status.UPGRADING})
-        image = self.rand_name('new_image', prefix='TestDefaultEngine')
-        pre_image = self.rand_name('pre_image', prefix='TestDefaultEngine')
+        image = self.rand_name('new_image', prefix=self.prefix)
+        pre_image = self.rand_name('pre_image', prefix=self.prefix)
         self.orchestrator.update_pool.return_value = True
 
         self.default_engine.update_runtime(
@@ -94,12 +93,12 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(runtime.status, status.AVAILABLE)
 
     def test_update_runtime_rollbacked(self):
-        runtime = self.create_runtime(prefix='TestDefaultEngine')
+        runtime = self.create_runtime()
         runtime_id = runtime.id
         # Set status to verify it is changed during update.
         db_api.update_runtime(runtime_id, {'status': status.UPGRADING})
-        image = self.rand_name('new_image', prefix='TestDefaultEngine')
-        pre_image = self.rand_name('pre_image', prefix='TestDefaultEngine')
+        image = self.rand_name('new_image', prefix=self.prefix)
+        pre_image = self.rand_name('pre_image', prefix=self.prefix)
         self.orchestrator.update_pool.return_value = False
 
         self.default_engine.update_runtime(
@@ -141,7 +140,7 @@ class TestDefaultEngine(base.DbTestCase):
         etcd_util_get_worker_lock_mock,
         etcd_util_get_workers_mock
     ):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         lock = mock.Mock()
@@ -168,7 +167,7 @@ class TestDefaultEngine(base.DbTestCase):
         etcd_util_get_worker_lock_mock,
         etcd_util_get_workers_mock
     ):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         lock = mock.Mock()
@@ -194,7 +193,7 @@ class TestDefaultEngine(base.DbTestCase):
         etcd_util_get_worker_lock_mock,
         etcd_util_get_workers_mock
     ):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         lock = mock.Mock()
@@ -218,7 +217,7 @@ class TestDefaultEngine(base.DbTestCase):
             self,
             etcd_util_get_service_url_mock
     ):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         db_api.update_function(
@@ -226,17 +225,14 @@ class TestDefaultEngine(base.DbTestCase):
             {
                 'code': {
                     'source': constants.IMAGE_FUNCTION,
-                    'image': self.rand_name('image',
-                                            prefix='TestDefaultEngine')
+                    'image': self.rand_name('image', prefix=self.prefix)
                 }
             }
         )
         function = db_api.get_function(function_id)
-        execution_1 = self.create_execution(
-            function_id=function_id, prefix='TestDefaultEngine')
+        execution_1 = self.create_execution(function_id=function_id)
         execution_1_id = execution_1.id
-        execution_2 = self.create_execution(
-            function_id=function_id, prefix='TestDefaultEngine')
+        execution_2 = self.create_execution(function_id=function_id)
         execution_2_id = execution_2.id
         self.default_engine.function_load_check = mock.Mock()
         etcd_util_get_service_url_mock.return_value = None
@@ -302,7 +298,7 @@ class TestDefaultEngine(base.DbTestCase):
             self,
             etcd_util_get_service_url_mock
     ):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         db_api.update_function(
@@ -310,14 +306,12 @@ class TestDefaultEngine(base.DbTestCase):
             {
                 'code': {
                     'source': constants.IMAGE_FUNCTION,
-                    'image': self.rand_name('image',
-                                            prefix='TestDefaultEngine')
+                    'image': self.rand_name('image', prefix=self.prefix)
                 }
             }
         )
         function = db_api.get_function(function_id)
-        execution = self.create_execution(
-            function_id=function_id, prefix='TestDefaultEngine')
+        execution = self.create_execution(function_id=function_id)
         execution_id = execution.id
         prepare_execution = self.orchestrator.prepare_execution
         prepare_execution.side_effect = exc.OrchestratorException(
@@ -338,11 +332,10 @@ class TestDefaultEngine(base.DbTestCase):
             self,
             etcd_util_get_service_url_mock
     ):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
-        execution = self.create_execution(
-            function_id=function_id, prefix='TestDefaultEngine')
+        execution = self.create_execution(function_id=function_id)
         execution_id = execution.id
         self.default_engine.function_load_check = mock.Mock(return_value='')
         etcd_util_get_service_url_mock.return_value = None
@@ -372,11 +365,10 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(execution.result, {'output': 'success output'})
 
     def test_create_execution_not_image_source_scaleup_exception(self):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
-        execution = self.create_execution(
-            function_id=function_id, prefix='TestDefaultEngine')
+        execution = self.create_execution(function_id=function_id)
         execution_id = execution.id
         self.default_engine.function_load_check = mock.Mock(
             side_effect=exc.OrchestratorException(
@@ -401,11 +393,10 @@ class TestDefaultEngine(base.DbTestCase):
             engine_utils_url_request_mock,
             engine_utils_get_request_data_mock
     ):
-        function = self.create_function(prefix='TestDefaultEngine')
+        function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
-        execution = self.create_execution(
-            function_id=function_id, prefix='TestDefaultEngine')
+        execution = self.create_execution(function_id=function_id)
         execution_id = execution.id
         self.default_engine.function_load_check = mock.Mock(return_value='')
         etcd_util_get_service_url_mock.return_value = 'svc_url'

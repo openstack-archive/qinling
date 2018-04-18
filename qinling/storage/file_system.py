@@ -123,16 +123,28 @@ class FileSystemStorage(base.PackageStorage):
 
         return f
 
-    def delete(self, project_id, function, md5sum):
+    def delete(self, project_id, function, md5sum, version=0):
         LOG.debug(
-            'Deleting package data, function: %s, md5sum: %s, project: %s',
-            function, md5sum, project_id
+            'Deleting package data, function: %s, version: %s, md5sum: %s, '
+            'project: %s',
+            function, version, md5sum, project_id
         )
 
-        func_zip = os.path.join(
-            self.base_path,
-            PACKAGE_PATH_TEMPLATE % (project_id, function, md5sum)
-        )
+        if version != 0:
+            project_dir = os.path.join(self.base_path, project_id)
+            for filename in os.listdir(project_dir):
+                root, ext = os.path.splitext(filename)
+                if (root.startswith("%s_%d" % (function, version))
+                        and ext == '.zip'):
+                    func_zip = os.path.join(project_dir, filename)
+                    break
+            else:
+                return
+        else:
+            func_zip = os.path.join(
+                self.base_path,
+                PACKAGE_PATH_TEMPLATE % (project_id, function, md5sum)
+            )
 
         if os.path.exists(func_zip):
             os.remove(func_zip)

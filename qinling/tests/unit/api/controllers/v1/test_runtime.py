@@ -26,7 +26,7 @@ class TestRuntimeController(base.APITest):
 
         # Insert a runtime record in db. The data will be removed in db clean
         # up.
-        self.db_runtime = self.create_runtime(prefix='TestRuntimeController')
+        self.db_runtime = self.create_runtime()
         self.runtime_id = self.db_runtime.id
 
     def test_get(self):
@@ -65,8 +65,8 @@ class TestRuntimeController(base.APITest):
     @mock.patch('qinling.rpc.EngineClient.create_runtime')
     def test_post(self, mock_create_time):
         body = {
-            'name': self.rand_name('runtime', prefix='TestRuntimeController'),
-            'image': self.rand_name('image', prefix='TestRuntimeController'),
+            'name': self.rand_name('runtime', prefix=self.prefix),
+            'image': self.rand_name('image', prefix=self.prefix),
         }
         resp = self.app.post_json('/v1/runtimes', body)
 
@@ -77,7 +77,7 @@ class TestRuntimeController(base.APITest):
     @mock.patch('qinling.rpc.EngineClient.create_runtime')
     def test_post_without_image(self, mock_create_time):
         body = {
-            'name': self.rand_name('runtime', prefix='TestRuntimeController'),
+            'name': self.rand_name('runtime', prefix=self.prefix),
         }
         resp = self.app.post_json('/v1/runtimes', body, expect_errors=True)
 
@@ -94,7 +94,7 @@ class TestRuntimeController(base.APITest):
     @mock.patch('qinling.rpc.EngineClient.delete_runtime')
     def test_delete_runtime_with_function_associated(self,
                                                      mock_delete_runtime):
-        self.create_function(self.runtime_id, prefix='TestRuntimeController')
+        self.create_function(self.runtime_id)
         resp = self.app.delete(
             '/v1/runtimes/%s' % self.runtime_id, expect_errors=True
         )
@@ -113,10 +113,8 @@ class TestRuntimeController(base.APITest):
     def test_put_image_runtime_not_available(self):
         db_runtime = db_api.create_runtime(
             {
-                'name': self.rand_name(
-                    'runtime', prefix='TestRuntimeController'),
-                'image': self.rand_name(
-                    'image', prefix='TestRuntimeController'),
+                'name': self.rand_name('runtime', prefix=self.prefix),
+                'image': self.rand_name('image', prefix=self.prefix),
                 'project_id': test_base.DEFAULT_PROJECT_ID,
                 'status': status.CREATING
             }
@@ -148,8 +146,7 @@ class TestRuntimeController(base.APITest):
     @mock.patch('qinling.rpc.EngineClient.update_runtime')
     def test_put_image_not_allowed(self, mock_update_runtime, mock_etcd_url):
         mock_etcd_url.return_value = True
-        function_id = self.create_function(
-            self.runtime_id, prefix='TestRuntimeController').id
+        function_id = self.create_function(self.runtime_id).id
 
         resp = self.app.put_json(
             '/v1/runtimes/%s' % self.runtime_id, {'image': 'new_image'},

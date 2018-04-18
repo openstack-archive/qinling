@@ -17,8 +17,6 @@ import mock
 from oslo_utils import uuidutils
 from qinling.tests.unit.api import base
 
-TEST_CASE_NAME = 'TestFunctionWorkerController'
-
 
 class TestFunctionWorkerController(base.APITest):
     @mock.patch('qinling.utils.etcd_util.get_workers')

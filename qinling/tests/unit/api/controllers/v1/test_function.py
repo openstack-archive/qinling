@@ -23,8 +23,6 @@ from qinling.tests.unit.api import base
 from qinling.tests.unit import base as unit_base
 from qinling.utils import constants
 
-TEST_CASE_NAME = 'TestFunctionController'
-
 
 class TestFunctionController(base.APITest):
     def setUp(self):
@@ -32,7 +30,7 @@ class TestFunctionController(base.APITest):
 
         # Insert a runtime record in db for each test case. The data will be
         # removed automatically in tear down.
-        db_runtime = self.create_runtime(prefix=TEST_CASE_NAME)
+        db_runtime = self.create_runtime()
         self.runtime_id = db_runtime.id
 
     @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
@@ -41,7 +39,7 @@ class TestFunctionController(base.APITest):
 
         with tempfile.NamedTemporaryFile() as f:
             body = {
-                'name': self.rand_name('function', prefix=TEST_CASE_NAME),
+                'name': self.rand_name('function', prefix=self.prefix),
                 'code': json.dumps({"source": "package"}),
                 'runtime_id': self.runtime_id,
             }
@@ -92,9 +90,7 @@ class TestFunctionController(base.APITest):
         self.assertEqual(400, resp.status_int)
 
     def test_get(self):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
         expected = {
             'id': db_func.id,
             "code": {"source": "package", "md5sum": "fake_md5"},
@@ -109,9 +105,7 @@ class TestFunctionController(base.APITest):
         self._assertDictContainsSubset(resp.json, expected)
 
     def test_get_all(self):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
         expected = {
             'id': db_func.id,
             "name": db_func.name,
@@ -128,9 +122,7 @@ class TestFunctionController(base.APITest):
         self._assertDictContainsSubset(actual, expected)
 
     def test_put_name(self):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
 
         resp = self.app.put_json(
             '/v1/functions/%s' % db_func.id, {'name': 'new_name'}
@@ -145,9 +137,7 @@ class TestFunctionController(base.APITest):
     @mock.patch('qinling.rpc.EngineClient.delete_function')
     def test_put_package(self, mock_delete_func, mock_delete, mock_store,
                          mock_etcd_del):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
         mock_store.return_value = "fake_md5_changed"
 
         with tempfile.NamedTemporaryFile() as f:
@@ -167,9 +157,7 @@ class TestFunctionController(base.APITest):
                                             db_func.id, "fake_md5")
 
     def test_put_package_same_md5(self):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
 
         with tempfile.NamedTemporaryFile() as f:
             resp = self.app.put(
@@ -189,9 +177,7 @@ class TestFunctionController(base.APITest):
     @mock.patch('qinling.rpc.EngineClient.delete_function')
     @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')
     def test_delete(self, mock_delete, mock_delete_func, mock_etcd_delete):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
         resp = self.app.delete('/v1/functions/%s' % db_func.id)
 
         self.assertEqual(204, resp.status_int)
@@ -202,12 +188,9 @@ class TestFunctionController(base.APITest):
         mock_etcd_delete.assert_called_once_with(db_func.id)
 
     def test_delete_with_running_job(self):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
         self.create_job(
             function_id=db_func.id,
-            prefix=TEST_CASE_NAME,
             status=status.AVAILABLE,
             first_execution_time=datetime.utcnow(),
             next_execution_time=datetime.utcnow(),
@@ -222,10 +205,8 @@ class TestFunctionController(base.APITest):
         self.assertEqual(403, resp.status_int)
 
     def test_delete_with_webhook(self):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
-        self.create_webhook(function_id=db_func.id, prefix=TEST_CASE_NAME)
+        db_func = self.create_function(runtime_id=self.runtime_id)
+        self.create_webhook(function_id=db_func.id)
 
         resp = self.app.delete(
             '/v1/functions/%s' % db_func.id,
@@ -236,9 +217,7 @@ class TestFunctionController(base.APITest):
 
     @mock.patch('qinling.rpc.EngineClient.scaleup_function')
     def test_scale_up(self, scaleup_function_mock):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
 
         body = {'count': 1}
         resp = self.app.post(
@@ -254,9 +233,7 @@ class TestFunctionController(base.APITest):
     @mock.patch('qinling.utils.etcd_util.get_workers')
     @mock.patch('qinling.rpc.EngineClient.scaledown_function')
     def test_scale_down(self, scaledown_function_mock, get_workers_mock):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
         get_workers_mock.return_value = [mock.Mock(), mock.Mock()]
 
         body = {'count': 1}
@@ -274,9 +251,7 @@ class TestFunctionController(base.APITest):
     def test_scale_down_no_need(
             self, scaledown_function_mock, get_workers_mock
     ):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
         get_workers_mock.return_value = [mock.Mock()]
 
         body = {'count': 1}
@@ -294,9 +269,7 @@ class TestFunctionController(base.APITest):
     def test_detach(
             self, engine_delete_function_mock, etcd_delete_function_mock
     ):
-        db_func = self.create_function(
-            runtime_id=self.runtime_id, prefix=TEST_CASE_NAME
-        )
+        db_func = self.create_function(runtime_id=self.runtime_id)
 
         resp = self.app.post(
             '/v1/functions/%s/detach' % db_func.id

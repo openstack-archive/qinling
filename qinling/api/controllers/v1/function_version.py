@@ -110,6 +110,8 @@ class FunctionVersionsController(rest.RestController):
     def post(self, function_id, body):
         """Create a new version for the function.
 
+        Only allow to create version for package type function.
+
         The supported boy params:
             - description: Optional. The description of the new version.
         """
@@ -177,3 +179,49 @@ class FunctionVersionsController(rest.RestController):
         pecan.response.headers['Content-Disposition'] = (
             'attachment; filename="%s_%s"' % (function_id, version)
         )
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(None, types.uuid, int, status_code=204)
+    def delete(self, function_id, version):
+        """Delete a specific function version.
+
+        - The version should not being used by any job
+        - The version should not being used by any webhook
+        """
+        ctx = context.get_ctx()
+        acl.enforce('function_version:delete', ctx)
+        LOG.info("Deleting version %s of function %s.", version, function_id)
+
+        with db_api.transaction():
+            version_db = db_api.get_function_version(function_id, version)
+            latest_version = version_db.function.latest_version
+
+            version_jobs = db_api.get_jobs(
+                function_id=version_db.function_id,
+                function_version=version_db.version_number,
+                status={'nin': ['done', 'cancelled']}
+            )
+            if len(version_jobs) > 0:
+                raise exc.NotAllowedException(
+                    'The function version is still associated with running '
+                    'job(s).'
+                )
+
+            version_webhook = db_api.get_webhooks(
+                function_id=version_db.function_id,
+                function_version=version_db.version_number,
+            )
+            if len(version_webhook) > 0:
+                raise exc.NotAllowedException(
+                    'The function versioin is still associated with webhook.'
+                )
+
+            self.storage_provider.delete(ctx.projectid, function_id, None,
+                                         version=version)
+
+            db_api.delete_function_version(function_id, version)
+
+            if latest_version == version:
+                version_db.function.latest_version = latest_version - 1
+
+        LOG.info("Version %s of function %s deleted.", version, function_id)

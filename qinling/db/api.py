@@ -210,3 +210,7 @@ def increase_function_version(function_id, old_version, **kwargs):
 
 def get_function_version(function_id, version):
     return IMPL.get_function_version(function_id, version)
+
+
+def delete_function_version(function_id, version):
+    return IMPL.delete_function_version(function_id, version)

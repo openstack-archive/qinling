@@ -29,8 +29,6 @@ CONF = cfg.CONF
 
 
 class TestPeriodics(base.DbTestCase):
-    TEST_CASE_NAME = 'TestPeriodics'
-
     def setUp(self):
         super(TestPeriodics, self).setUp()
         self.override_config('auth_enable', False, group='pecan')
@@ -39,9 +37,7 @@ class TestPeriodics(base.DbTestCase):
     @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_function_service_expiration_handler(self, mock_etcd_url,
                                                  mock_etcd_delete):
-        db_func = self.create_function(
-            runtime_id=None, prefix=self.TEST_CASE_NAME
-        )
+        db_func = self.create_function()
         function_id = db_func.id
         # Update function to simulate function execution
         db_api.update_function(function_id, {'count': 1})
@@ -60,9 +56,7 @@ class TestPeriodics(base.DbTestCase):
 
     @mock.patch('qinling.utils.jobs.get_next_execution_time')
     def test_job_handler(self, mock_get_next):
-        db_func = self.create_function(
-            runtime_id=None, prefix=self.TEST_CASE_NAME
-        )
+        db_func = self.create_function()
         function_id = db_func.id
 
         self.assertEqual(0, db_func.count)
@@ -70,7 +64,6 @@ class TestPeriodics(base.DbTestCase):
         now = datetime.utcnow()
         db_job = self.create_job(
             function_id,
-            self.TEST_CASE_NAME,
             status=status.RUNNING,
             next_execution_time=now,
             count=2

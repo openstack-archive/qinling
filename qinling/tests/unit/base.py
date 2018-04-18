@@ -111,6 +111,8 @@ class DbTestCase(BaseTest):
     def setUp(self):
         super(DbTestCase, self).setUp()
 
+        self.prefix = self.__class__.__name__
+
         self._heavy_init()
 
         self.ctx = get_context()
@@ -164,11 +166,11 @@ class DbTestCase(BaseTest):
     def _clean_db(self):
         db_api.delete_all()
 
-    def create_runtime(self, prefix=None):
+    def create_runtime(self):
         runtime = db_api.create_runtime(
             {
-                'name': self.rand_name('runtime', prefix=prefix),
-                'image': self.rand_name('image', prefix=prefix),
+                'name': self.rand_name('runtime', prefix=self.prefix),
+                'image': self.rand_name('image', prefix=self.prefix),
                 # 'auth_enable' is disabled by default, we create runtime for
                 # default tenant.
                 'project_id': DEFAULT_PROJECT_ID,
@@ -178,13 +180,13 @@ class DbTestCase(BaseTest):
 
         return runtime
 
-    def create_function(self, runtime_id=None, prefix=None):
+    def create_function(self, runtime_id=None):
         if not runtime_id:
-            runtime_id = self.create_runtime(prefix).id
+            runtime_id = self.create_runtime().id
 
         function = db_api.create_function(
             {
-                'name': self.rand_name('function', prefix=prefix),
+                'name': self.rand_name('function', prefix=self.prefix),
                 'runtime_id': runtime_id,
                 'code': {"source": "package", "md5sum": "fake_md5"},
                 'entry': 'main.main',
@@ -196,12 +198,12 @@ class DbTestCase(BaseTest):
 
         return function
 
-    def create_job(self, function_id=None, prefix=None, **kwargs):
+    def create_job(self, function_id=None, **kwargs):
         if not function_id:
-            function_id = self.create_function(prefix=prefix).id
+            function_id = self.create_function().id
 
         job_params = {
-            'name': self.rand_name('job', prefix=prefix),
+            'name': self.rand_name('job', prefix=self.prefix),
             'function_id': function_id,
             # 'auth_enable' is disabled by default
             'project_id': DEFAULT_PROJECT_ID,
@@ -211,9 +213,9 @@ class DbTestCase(BaseTest):
 
         return job
 
-    def create_webhook(self, function_id=None, prefix=None, **kwargs):
+    def create_webhook(self, function_id=None, **kwargs):
         if not function_id:
-            function_id = self.create_function(prefix=prefix).id
+            function_id = self.create_function().id
 
         webhook_params = {
             'function_id': function_id,
@@ -225,9 +227,9 @@ class DbTestCase(BaseTest):
 
         return webhook
 
-    def create_execution(self, function_id=None, prefix=None, **kwargs):
+    def create_execution(self, function_id=None, **kwargs):
         if not function_id:
-            function_id = self.create_function(prefix=prefix).id
+            function_id = self.create_function().id
 
         execution_params = {
             'function_id': function_id,
@@ -239,10 +241,9 @@ class DbTestCase(BaseTest):
 
         return execution
 
-    def create_function_version(self, old_version, function_id=None,
-                                prefix=None, **kwargs):
+    def create_function_version(self, old_version, function_id=None, **kwargs):
         if not function_id:
-            function_id = self.create_function(prefix=prefix).id
+            function_id = self.create_function().id
 
         db_api.increase_function_version(function_id, old_version, **kwargs)
         db_api.update_function(function_id,

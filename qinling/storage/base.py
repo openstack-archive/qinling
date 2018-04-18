@@ -40,7 +40,7 @@ class PackageStorage(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def retrieve(self, project_id, function, md5sum, version=None):
+    def retrieve(self, project_id, function, md5sum, version=0):
         """Get function package data.
 
         :param project_id: Project ID.
@@ -52,7 +52,7 @@ class PackageStorage(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete(self, project_id, function, md5sum):
+    def delete(self, project_id, function, md5sum, version=0):
         raise NotImplementedError
 
     @abc.abstractmethod

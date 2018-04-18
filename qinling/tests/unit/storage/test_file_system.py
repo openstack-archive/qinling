@@ -201,6 +201,25 @@ class TestFileSystemStorage(base.BaseTest):
 
     @mock.patch('os.path.exists')
     @mock.patch('os.remove')
+    @mock.patch('os.listdir')
+    def test_delete_with_version(self, mock_list, remove_mock, exists_mock):
+        exists_mock.return_value = True
+        function = self.rand_name('function', prefix='TestFileSystemStorage')
+        version = 1
+        mock_list.return_value = ["%s_%s_md5.zip" % (function, version)]
+
+        self.storage.delete(self.project_id, function, "fake_md5", version=1)
+
+        package_path = os.path.join(
+            FAKE_STORAGE_PATH,
+            self.project_id,
+            file_system.PACKAGE_VERSION_TEMPLATE % (function, version, "md5")
+        )
+        exists_mock.assert_called_once_with(package_path)
+        remove_mock.assert_called_once_with(package_path)
+
+    @mock.patch('os.path.exists')
+    @mock.patch('os.remove')
     def test_delete_package_not_exists(self, remove_mock, exists_mock):
         exists_mock.return_value = False
         function = self.rand_name('function', prefix='TestFileSystemStorage')

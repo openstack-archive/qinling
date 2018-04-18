@@ -18,14 +18,12 @@ from qinling import exceptions as exc
 from qinling import status
 from qinling.tests.unit.api import base
 
-TEST_CASE_NAME = 'TestExecutionController'
-
 
 class TestExecutionController(base.APITest):
     def setUp(self):
         super(TestExecutionController, self).setUp()
 
-        db_func = self.create_function(prefix=TEST_CASE_NAME)
+        db_func = self.create_function()
         self.func_id = db_func.id
 
     @mock.patch('qinling.rpc.EngineClient.create_execution')

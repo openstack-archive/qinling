@@ -62,6 +62,12 @@ class TestFunctionVersionController(base.APITest):
             func_db = db_api.get_function(self.func_id)
             self.assertEqual(1, len(func_db.versions))
 
+        # Verify the latest function version by calling API
+        resp = self.app.get('/v1/functions/%s' % self.func_id)
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(1, resp.json.get('latest_version'))
+
     @mock.patch('qinling.storage.file_system.FileSystemStorage.changed_since')
     @mock.patch('qinling.utils.etcd_util.get_function_version_lock')
     def test_post_not_change(self, mock_etcd_lock, mock_changed):
@@ -91,3 +97,14 @@ class TestFunctionVersionController(base.APITest):
                                   expect_errors=True)
 
         self.assertEqual(403, resp.status_int)
+
+    def test_get_all(self):
+        db_api.increase_function_version(self.func_id, 0,
+                                         description="version 1")
+
+        resp = self.app.get('/v1/functions/%s/versions' % self.func_id)
+
+        self.assertEqual(200, resp.status_int)
+        actual = self._assert_single_item(resp.json['function_versions'],
+                                          version_number=1)
+        self.assertEqual("version 1", actual.get('description'))

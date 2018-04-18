@@ -129,7 +129,6 @@ class FunctionsController(rest.RestController):
             pecan.response.headers['Content-Disposition'] = (
                 'attachment; filename="%s"' % os.path.basename(func_db.name)
             )
-            LOG.info("Downloaded function %s", id)
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose('json')

@@ -150,6 +150,39 @@ class TestFileSystemStorage(base.BaseTest):
         )
         exists_mock.assert_called_once_with(package_path)
 
+    @mock.patch('qinling.storage.file_system.open')
+    @mock.patch('os.path.exists')
+    @mock.patch('os.listdir')
+    def test_retrieve_version(self, mock_list, mock_exist, mock_open):
+        function = "fake_function_id"
+        version = 1
+        md5 = "md5"
+        mock_list.return_value = ["%s_%s_%s.zip" % (function, version, md5)]
+        mock_exist.return_value = True
+
+        self.storage.retrieve(self.project_id, function, None,
+                              version=version)
+
+        version_zip = os.path.join(FAKE_STORAGE_PATH, self.project_id,
+                                   "%s_%s_%s.zip" % (function, version, md5))
+
+        mock_exist.assert_called_once_with(version_zip)
+
+    @mock.patch('os.listdir')
+    def test_retrieve_version_not_found(self, mock_list):
+        function = "fake_function_id"
+        version = 1
+        mock_list.return_value = [""]
+
+        self.assertRaises(
+            exc.StorageNotFoundException,
+            self.storage.retrieve,
+            function,
+            self.project_id,
+            None,
+            version=version
+        )
+
     @mock.patch('os.path.exists')
     @mock.patch('os.remove')
     def test_delete(self, remove_mock, exists_mock):

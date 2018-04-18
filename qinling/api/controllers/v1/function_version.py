@@ -12,10 +12,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import collections
+
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import strutils
+import pecan
 from pecan import rest
 import tenacity
+from webob.static import FileIter
 import wsmeext.pecan as wsme_pecan
 
 from qinling.api import access_control as acl
@@ -137,3 +142,38 @@ class FunctionVersionsController(rest.RestController):
                     for v in db_versions]
 
         return resources.FunctionVersions(function_versions=versions)
+
+    @rest_utils.wrap_pecan_controller_exception
+    @pecan.expose()
+    def get(self, function_id, version):
+        ctx = context.get_ctx()
+        acl.enforce('function_version:get', ctx)
+
+        download = strutils.bool_from_string(
+            pecan.request.GET.get('download', False)
+        )
+        version = int(version)
+
+        version_db = db_api.get_function_version(function_id, version)
+
+        if not download:
+            LOG.info("Getting version %s for function %s.", version,
+                     function_id)
+            pecan.override_template('json')
+            return resources.FunctionVersion.from_dict(
+                version_db.to_dict()).to_dict()
+
+        LOG.info("Downloading version %s for function %s.", version,
+                 function_id)
+
+        f = self.storage_provider.retrieve(ctx.projectid, function_id,
+                                           None, version=version)
+
+        if isinstance(f, collections.Iterable):
+            pecan.response.app_iter = f
+        else:
+            pecan.response.app_iter = FileIter(f)
+        pecan.response.headers['Content-Type'] = 'application/zip'
+        pecan.response.headers['Content-Disposition'] = (
+            'attachment; filename="%s_%s"' % (function_id, version)
+        )

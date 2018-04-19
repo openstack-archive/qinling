@@ -42,7 +42,8 @@ class Function(model_base.QinlingSecureModelBase):
     runtime = relationship(
         'Runtime', back_populates="functions", innerjoin=True, lazy='select'
     )
-    memory_size = sa.Column(sa.Integer)
+    cpu = sa.Column(sa.Integer, default=0)
+    memory_size = sa.Column(sa.Integer, default=0)
     timeout = sa.Column(sa.Integer)
     code = sa.Column(st.JsonLongDictType(), nullable=False)
     entry = sa.Column(sa.String(80), nullable=True)

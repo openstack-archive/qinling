@@ -29,6 +29,7 @@ from qinling.orchestrator import base
 from qinling.orchestrator.kubernetes import utils as k8s_util
 from qinling.utils import common
 
+
 LOG = logging.getLogger(__name__)
 
 TEMPLATES_DIR = (os.path.dirname(os.path.realpath(__file__)) + '/templates/')
@@ -218,17 +219,20 @@ class KubernetesManager(base.OrchestratorBase):
 
         return True
 
-    def _choose_available_pods(self, labels, count=1, function_id=None):
+    def _choose_available_pods(self, labels, count=1, function_id=None,
+                               function_version=0):
         # If there is already a pod for function, reuse it.
         if function_id:
             ret = self.v1.list_namespaced_pod(
                 self.conf.kubernetes.namespace,
-                label_selector='function_id=%s' % function_id
+                label_selector='function_id=%s,function_version=%s' %
+                               (function_id, function_version)
             )
             if len(ret.items) >= count:
                 LOG.debug(
-                    "Function %s already associates to a pod with at least "
-                    "%d worker(s). ", function_id, count
+                    "Function %s(version %s) already associates to a pod with "
+                    "at least %d worker(s). ",
+                    function_id, function_version, count
                 )
                 return ret.items[:count]
 
@@ -243,7 +247,8 @@ class KubernetesManager(base.OrchestratorBase):
 
         return ret.items[-count:]
 
-    def _prepare_pod(self, pod, deployment_name, function_id, labels=None):
+    def _prepare_pod(self, pod, deployment_name, function_id, version,
+                     labels=None):
         """Pod preparation.
 
         1. Update pod labels.
@@ -253,16 +258,22 @@ class KubernetesManager(base.OrchestratorBase):
         labels = labels or {}
 
         LOG.info(
-            'Prepare pod %s in deployment %s for function %s',
-            pod_name, deployment_name, function_id
+            'Prepare pod %s in deployment %s for function %s(version %s)',
+            pod_name, deployment_name, function_id, version
         )
 
         # Update pod label.
-        pod_labels = self._update_pod_label(pod, {'function_id': function_id})
+        pod_labels = self._update_pod_label(
+            pod,
+            # pod label value should be string
+            {'function_id': function_id, 'function_version': str(version)}
+        )
 
         # Create service for the chosen pod.
-        service_name = "service-%s" % function_id
-        labels.update({'function_id': function_id})
+        service_name = "service-%s-%s" % (function_id, version)
+        labels.update(
+            {'function_id': function_id, 'function_version': str(version)}
+        )
 
         # TODO(kong): Make the service type configurable.
         service_body = self.service_template.render(
@@ -314,6 +325,7 @@ class KubernetesManager(base.OrchestratorBase):
         return pod_name, pod_service_url
 
     def _create_pod(self, image, pod_name, labels, input):
+        """Create pod for image type function."""
         if not input:
             input_list = []
         elif isinstance(input, dict) and input.get('__function_input'):
@@ -357,15 +369,17 @@ class KubernetesManager(base.OrchestratorBase):
 
         return pod_labels
 
-    def prepare_execution(self, function_id, image=None, identifier=None,
-                          labels=None, input=None):
-        """Prepare service URL for function.
+    def prepare_execution(self, function_id, version, image=None,
+                          identifier=None, labels=None, input=None):
+        """Prepare service URL for function version.
 
         For image function, create a single pod with input, so the function
         will be executed.
 
         For normal function, choose a pod from the pool and expose a service,
         return the service URL.
+
+        return a tuple includes pod name and the servise url.
         """
         pods = None
 
@@ -375,7 +389,8 @@ class KubernetesManager(base.OrchestratorBase):
             self._create_pod(image, identifier, labels, input)
             return identifier, None
         else:
-            pods = self._choose_available_pods(labels, function_id=function_id)
+            pods = self._choose_available_pods(labels, function_id=function_id,
+                                               function_version=version)
 
         if not pods:
             LOG.critical('No worker available.')
@@ -383,31 +398,35 @@ class KubernetesManager(base.OrchestratorBase):
 
         try:
             pod_name, url = self._prepare_pod(
-                pods[0], identifier, function_id, labels
+                pods[0], identifier, function_id, version, labels
             )
             return pod_name, url
         except Exception:
             LOG.exception('Pod preparation failed.')
-            self.delete_function(function_id, labels)
+            self.delete_function(function_id, version, labels)
             raise exc.OrchestratorException('Execution preparation failed.')
 
-    def run_execution(self, execution_id, function_id, input=None,
+    def run_execution(self, execution_id, function_id, version, input=None,
                       identifier=None, service_url=None, entry='main.main',
                       trust_id=None):
-        """Run execution and get output."""
+        """Run execution.
+
+        Return a tuple including the result and the output.
+        """
         if service_url:
             func_url = '%s/execute' % service_url
             data = utils.get_request_data(
-                self.conf, function_id, execution_id, input, entry, trust_id,
-                self.qinling_endpoint
+                self.conf, function_id, version, execution_id, input, entry,
+                trust_id, self.qinling_endpoint
             )
             LOG.debug(
-                'Invoke function %s, url: %s, data: %s',
-                function_id, func_url, data
+                'Invoke function %s(version %s), url: %s, data: %s',
+                function_id, version, func_url, data
             )
 
             return utils.url_request(self.session, func_url, body=data)
         else:
+            # Wait for image type function execution to be finished
             def _wait_complete():
                 pod = self.v1.read_namespaced_pod(
                     identifier,
@@ -437,8 +456,17 @@ class KubernetesManager(base.OrchestratorBase):
             )
             return True, output
 
-    def delete_function(self, function_id, labels=None):
-        labels = labels or {'function_id': function_id}
+    def delete_function(self, function_id, version, labels=None):
+        """Delete related resources for function.
+
+        - Delete service
+        - Delete pods
+        """
+        pre_label = {
+            'function_id': function_id,
+            'function_version': str(version)
+        }
+        labels = labels or pre_label
         selector = common.convert_dict_to_string(labels)
 
         ret = self.v1.list_namespaced_service(
@@ -456,7 +484,7 @@ class KubernetesManager(base.OrchestratorBase):
             label_selector=selector
         )
 
-    def scaleup_function(self, function_id, identifier=None, count=1):
+    def scaleup_function(self, function_id, version, identifier=None, count=1):
         pod_names = []
         labels = {'runtime_id': identifier}
         pods = self._choose_available_pods(labels, count=count)
@@ -466,11 +494,13 @@ class KubernetesManager(base.OrchestratorBase):
 
         for pod in pods:
             pod_name, service_url = self._prepare_pod(
-                pod, identifier, function_id, labels
+                pod, identifier, function_id, version, labels
             )
             pod_names.append(pod_name)
 
-        LOG.info('Pods scaled up for function %s: %s', function_id, pod_names)
+        LOG.info('Pods scaled up for function %s(version %s): %s', function_id,
+                 version, pod_names)
+
         return pod_names, service_url
 
     def delete_worker(self, pod_name, **kwargs):

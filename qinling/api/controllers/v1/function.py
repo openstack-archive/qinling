@@ -55,12 +55,12 @@ class FunctionWorkerController(rest.RestController):
         acl.enforce('function_worker:get_all', context.get_ctx())
         LOG.info("Get workers for function %s.", function_id)
 
-        workers = etcd_util.get_workers(function_id, CONF)
+        workers = etcd_util.get_workers(function_id)
         workers = [
             resources.FunctionWorker.from_dict(
                 {'function_id': function_id, 'worker_name': w}
             ) for w in workers
-            ]
+        ]
 
         return resources.FunctionWorkers(workers=workers)
 

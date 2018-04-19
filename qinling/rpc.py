@@ -153,7 +153,7 @@ class EngineClient(object):
         )
 
     @wrap_messaging_exception
-    def create_execution(self, execution_id, function_id, runtime_id,
+    def create_execution(self, execution_id, function_id, version, runtime_id,
                          input=None, is_sync=True):
         method_client = self._client.prepare(topic=self.topic, server=None)
 
@@ -163,6 +163,7 @@ class EngineClient(object):
                 'create_execution',
                 execution_id=execution_id,
                 function_id=function_id,
+                function_version=version,
                 runtime_id=runtime_id,
                 input=input
             )
@@ -172,33 +173,37 @@ class EngineClient(object):
                 'create_execution',
                 execution_id=execution_id,
                 function_id=function_id,
+                function_version=version,
                 runtime_id=runtime_id,
                 input=input
             )
 
     @wrap_messaging_exception
-    def delete_function(self, id):
+    def delete_function(self, id, version=0):
         return self._client.prepare(topic=self.topic, server=None).cast(
             ctx.get_ctx(),
             'delete_function',
-            function_id=id
+            function_id=id,
+            function_version=version
         )
 
     @wrap_messaging_exception
-    def scaleup_function(self, id, runtime_id, count=1):
+    def scaleup_function(self, id, runtime_id, version=0, count=1):
         return self._client.prepare(topic=self.topic, server=None).cast(
             ctx.get_ctx(),
             'scaleup_function',
             function_id=id,
             runtime_id=runtime_id,
+            function_version=version,
             count=count
         )
 
     @wrap_messaging_exception
-    def scaledown_function(self, id, count=1):
+    def scaledown_function(self, id, version=0, count=1):
         return self._client.prepare(topic=self.topic, server=None).cast(
             ctx.get_ctx(),
             'scaledown_function',
             function_id=id,
+            function_version=version,
             count=count
         )

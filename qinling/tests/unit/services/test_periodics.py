@@ -20,7 +20,6 @@ from oslo_config import cfg
 
 from qinling import context
 from qinling.db import api as db_api
-from qinling.engine import default_engine
 from qinling.services import periodics
 from qinling import status
 from qinling.tests.unit import base
@@ -35,24 +34,50 @@ class TestPeriodics(base.DbTestCase):
 
     @mock.patch('qinling.utils.etcd_util.delete_function')
     @mock.patch('qinling.utils.etcd_util.get_service_url')
-    def test_function_service_expiration_handler(self, mock_etcd_url,
-                                                 mock_etcd_delete):
+    def test_handle_function_service_no_function_version(self, mock_etcd_url,
+                                                         mock_etcd_delete):
         db_func = self.create_function()
         function_id = db_func.id
         # Update function to simulate function execution
         db_api.update_function(function_id, {'count': 1})
         time.sleep(1.5)
 
-        mock_k8s = mock.Mock()
         mock_etcd_url.return_value = 'http://localhost:37718'
         self.override_config('function_service_expiration', 1, 'engine')
-        engine = default_engine.DefaultEngine(mock_k8s, CONF.qinling_endpoint)
-        periodics.handle_function_service_expiration(self.ctx, engine)
+        mock_engine = mock.Mock()
 
-        self.assertEqual(1, mock_k8s.delete_function.call_count)
-        args, kwargs = mock_k8s.delete_function.call_args
+        periodics.handle_function_service_expiration(self.ctx, mock_engine)
+
+        self.assertEqual(1, mock_engine.delete_function.call_count)
+        args, _ = mock_engine.delete_function.call_args
         self.assertIn(function_id, args)
-        mock_etcd_delete.assert_called_once_with(function_id)
+        self.assertIn(0, args)
+
+        mock_etcd_delete.assert_called_once_with(function_id, 0)
+
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.utils.etcd_util.get_service_url')
+    def test_handle_function_service_with_function_versions(self, mock_srv_url,
+                                                            mock_etcd_delete):
+        db_func = self.create_function()
+        function_id = db_func.id
+        db_api.increase_function_version(function_id, 0,
+                                         description="new version")
+        db_api.update_function_version(function_id, 1, count=1)
+        time.sleep(1.5)
+
+        self.override_config('function_service_expiration', 1, 'engine')
+        mock_srv_url.return_value = 'http://localhost:37718'
+        mock_engine = mock.Mock()
+
+        periodics.handle_function_service_expiration(self.ctx, mock_engine)
+
+        self.assertEqual(1, mock_engine.delete_function.call_count)
+        args, _ = mock_engine.delete_function.call_args
+        self.assertIn(function_id, args)
+        self.assertIn(1, args)
+
+        mock_etcd_delete.assert_called_once_with(function_id, 1)
 
     @mock.patch('qinling.utils.jobs.get_next_execution_time')
     def test_job_handler(self, mock_get_next):
@@ -72,6 +97,7 @@ class TestPeriodics(base.DbTestCase):
 
         e_client = mock.Mock()
         mock_get_next.return_value = now + timedelta(seconds=1)
+
         periodics.handle_job(e_client)
         context.set_ctx(self.ctx)
 

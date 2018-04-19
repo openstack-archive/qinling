@@ -529,7 +529,21 @@ def get_function_version(function_id, version, session=None):
     return version_db
 
 
+# This function is only used in unit test.
+@db_base.session_aware()
+def update_function_version(function_id, version, session=None, **kwargs):
+    version_db = get_function_version(function_id, version, session=session)
+    version_db.update(kwargs.copy())
+
+    return version_db
+
+
 @db_base.session_aware()
 def delete_function_version(function_id, version, session=None):
     version_db = get_function_version(function_id, version)
     session.delete(version_db)
+
+
+@db_base.session_aware()
+def get_function_versions(session=None, **kwargs):
+    return _get_collection_sorted_by_time(models.FunctionVersion, **kwargs)

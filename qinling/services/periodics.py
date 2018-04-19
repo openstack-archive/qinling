@@ -51,24 +51,43 @@ def handle_function_service_expiration(ctx, engine):
     results = db_api.get_functions(
         sort_keys=['updated_at'],
         insecure=True,
-        updated_at={'lte': expiry_time}
+        updated_at={'lte': expiry_time},
+        latest_version=0
     )
-    if len(results) == 0:
-        return
 
     for func_db in results:
-        if not etcd_util.get_service_url(func_db.id):
+        if not etcd_util.get_service_url(func_db.id, 0):
             continue
 
         LOG.info(
-            'Deleting service mapping and workers for function %s',
+            'Deleting service mapping and workers for function %s(version 0)',
             func_db.id
         )
 
         # Delete resources related to the function
-        engine.delete_function(ctx, func_db.id)
+        engine.delete_function(ctx, func_db.id, 0)
         # Delete etcd keys
-        etcd_util.delete_function(func_db.id)
+        etcd_util.delete_function(func_db.id, 0)
+
+    versions = db_api.get_function_versions(
+        sort_keys=['updated_at'],
+        insecure=True,
+        updated_at={'lte': expiry_time},
+    )
+
+    for v in versions:
+        if not etcd_util.get_service_url(v.function_id, v.version_number):
+            continue
+
+        LOG.info(
+            'Deleting service mapping and workers for function %s(version %s)',
+            v.function_id, v.version_number
+        )
+
+        # Delete resources related to the function
+        engine.delete_function(ctx, v.function_id, v.version_number)
+        # Delete etcd keys
+        etcd_util.delete_function(v.function_id, v.version_number)
 
 
 @periodics.periodic(3)

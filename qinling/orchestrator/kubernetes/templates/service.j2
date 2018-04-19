@@ -4,7 +4,7 @@ metadata:
   name: {{ service_name }}
   labels:
   {% for key, value in labels.items() %}
-    {{ key }}: {{ value }}
+    {{ key }}: "{{ value }}"
   {% endfor %}
 spec:
   type: NodePort

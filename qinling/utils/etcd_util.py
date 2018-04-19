@@ -29,9 +29,10 @@ def get_client(conf=None):
     return CLIENT
 
 
-def get_worker_lock():
+def get_worker_lock(function_id, version=0):
     client = get_client()
-    return client.lock(id='function_worker')
+    lock_id = "function_worker_%s_%s" % (function_id, version)
+    return client.lock(id=lock_id)
 
 
 def get_function_version_lock(function_id):
@@ -40,7 +41,7 @@ def get_function_version_lock(function_id):
     return client.lock(id=lock_id)
 
 
-def create_worker(function_id, worker):
+def create_worker(function_id, worker, version=0):
     """Create the worker info in etcd.
 
     The worker parameter is assumed to be unique.
@@ -50,34 +51,34 @@ def create_worker(function_id, worker):
     # is the name of the pod so it is unique.
     client = get_client()
     client.create(
-        '%s/worker_%s' % (function_id, worker),
+        '%s_%s/worker_%s' % (function_id, version, worker),
         worker
     )
 
 
-def delete_worker(function_id, worker):
+def delete_worker(function_id, worker, version=0):
     client = get_client()
-    client.delete('%s/worker_%s' % (function_id, worker))
+    client.delete('%s_%s/worker_%s' % (function_id, version, worker))
 
 
-def get_workers(function_id, conf=None):
-    client = get_client(conf)
-    values = client.get_prefix('%s/worker' % function_id)
+def get_workers(function_id, version=0):
+    client = get_client()
+    values = client.get_prefix("%s_%s/worker" % (function_id, version))
     workers = [w[0] for w in values]
     return workers
 
 
-def delete_function(function_id):
+def delete_function(function_id, version=0):
     client = get_client()
-    client.delete_prefix(function_id)
+    client.delete_prefix("%s_%s" % (function_id, version))
 
 
-def create_service_url(function_id, url):
+def create_service_url(function_id, url, version=0):
     client = get_client()
-    client.create('%s/service_url' % function_id, url)
+    client.create('%s_%s/service_url' % (function_id, version), url)
 
 
-def get_service_url(function_id):
+def get_service_url(function_id, version=0):
     client = get_client()
-    values = client.get('%s/service_url' % function_id)
+    values = client.get('%s_%s/service_url' % (function_id, version))
     return None if not values else values[0]

@@ -74,17 +74,29 @@ def url_request(request_session, url, body=None):
     return False, {'error': 'Internal service error.'}
 
 
-def get_request_data(conf, function_id, execution_id, input, entry, trust_id,
-                     qinling_endpoint):
+def get_request_data(conf, function_id, version, execution_id, input, entry,
+                     trust_id, qinling_endpoint):
+    """Prepare the request body should send to the worker."""
     ctx = context.get_ctx()
-    download_url = (
-        '%s/%s/functions/%s?download=true' %
-        (qinling_endpoint.strip('/'), constants.CURRENT_VERSION, function_id)
-    )
+
+    if version == 0:
+        download_url = (
+            '%s/%s/functions/%s?download=true' %
+            (qinling_endpoint.strip('/'), constants.CURRENT_VERSION,
+             function_id)
+        )
+    else:
+        download_url = (
+            '%s/%s/functions/%s/versions/%s?download=true' %
+            (qinling_endpoint.strip('/'), constants.CURRENT_VERSION,
+             function_id, version)
+        )
+
     data = {
         'execution_id': execution_id,
         'input': input,
         'function_id': function_id,
+        'function_version': version,
         'entry': entry,
         'download_url': download_url,
         'request_id': ctx.request_id,

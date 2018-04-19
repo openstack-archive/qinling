@@ -14,6 +14,7 @@
 
 import mock
 
+from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import status
 from qinling.tests.unit.api import base
@@ -40,7 +41,25 @@ class TestExecutionController(base.APITest):
         self.assertEqual(1, resp.json.get('count'))
 
     @mock.patch('qinling.rpc.EngineClient.create_execution')
-    def test_create_rpc_error(self, mock_create_execution):
+    def test_post_with_version(self, mock_rpc):
+        db_api.increase_function_version(self.func_id, 0,
+                                         description="version 1")
+        body = {
+            'function_id': self.func_id,
+            'function_version': 1
+        }
+
+        resp = self.app.post_json('/v1/executions', body)
+        self.assertEqual(201, resp.status_int)
+
+        resp = self.app.get('/v1/functions/%s' % self.func_id)
+        self.assertEqual(0, resp.json.get('count'))
+
+        resp = self.app.get('/v1/functions/%s/versions/1' % self.func_id)
+        self.assertEqual(1, resp.json.get('count'))
+
+    @mock.patch('qinling.rpc.EngineClient.create_execution')
+    def test_post_rpc_error(self, mock_create_execution):
         mock_create_execution.side_effect = exc.QinlingException
         body = {
             'function_id': self.func_id,

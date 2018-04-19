@@ -56,6 +56,9 @@ class ExecutionsController(rest.RestController):
         status_code=201
     )
     def post(self, body):
+        ctx = context.get_ctx()
+        acl.enforce('execution:create', ctx)
+
         params = body.to_dict()
         LOG.info("Creating %s. [params=%s]", self.type, params)
 

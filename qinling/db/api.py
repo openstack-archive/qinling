@@ -212,5 +212,14 @@ def get_function_version(function_id, version):
     return IMPL.get_function_version(function_id, version)
 
 
+# This function is only used in unit test.
+def update_function_version(function_id, version, **kwargs):
+    return IMPL.update_function_version(function_id, version, **kwargs)
+
+
 def delete_function_version(function_id, version):
     return IMPL.delete_function_version(function_id, version)
+
+
+def get_function_versions(**kwargs):
+    return IMPL.get_function_versions(**kwargs)

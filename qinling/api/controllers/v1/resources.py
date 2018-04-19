@@ -278,6 +278,7 @@ class Runtimes(ResourceList):
 class Execution(Resource):
     id = types.uuid
     function_id = wsme.wsattr(types.uuid, mandatory=True)
+    function_version = wsme.wsattr(int, default=0)
     description = wtypes.text
     status = wsme.wsattr(wtypes.text, readonly=True)
     sync = bool
@@ -303,21 +304,6 @@ class Execution(Resource):
 
         return obj
 
-    @classmethod
-    def sample(cls):
-        return cls(
-            id='123e4567-e89b-12d3-a456-426655440000',
-            function_id='123e4567-e89b-12d3-a456-426655440000',
-            description='this is the first execution.',
-            status='success',
-            sync=True,
-            input={'data': 'hello, world'},
-            result={'result': 'hello, world'},
-            project_id='default',
-            created_at='1970-01-01T00:00:00.000000',
-            updated_at='1970-01-01T00:00:00.000000'
-        )
-
 
 class Executions(ResourceList):
     executions = [Execution]
@@ -326,18 +312,6 @@ class Executions(ResourceList):
         self._type = 'executions'
 
         super(Executions, self).__init__(**kwargs)
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        sample.executions = [Execution.sample()]
-        sample.next = (
-            "http://localhost:7070/v1/executions?"
-            "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
-            "marker=123e4567-e89b-12d3-a456-426655440000"
-        )
-
-        return sample
 
 
 class Job(Resource):
@@ -420,6 +394,7 @@ class FunctionVersion(Resource):
     id = types.uuid
     description = wtypes.text
     version_number = wsme.wsattr(int, readonly=True)
+    count = wsme.wsattr(int, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wsme.wsattr(wtypes.text, readonly=True)
     updated_at = wsme.wsattr(wtypes.text, readonly=True)

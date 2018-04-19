@@ -29,10 +29,11 @@ class TestDefaultEngine(base.DbTestCase):
         self.orchestrator = mock.Mock()
         self.qinling_endpoint = 'http://127.0.0.1:7070'
         self.default_engine = default_engine.DefaultEngine(
-            self.orchestrator, self.qinling_endpoint)
+            self.orchestrator, self.qinling_endpoint
+        )
 
     def _create_running_executions(self, function_id, num):
-        for _i in range(num):
+        for _ in range(num):
             self.create_execution(function_id=function_id)
 
     def test_create_runtime(self):
@@ -110,113 +111,91 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(runtime.image, pre_image)
         self.assertEqual(runtime.status, status.AVAILABLE)
 
+    @mock.patch('qinling.engine.default_engine.DefaultEngine.scaleup_function')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     @mock.patch('qinling.utils.etcd_util.get_worker_lock')
-    def test_function_load_check_no_worker_scaleup(
-        self,
-        etcd_util_get_worker_lock_mock,
-        etcd_util_get_workers_mock
-    ):
+    def test_function_load_check_no_worker(self, mock_getlock, mock_getworkers,
+                                           mock_scaleup):
         function_id = common.generate_unicode_uuid()
         runtime_id = common.generate_unicode_uuid()
         lock = mock.Mock()
-        (
-            etcd_util_get_worker_lock_mock.return_value.__enter__.return_value
-        ) = lock
         lock.is_acquired.return_value = True
-        etcd_util_get_workers_mock.return_value = []  # len(workers) = 0
-        self.default_engine.scaleup_function = mock.Mock()
+        mock_getlock.return_value.__enter__.return_value = lock
+        mock_getworkers.return_value = []
 
-        self.default_engine.function_load_check(function_id, runtime_id)
+        self.default_engine.function_load_check(function_id, 0, runtime_id)
 
-        etcd_util_get_workers_mock.assert_called_once_with(function_id)
-        self.default_engine.scaleup_function.assert_called_once_with(
-            None, function_id, runtime_id, 1)
+        mock_getworkers.assert_called_once_with(function_id, 0)
+        mock_scaleup.assert_called_once_with(None, function_id, 0, runtime_id,
+                                             1)
 
+    @mock.patch('qinling.engine.default_engine.DefaultEngine.scaleup_function')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     @mock.patch('qinling.utils.etcd_util.get_worker_lock')
-    def test_function_load_check_concurrency_scaleup(
-        self,
-        etcd_util_get_worker_lock_mock,
-        etcd_util_get_workers_mock
-    ):
+    def test_function_load_check_scaleup(self, mock_getlock, mock_getworkers,
+                                         mock_scaleup):
         function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         lock = mock.Mock()
-        (
-            etcd_util_get_worker_lock_mock.return_value.__enter__.return_value
-        ) = lock
         lock.is_acquired.return_value = True
+        mock_getlock.return_value.__enter__.return_value = lock
+
         # The default concurrency is 3, we use 4 running executions against
         # 1 worker so that there will be a scaling up.
-        etcd_util_get_workers_mock.return_value = range(1)
+        mock_getworkers.return_value = ['worker1']
         self._create_running_executions(function_id, 4)
-        self.default_engine.scaleup_function = mock.Mock()
 
-        self.default_engine.function_load_check(function_id, runtime_id)
+        self.default_engine.function_load_check(function_id, 0, runtime_id)
 
-        etcd_util_get_workers_mock.assert_called_once_with(function_id)
-        self.default_engine.scaleup_function.assert_called_once_with(
-            None, function_id, runtime_id, 1)
+        mock_getworkers.assert_called_once_with(function_id, 0)
+        mock_scaleup.assert_called_once_with(None, function_id, 0, runtime_id,
+                                             1)
 
+    @mock.patch('qinling.engine.default_engine.DefaultEngine.scaleup_function')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     @mock.patch('qinling.utils.etcd_util.get_worker_lock')
-    def test_function_load_check_not_scaleup(
-        self,
-        etcd_util_get_worker_lock_mock,
-        etcd_util_get_workers_mock
-    ):
+    def test_function_load_check_not_scaleup(self, mock_getlock,
+                                             mock_getworkers, mock_scaleup):
         function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         lock = mock.Mock()
-        (
-            etcd_util_get_worker_lock_mock.return_value.__enter__.return_value
-        ) = lock
         lock.is_acquired.return_value = True
+        mock_getlock.return_value.__enter__.return_value = lock
+
         # The default concurrency is 3, we use 3 running executions against
         # 1 worker so that there won't be a scaling up.
-        etcd_util_get_workers_mock.return_value = range(1)
+        mock_getworkers.return_value = ['worker1']
         self._create_running_executions(function_id, 3)
-        self.default_engine.scaleup_function = mock.Mock()
 
-        self.default_engine.function_load_check(function_id, runtime_id)
+        self.default_engine.function_load_check(function_id, 0, runtime_id)
 
-        etcd_util_get_workers_mock.assert_called_once_with(function_id)
-        self.default_engine.scaleup_function.assert_not_called()
+        mock_getworkers.assert_called_once_with(function_id, 0)
+        mock_scaleup.assert_not_called()
 
     @mock.patch('qinling.utils.etcd_util.get_workers')
     @mock.patch('qinling.utils.etcd_util.get_worker_lock')
-    def test_function_load_check_lock_wait(
-        self,
-        etcd_util_get_worker_lock_mock,
-        etcd_util_get_workers_mock
-    ):
+    def test_function_load_check_lock_wait(self, mock_getlock,
+                                           mock_getworkers):
         function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
         lock = mock.Mock()
-        (
-            etcd_util_get_worker_lock_mock.return_value.__enter__.return_value
-        ) = lock
+        mock_getlock.return_value.__enter__.return_value = lock
         # Lock is acquired upon the third try.
         lock.is_acquired.side_effect = [False, False, True]
-        etcd_util_get_workers_mock.return_value = range(1)
+        mock_getworkers.return_value = ['worker1']
         self._create_running_executions(function_id, 3)
-        self.default_engine.scaleup_function = mock.Mock()
 
-        self.default_engine.function_load_check(function_id, runtime_id)
+        self.default_engine.function_load_check(function_id, 0, runtime_id)
 
         self.assertEqual(3, lock.is_acquired.call_count)
-        etcd_util_get_workers_mock.assert_called_once_with(function_id)
-        self.default_engine.scaleup_function.assert_not_called()
+        mock_getworkers.assert_called_once_with(function_id, 0)
 
     @mock.patch('qinling.utils.etcd_util.get_service_url')
-    def test_create_execution(
-            self,
-            etcd_util_get_service_url_mock
-    ):
+    def test_create_execution_image_type_function(self, mock_svc_url):
+        """Create 2 executions for an image type function."""
         function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
@@ -234,42 +213,47 @@ class TestDefaultEngine(base.DbTestCase):
         execution_1_id = execution_1.id
         execution_2 = self.create_execution(function_id=function_id)
         execution_2_id = execution_2.id
-        self.default_engine.function_load_check = mock.Mock()
-        etcd_util_get_service_url_mock.return_value = None
+        mock_svc_url.return_value = None
         self.orchestrator.prepare_execution.return_value = (
             mock.Mock(), None)
         self.orchestrator.run_execution.side_effect = [
             (True, 'success result'),
             (False, 'failed result')]
 
-        # Try create two executions, with different results
+        # Create two executions, with different results
         self.default_engine.create_execution(
-            mock.Mock(), execution_1_id, function_id, runtime_id)
+            mock.Mock(), execution_1_id, function_id, 0, runtime_id
+        )
         self.default_engine.create_execution(
-            mock.Mock(), execution_2_id, function_id, runtime_id,
-            input='input')
+            mock.Mock(), execution_2_id, function_id, 0, runtime_id,
+            input='input'
+        )
 
-        self.default_engine.function_load_check.assert_not_called()
         get_service_url_calls = [
-            mock.call(function_id), mock.call(function_id)]
-        etcd_util_get_service_url_mock.assert_has_calls(get_service_url_calls)
-        self.assertEqual(2, etcd_util_get_service_url_mock.call_count)
+            mock.call(function_id, 0), mock.call(function_id, 0)
+        ]
+        mock_svc_url.assert_has_calls(get_service_url_calls)
+
         prepare_calls = [
             mock.call(function_id,
+                      0,
                       image=function.code['image'],
                       identifier=mock.ANY,
                       labels=None,
                       input=None),
             mock.call(function_id,
+                      0,
                       image=function.code['image'],
                       identifier=mock.ANY,
                       labels=None,
-                      input='input')]
+                      input='input')
+        ]
         self.orchestrator.prepare_execution.assert_has_calls(prepare_calls)
-        self.assertEqual(2, self.orchestrator.prepare_execution.call_count)
+
         run_calls = [
             mock.call(execution_1_id,
                       function_id,
+                      0,
                       input=None,
                       identifier=mock.ANY,
                       service_url=None,
@@ -277,15 +261,18 @@ class TestDefaultEngine(base.DbTestCase):
                       trust_id=function.trust_id),
             mock.call(execution_2_id,
                       function_id,
+                      0,
                       input='input',
                       identifier=mock.ANY,
                       service_url=None,
                       entry=function.entry,
-                      trust_id=function.trust_id)]
+                      trust_id=function.trust_id)
+        ]
         self.orchestrator.run_execution.assert_has_calls(run_calls)
-        self.assertEqual(2, self.orchestrator.run_execution.call_count)
+
         execution_1 = db_api.get_execution(execution_1_id)
         execution_2 = db_api.get_execution(execution_2_id)
+
         self.assertEqual(execution_1.status, status.SUCCESS)
         self.assertEqual(execution_1.logs, '')
         self.assertEqual(execution_1.result, {'output': 'success result'})
@@ -298,6 +285,11 @@ class TestDefaultEngine(base.DbTestCase):
             self,
             etcd_util_get_service_url_mock
     ):
+        """test_create_execution_prepare_execution_exception
+
+        Create execution for image type function, prepare_execution method
+        raises exception.
+        """
         function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
@@ -320,7 +312,7 @@ class TestDefaultEngine(base.DbTestCase):
         etcd_util_get_service_url_mock.return_value = None
 
         self.default_engine.create_execution(
-            mock.Mock(), execution_id, function_id, runtime_id)
+            mock.Mock(), execution_id, function_id, 0, runtime_id)
 
         execution = db_api.get_execution(execution_id)
         self.assertEqual(execution.status, status.ERROR)
@@ -328,9 +320,9 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(execution.result, {})
 
     @mock.patch('qinling.utils.etcd_util.get_service_url')
-    def test_create_execution_not_image_source(
-            self,
-            etcd_util_get_service_url_mock
+    def test_create_execution_package_type_function(
+        self,
+        etcd_util_get_service_url_mock
     ):
         function = self.create_function()
         function_id = function.id
@@ -347,24 +339,26 @@ class TestDefaultEngine(base.DbTestCase):
              'output': 'success output'})
 
         self.default_engine.create_execution(
-            mock.Mock(), execution_id, function_id, runtime_id)
+            mock.Mock(), execution_id, function_id, 0, runtime_id)
 
         self.default_engine.function_load_check.assert_called_once_with(
-            function_id, runtime_id)
-        etcd_util_get_service_url_mock.assert_called_once_with(function_id)
+            function_id, 0, runtime_id)
+        etcd_util_get_service_url_mock.assert_called_once_with(function_id, 0)
         self.orchestrator.prepare_execution.assert_called_once_with(
-            function_id, image=None, identifier=runtime_id,
+            function_id, 0, image=None, identifier=runtime_id,
             labels={'runtime_id': runtime_id}, input=None)
         self.orchestrator.run_execution.assert_called_once_with(
-            execution_id, function_id, input=None, identifier=runtime_id,
+            execution_id, function_id, 0, input=None, identifier=runtime_id,
             service_url='svc_url', entry=function.entry,
             trust_id=function.trust_id)
+
         execution = db_api.get_execution(execution_id)
+
         self.assertEqual(execution.status, status.SUCCESS)
         self.assertEqual(execution.logs, 'execution log')
         self.assertEqual(execution.result, {'output': 'success output'})
 
-    def test_create_execution_not_image_source_scaleup_exception(self):
+    def test_create_execution_loadcheck_exception(self):
         function = self.create_function()
         function_id = function.id
         runtime_id = function.runtime_id
@@ -377,9 +371,10 @@ class TestDefaultEngine(base.DbTestCase):
         )
 
         self.default_engine.create_execution(
-            mock.Mock(), execution_id, function_id, runtime_id)
+            mock.Mock(), execution_id, function_id, 0, runtime_id)
 
         execution = db_api.get_execution(execution_id)
+
         self.assertEqual(execution.status, status.ERROR)
         self.assertEqual(execution.logs, '')
         self.assertEqual(execution.result, {})
@@ -388,10 +383,10 @@ class TestDefaultEngine(base.DbTestCase):
     @mock.patch('qinling.engine.utils.url_request')
     @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_create_execution_found_service_url(
-            self,
-            etcd_util_get_service_url_mock,
-            engine_utils_url_request_mock,
-            engine_utils_get_request_data_mock
+        self,
+        etcd_util_get_service_url_mock,
+        engine_utils_url_request_mock,
+        engine_utils_get_request_data_mock
     ):
         function = self.create_function()
         function_id = function.id
@@ -407,18 +402,21 @@ class TestDefaultEngine(base.DbTestCase):
              'output': 'failed output'})
 
         self.default_engine.create_execution(
-            mock.Mock(), execution_id, function_id, runtime_id, input='input')
+            mock.Mock(), execution_id, function_id, 0, runtime_id,
+            input='input')
 
         self.default_engine.function_load_check.assert_called_once_with(
-            function_id, runtime_id)
-        etcd_util_get_service_url_mock.assert_called_once_with(function_id)
+            function_id, 0, runtime_id)
+        etcd_util_get_service_url_mock.assert_called_once_with(function_id, 0)
         engine_utils_get_request_data_mock.assert_called_once_with(
-            mock.ANY, function_id, execution_id,
+            mock.ANY, function_id, 0, execution_id,
             'input', function.entry, function.trust_id,
             self.qinling_endpoint)
         engine_utils_url_request_mock.assert_called_once_with(
             self.default_engine.session, 'svc_url/execute', body='data')
+
         execution = db_api.get_execution(execution_id)
+
         self.assertEqual(execution.status, status.FAILED)
         self.assertEqual(execution.logs, 'execution log')
         self.assertEqual(execution.result,
@@ -430,35 +428,36 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.delete_function(mock.Mock(), function_id)
 
         self.orchestrator.delete_function.assert_called_once_with(
-            function_id)
+            function_id, 0
+        )
 
     @mock.patch('qinling.utils.etcd_util.create_service_url')
     @mock.patch('qinling.utils.etcd_util.create_worker')
     def test_scaleup_function(
-            self,
-            etcd_util_create_worker_mock,
-            etcd_util_create_service_url_mock
+        self,
+        etcd_util_create_worker_mock,
+        etcd_util_create_service_url_mock
     ):
         function_id = common.generate_unicode_uuid()
         runtime_id = common.generate_unicode_uuid()
         self.orchestrator.scaleup_function.return_value = (['worker'], 'url')
 
         self.default_engine.scaleup_function(
-            mock.Mock(), function_id, runtime_id)
+            mock.Mock(), function_id, 0, runtime_id)
 
         self.orchestrator.scaleup_function.assert_called_once_with(
-            function_id, identifier=runtime_id, count=1)
+            function_id, 0, identifier=runtime_id, count=1)
         etcd_util_create_worker_mock.assert_called_once_with(
-            function_id, 'worker')
+            function_id, 'worker', version=0)
         etcd_util_create_service_url_mock.assert_called_once_with(
-            function_id, 'url')
+            function_id, 'url', version=0)
 
     @mock.patch('qinling.utils.etcd_util.create_service_url')
     @mock.patch('qinling.utils.etcd_util.create_worker')
     def test_scaleup_function_multiple_workers(
-            self,
-            etcd_util_create_worker_mock,
-            etcd_util_create_service_url_mock
+        self,
+        etcd_util_create_worker_mock,
+        etcd_util_create_service_url_mock
     ):
         function_id = common.generate_unicode_uuid()
         runtime_id = common.generate_unicode_uuid()
@@ -466,22 +465,24 @@ class TestDefaultEngine(base.DbTestCase):
             ['worker0', 'worker1'], 'url')
 
         self.default_engine.scaleup_function(
-            mock.Mock(), function_id, runtime_id, count=2)
+            mock.Mock(), function_id, 0, runtime_id, count=2
+        )
 
         self.orchestrator.scaleup_function.assert_called_once_with(
-            function_id, identifier=runtime_id, count=2)
+            function_id, 0, identifier=runtime_id, count=2
+        )
         # Two new workers are created.
-        expected = [mock.call(function_id, 'worker0'),
-                    mock.call(function_id, 'worker1')]
+        expected = [mock.call(function_id, 'worker0', version=0),
+                    mock.call(function_id, 'worker1', version=0)]
         etcd_util_create_worker_mock.assert_has_calls(expected)
-        self.assertEqual(2, etcd_util_create_worker_mock.call_count)
         etcd_util_create_service_url_mock.assert_called_once_with(
-            function_id, 'url')
+            function_id, 'url', version=0
+        )
 
     @mock.patch('qinling.utils.etcd_util.delete_worker')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     def test_scaledown_function(
-            self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
+        self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
     ):
         function_id = common.generate_unicode_uuid()
         etcd_util_get_workers_mock.return_value = [
@@ -491,33 +492,33 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.scaledown_function(mock.Mock(), function_id)
 
         etcd_util_get_workers_mock.assert_called_once_with(
-            function_id)
+            function_id, 0)
         self.orchestrator.delete_worker.assert_called_once_with('worker_0')
         etcd_util_delete_workers_mock.assert_called_once_with(
-            function_id, 'worker_0')
+            function_id, 'worker_0', version=0
+        )
 
     @mock.patch('qinling.utils.etcd_util.delete_worker')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     def test_scaledown_function_multiple_workers(
-            self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
+        self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
     ):
         function_id = common.generate_unicode_uuid()
         etcd_util_get_workers_mock.return_value = [
             'worker_%d' % i for i in range(4)
         ]
 
-        self.default_engine.scaledown_function(
-            mock.Mock(), function_id, count=2)
+        self.default_engine.scaledown_function(mock.Mock(), function_id,
+                                               count=2)
 
-        etcd_util_get_workers_mock.assert_called_once_with(
-            function_id)
+        etcd_util_get_workers_mock.assert_called_once_with(function_id, 0)
         # First two workers will be deleted.
         expected = [mock.call('worker_0'), mock.call('worker_1')]
         self.orchestrator.delete_worker.assert_has_calls(expected)
         self.assertEqual(2, self.orchestrator.delete_worker.call_count)
         expected = [
-            mock.call(function_id, 'worker_0'),
-            mock.call(function_id, 'worker_1')
+            mock.call(function_id, 'worker_0', version=0),
+            mock.call(function_id, 'worker_1', version=0)
         ]
         etcd_util_delete_workers_mock.assert_has_calls(expected)
         self.assertEqual(2, etcd_util_delete_workers_mock.call_count)
@@ -525,7 +526,7 @@ class TestDefaultEngine(base.DbTestCase):
     @mock.patch('qinling.utils.etcd_util.delete_worker')
     @mock.patch('qinling.utils.etcd_util.get_workers')
     def test_scaledown_function_leaving_one_worker(
-            self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
+        self, etcd_util_get_workers_mock, etcd_util_delete_workers_mock
     ):
         function_id = common.generate_unicode_uuid()
         etcd_util_get_workers_mock.return_value = [
@@ -535,8 +536,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.scaledown_function(
             mock.Mock(), function_id, count=5)  # count > len(workers)
 
-        etcd_util_get_workers_mock.assert_called_once_with(
-            function_id)
+        etcd_util_get_workers_mock.assert_called_once_with(function_id, 0)
         # Only the first three workers will be deleted
         expected = [
             mock.call('worker_0'), mock.call('worker_1'), mock.call('worker_2')
@@ -544,9 +544,9 @@ class TestDefaultEngine(base.DbTestCase):
         self.orchestrator.delete_worker.assert_has_calls(expected)
         self.assertEqual(3, self.orchestrator.delete_worker.call_count)
         expected = [
-            mock.call(function_id, 'worker_0'),
-            mock.call(function_id, 'worker_1'),
-            mock.call(function_id, 'worker_2')
+            mock.call(function_id, 'worker_0', version=0),
+            mock.call(function_id, 'worker_1', version=0),
+            mock.call(function_id, 'worker_2', version=0)
         ]
         etcd_util_delete_workers_mock.assert_has_calls(expected)
         self.assertEqual(3, etcd_util_delete_workers_mock.call_count)

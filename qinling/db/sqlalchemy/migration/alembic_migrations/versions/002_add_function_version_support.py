@@ -38,6 +38,7 @@ def upgrade():
         sa.Column('function_id', sa.String(length=36), nullable=False),
         sa.Column('description', sa.String(length=255), nullable=True),
         sa.Column('version_number', sa.Integer, nullable=False),
+        sa.Column('count', sa.Integer, nullable=False),
         sa.PrimaryKeyConstraint('id'),
         sa.ForeignKeyConstraint(['function_id'], [u'functions.id']),
         sa.UniqueConstraint('function_id', 'version_number', 'project_id'),

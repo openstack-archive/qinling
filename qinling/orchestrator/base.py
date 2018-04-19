@@ -39,19 +39,20 @@ class OrchestratorBase(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def prepare_execution(self, function_id, **kwargs):
+    def prepare_execution(self, function_id, function_version, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def run_execution(self, execution_id, function_id, **kwargs):
+    def run_execution(self, execution_id, function_id, function_version,
+                      **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def delete_function(self, function_id, **kwargs):
+    def delete_function(self, function_id, function_version, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def scaleup_function(self, function_id, **kwargs):
+    def scaleup_function(self, function_id, function_version, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod

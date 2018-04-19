@@ -40,12 +40,13 @@ class PackageStorage(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def retrieve(self, project_id, function, md5sum):
+    def retrieve(self, project_id, function, md5sum, version=None):
         """Get function package data.
 
         :param project_id: Project ID.
         :param function: Function ID.
         :param md5sum: The function MD5.
+        :param version: Optional. The function version number.
         :return: File descriptor that needs to close outside.
         """
         raise NotImplementedError

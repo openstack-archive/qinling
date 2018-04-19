@@ -206,3 +206,7 @@ def delete_webhooks(**kwargs):
 def increase_function_version(function_id, old_version, **kwargs):
     """This function is meant to be invoked within locking section."""
     return IMPL.increase_function_version(function_id, old_version, **kwargs)
+
+
+def get_function_version(function_id, version):
+    return IMPL.get_function_version(function_id, version)

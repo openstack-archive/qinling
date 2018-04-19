@@ -74,23 +74,42 @@ class FileSystemStorage(base.PackageStorage):
         os.rename(new_func_zip, func_zip)
         return md5_actual
 
-    def retrieve(self, project_id, function, md5sum):
+    def retrieve(self, project_id, function, md5sum, version=0):
         """Get function package data.
+
+        If version is not 0, return the package data of that specific function
+        version.
 
         :param project_id: Project ID.
         :param function: Function ID.
         :param md5sum: The function MD5.
+        :param version: Optional. The function version number.
         :return: File descriptor that needs to close outside.
         """
         LOG.debug(
-            'Getting package data, function: %s, md5sum: %s, project: %s',
-            function, md5sum, project_id
+            'Getting package data, function: %s, version: %s, md5sum: %s, '
+            'project: %s',
+            function, md5sum, version, project_id
         )
 
-        func_zip = os.path.join(
-            self.base_path,
-            PACKAGE_PATH_TEMPLATE % (project_id, function, md5sum)
-        )
+        if version != 0:
+            project_dir = os.path.join(self.base_path, project_id)
+            for filename in os.listdir(project_dir):
+                root, ext = os.path.splitext(filename)
+                if (root.startswith("%s_%d" % (function, version))
+                        and ext == '.zip'):
+                    func_zip = os.path.join(project_dir, filename)
+                    break
+            else:
+                raise exc.StorageNotFoundException(
+                    'Package of version %d function %s for project %s not '
+                    'found.' % (version, function, project_id)
+                )
+        else:
+            func_zip = os.path.join(
+                self.base_path,
+                PACKAGE_PATH_TEMPLATE % (project_id, function, md5sum)
+            )
 
         if not os.path.exists(func_zip):
             raise exc.StorageNotFoundException(
@@ -99,7 +118,8 @@ class FileSystemStorage(base.PackageStorage):
             )
 
         f = open(func_zip, 'rb')
-        LOG.debug('Found package data for function %s', function)
+        LOG.debug('Found package data for function %s version %d', function,
+                  version)
 
         return f
 

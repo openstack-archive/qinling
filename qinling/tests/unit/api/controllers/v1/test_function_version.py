@@ -108,3 +108,12 @@ class TestFunctionVersionController(base.APITest):
         actual = self._assert_single_item(resp.json['function_versions'],
                                           version_number=1)
         self.assertEqual("version 1", actual.get('description'))
+
+    def test_get(self):
+        db_api.increase_function_version(self.func_id, 0,
+                                         description="version 1")
+
+        resp = self.app.get('/v1/functions/%s/versions/1' % self.func_id)
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual("version 1", resp.json.get('description'))

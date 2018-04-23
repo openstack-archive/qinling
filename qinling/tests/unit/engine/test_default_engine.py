@@ -70,7 +70,7 @@ class TestDefaultEngine(base.DbTestCase):
 
         self.orchestrator.delete_pool.assert_called_once_with(
             runtime_id)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.DBEntityNotFoundError,
             "^Runtime not found \[id=%s\]$" % runtime_id,
             db_api.get_runtime, runtime_id)

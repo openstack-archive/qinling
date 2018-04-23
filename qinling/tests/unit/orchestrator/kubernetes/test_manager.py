@@ -30,10 +30,10 @@ SERVICE_ADDRESS_EXTERNAL = '1.2.3.4'
 SERVICE_ADDRESS_INTERNAL = '127.0.0.1'
 
 
-class TestKubernetesManager(base.BaseTest):
+class TestKubernetesManager(base.DbTestCase):
     def setUp(self):
         super(TestKubernetesManager, self).setUp()
-        CONF.register_opts(config.kubernetes_opts, config.KUBERNETES_GROUP)
+
         self.conf = CONF
         self.qinling_endpoint = 'http://127.0.0.1:7070'
         self.k8s_v1_api = mock.Mock()
@@ -48,13 +48,17 @@ class TestKubernetesManager(base.BaseTest):
                                              prefix='TestKubernetesManager')
         self.override_config('namespace', self.fake_namespace,
                              config.KUBERNETES_GROUP)
+
+        self.override_config('auth_enable', False, group='pecan')
+
         namespace = mock.Mock()
         namespace.metadata.name = self.fake_namespace
         namespaces = mock.Mock()
         namespaces.items = [namespace]
         self.k8s_v1_api.list_namespace.return_value = namespaces
-        self.manager = k8s_manager.KubernetesManager(
-            self.conf, self.qinling_endpoint)
+
+        self.manager = k8s_manager.KubernetesManager(self.conf,
+                                                     self.qinling_endpoint)
 
     def _create_service(self):
         port = mock.Mock()
@@ -305,7 +309,7 @@ class TestKubernetesManager(base.BaseTest):
         rollback.assert_called_once_with(
             fake_deployment_name, self.fake_namespace, rollback_body)
 
-    def test_prepare_execution(self):
+    def test_prepare_execution_no_image(self):
         pod = mock.Mock()
         pod.metadata.name = self.rand_name('pod',
                                            prefix='TestKubernetesManager')
@@ -323,7 +327,7 @@ class TestKubernetesManager(base.BaseTest):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.prepare_execution(
-            function_id, image=None, identifier=runtime_id,
+            function_id, 0, image=None, identifier=runtime_id,
             labels={'runtime_id': runtime_id})
 
         self.assertEqual(pod.metadata.name, pod_names)
@@ -334,10 +338,15 @@ class TestKubernetesManager(base.BaseTest):
         # in _choose_available_pods
         self.k8s_v1_api.list_namespaced_pod.assert_called_once_with(
             self.fake_namespace,
-            label_selector='function_id=%s' % function_id)
+            label_selector='function_id=%s,function_version=0' % (function_id)
+        )
 
         # in _prepare_pod -> _update_pod_label
-        pod_labels = {'pod1_key1': 'pod1_value1', 'function_id': function_id}
+        pod_labels = {
+            'pod1_key1': 'pod1_value1',
+            'function_id': function_id,
+            'function_version': '0'
+        }
         body = {'metadata': {'labels': pod_labels}}
         self.k8s_v1_api.patch_namespaced_pod.assert_called_once_with(
             pod.metadata.name, self.fake_namespace, body)
@@ -345,8 +354,9 @@ class TestKubernetesManager(base.BaseTest):
         # in _prepare_pod
         service_body = self.manager.service_template.render(
             {
-                'service_name': 'service-%s' % function_id,
+                'service_name': 'service-%s-0' % function_id,
                 'labels': {'function_id': function_id,
+                           'function_version': '0',
                            'runtime_id': runtime_id},
                 'selector': pod_labels
             }
@@ -357,13 +367,12 @@ class TestKubernetesManager(base.BaseTest):
     def test_prepare_execution_with_image(self):
         function_id = common.generate_unicode_uuid()
         image = self.rand_name('image', prefix='TestKubernetesManager')
-        identifier = ('%s-%s' % (
-                      common.generate_unicode_uuid(dashed=False),
-                      function_id)
+        identifier = ('%s-%s' %
+                      (common.generate_unicode_uuid(dashed=False), function_id)
                       )[:63]
 
         pod_name, url = self.manager.prepare_execution(
-            function_id, image=image, identifier=identifier)
+            function_id, 0, image=image, identifier=identifier)
 
         self.assertEqual(identifier, pod_name)
         self.assertIsNone(url)
@@ -390,7 +399,7 @@ class TestKubernetesManager(base.BaseTest):
         fake_input = {'__function_input': 'input_item1 input_item2'}
 
         pod_name, url = self.manager.prepare_execution(
-            function_id, image=image, identifier=identifier,
+            function_id, 0, image=image, identifier=identifier,
             input=fake_input)
 
         # in _create_pod
@@ -415,7 +424,7 @@ class TestKubernetesManager(base.BaseTest):
         fake_input = '["input_item3", "input_item4"]'
 
         pod_name, url = self.manager.prepare_execution(
-            function_id, image=image, identifier=identifier,
+            function_id, 0, image=image, identifier=identifier,
             input=fake_input)
 
         # in _create_pod
@@ -430,7 +439,7 @@ class TestKubernetesManager(base.BaseTest):
         self.k8s_v1_api.create_namespaced_pod.assert_called_once_with(
             self.fake_namespace, body=yaml.safe_load(pod_body))
 
-    def test_prepare_execution_no_worker_available(self):
+    def test_prepare_execution_not_image_no_worker_available(self):
         ret_pods = mock.Mock()
         ret_pods.items = []
         self.k8s_v1_api.list_namespaced_pod.return_value = ret_pods
@@ -442,14 +451,19 @@ class TestKubernetesManager(base.BaseTest):
             exc.OrchestratorException,
             "^Execution preparation failed\.$",
             self.manager.prepare_execution,
-            function_id, image=None, identifier=runtime_id, labels=labels)
+            function_id, 0, image=None, identifier=runtime_id, labels=labels)
 
         # in _choose_available_pods
         list_calls = [
-            mock.call(self.fake_namespace,
-                      label_selector='function_id=%s' % function_id),
-            mock.call(self.fake_namespace,
-                      label_selector='!function_id,runtime_id=%s' % runtime_id)
+            mock.call(
+                self.fake_namespace,
+                label_selector=('function_id=%s,function_version=0' %
+                                function_id)
+            ),
+            mock.call(
+                self.fake_namespace,
+                label_selector='!function_id,runtime_id=%s' % runtime_id
+            )
         ]
         self.k8s_v1_api.list_namespaced_pod.assert_has_calls(list_calls)
         self.assertEqual(2, self.k8s_v1_api.list_namespaced_pod.call_count)
@@ -475,14 +489,14 @@ class TestKubernetesManager(base.BaseTest):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.prepare_execution(
-            function_id, image=None, identifier=runtime_id,
+            function_id, 0, image=None, identifier=runtime_id,
             labels={'runtime_id': runtime_id})
 
         # in _prepare_pod
         self.k8s_v1_api.read_namespaced_service.assert_called_once_with(
-            'service-%s' % function_id, self.fake_namespace)
+            'service-%s-0' % function_id, self.fake_namespace)
 
-    def test_prepare_execution_pod_preparation_failed(self):
+    def test_prepare_execution_create_service_failed(self):
         pod = mock.Mock()
         pod.metadata.name = self.rand_name('pod',
                                            prefix='TestKubernetesManager')
@@ -503,12 +517,18 @@ class TestKubernetesManager(base.BaseTest):
                 exc.OrchestratorException,
                 '^Execution preparation failed\.$',
                 self.manager.prepare_execution,
-                function_id, image=None, identifier=runtime_id,
+                function_id, 0, image=None, identifier=runtime_id,
                 labels={'runtime_id': runtime_id})
 
             delete_function_mock.assert_called_once_with(
                 function_id,
-                {'runtime_id': runtime_id, 'function_id': function_id})
+                0,
+                {
+                    'runtime_id': runtime_id,
+                    'function_id': function_id,
+                    'function_version': '0'
+                }
+            )
 
     def test_prepare_execution_service_internal_ip(self):
         pod = mock.Mock()
@@ -528,7 +548,7 @@ class TestKubernetesManager(base.BaseTest):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.prepare_execution(
-            function_id, image=None, identifier=runtime_id,
+            function_id, 0, image=None, identifier=runtime_id,
             labels={'runtime_id': runtime_id})
 
         self.assertEqual(pod.metadata.name, pod_names)
@@ -536,7 +556,7 @@ class TestKubernetesManager(base.BaseTest):
             'http://%s:%s' % (SERVICE_ADDRESS_INTERNAL, SERVICE_PORT),
             service_url)
 
-    def test_run_execution(self):
+    def test_run_execution_image_type_function(self):
         pod = mock.Mock()
         pod.status.phase = 'Succeeded'
         self.k8s_v1_api.read_namespaced_pod.return_value = pod
@@ -545,7 +565,8 @@ class TestKubernetesManager(base.BaseTest):
         execution_id = common.generate_unicode_uuid()
         function_id = common.generate_unicode_uuid()
 
-        result, output = self.manager.run_execution(execution_id, function_id)
+        result, output = self.manager.run_execution(execution_id, function_id,
+                                                    0)
 
         self.k8s_v1_api.read_namespaced_pod.assert_called_once_with(
             None, self.fake_namespace)
@@ -554,29 +575,33 @@ class TestKubernetesManager(base.BaseTest):
         self.assertTrue(result)
         self.assertEqual(fake_output, output)
 
-    @mock.patch('qinling.engine.utils.get_request_data')
     @mock.patch('qinling.engine.utils.url_request')
-    def test_run_execution_with_service_url(self, url_request_mock,
-                                            get_request_data_mock):
-        fake_output = 'fake output'
-        url_request_mock.return_value = (True, 'fake output')
-        fake_data = 'some data'
-        get_request_data_mock.return_value = fake_data
+    def test_run_execution_version_0(self, mock_request):
+        mock_request.return_value = (True, 'fake output')
         execution_id = common.generate_unicode_uuid()
         function_id = common.generate_unicode_uuid()
 
         result, output = self.manager.run_execution(
-            execution_id, function_id, service_url='FAKE_URL')
+            execution_id, function_id, 0, service_url='FAKE_URL'
+        )
 
-        get_request_data_mock.assert_called_once_with(
-            self.conf, function_id, execution_id, None, 'main.main', None,
-            self.qinling_endpoint)
-        url_request_mock.assert_called_once_with(
-            self.manager.session, 'FAKE_URL/execute', body=fake_data)
-        self.assertTrue(result)
-        self.assertEqual(fake_output, output)
+        download_url = ('http://127.0.0.1:7070/v1/functions/%s?download=true'
+                        % function_id)
+        data = {
+            'execution_id': execution_id,
+            'input': None,
+            'function_id': function_id,
+            'function_version': 0,
+            'entry': 'main.main',
+            'download_url': download_url,
+            'request_id': self.ctx.request_id,
+        }
 
-    def test_run_execution_retry(self):
+        mock_request.assert_called_once_with(
+            self.manager.session, 'FAKE_URL/execute', body=data
+        )
+
+    def test_run_execution_no_service_url_retry(self):
         pod1 = mock.Mock()
         pod1.status.phase = ''
         pod2 = mock.Mock()
@@ -587,7 +612,8 @@ class TestKubernetesManager(base.BaseTest):
         execution_id = common.generate_unicode_uuid()
         function_id = common.generate_unicode_uuid()
 
-        result, output = self.manager.run_execution(execution_id, function_id)
+        result, output = self.manager.run_execution(execution_id, function_id,
+                                                    0)
 
         self.assertEqual(2, self.k8s_v1_api.read_namespaced_pod.call_count)
         self.k8s_v1_api.read_namespaced_pod_log.assert_called_once_with(
@@ -595,12 +621,13 @@ class TestKubernetesManager(base.BaseTest):
         self.assertTrue(result)
         self.assertEqual(fake_output, output)
 
-    def test_run_execution_failed(self):
+    def test_run_execution_no_service_url_read_pod_exception(self):
         self.k8s_v1_api.read_namespaced_pod.side_effect = RuntimeError
         execution_id = common.generate_unicode_uuid()
         function_id = common.generate_unicode_uuid()
 
-        result, output = self.manager.run_execution(execution_id, function_id)
+        result, output = self.manager.run_execution(execution_id, function_id,
+                                                    0)
 
         self.k8s_v1_api.read_namespaced_pod.assert_called_once_with(
             None, self.fake_namespace)
@@ -621,10 +648,19 @@ class TestKubernetesManager(base.BaseTest):
         self.k8s_v1_api.list_namespaced_service.return_value = services
         function_id = common.generate_unicode_uuid()
 
-        self.manager.delete_function(function_id)
+        self.manager.delete_function(function_id, 0)
 
-        self.k8s_v1_api.list_namespaced_service.assert_called_once_with(
-            self.fake_namespace, label_selector='function_id=%s' % function_id)
+        args, kwargs = self.k8s_v1_api.list_namespaced_service.call_args
+        self.assertIn(self.fake_namespace, args)
+        self.assertIn(
+            "function_id=%s" % function_id,
+            kwargs.get("label_selector")
+        )
+        self.assertIn(
+            "function_version=0",
+            kwargs.get("label_selector")
+        )
+
         delete_service_calls = [
             mock.call(svc1_name, self.fake_namespace),
             mock.call(svc2_name, self.fake_namespace)
@@ -632,10 +668,20 @@ class TestKubernetesManager(base.BaseTest):
         self.k8s_v1_api.delete_namespaced_service.assert_has_calls(
             delete_service_calls)
         self.assertEqual(
-            2, self.k8s_v1_api.delete_namespaced_service.call_count)
-        delete_pod = self.k8s_v1_api.delete_collection_namespaced_pod
-        delete_pod.assert_called_once_with(
-            self.fake_namespace, label_selector='function_id=%s' % function_id)
+            2, self.k8s_v1_api.delete_namespaced_service.call_count
+        )
+
+        args, kwargs = self.k8s_v1_api.delete_collection_namespaced_pod. \
+            call_args
+        self.assertIn(self.fake_namespace, args)
+        self.assertIn(
+            "function_id=%s" % function_id,
+            kwargs.get("label_selector")
+        )
+        self.assertIn(
+            "function_version=0",
+            kwargs.get("label_selector")
+        )
 
     def test_delete_function_with_labels(self):
         services = mock.Mock()
@@ -645,7 +691,7 @@ class TestKubernetesManager(base.BaseTest):
         self.k8s_v1_api.list_namespaced_service.return_value = services
         function_id = common.generate_unicode_uuid()
 
-        self.manager.delete_function(function_id, labels=labels)
+        self.manager.delete_function(function_id, 0, labels=labels)
 
         self.k8s_v1_api.list_namespaced_service.assert_called_once_with(
             self.fake_namespace, label_selector=selector)
@@ -672,7 +718,8 @@ class TestKubernetesManager(base.BaseTest):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.scaleup_function(
-            function_id, identifier=runtime_id)
+            function_id, 0, identifier=runtime_id
+        )
 
         self.assertEqual([pod.metadata.name], pod_names)
         self.assertEqual(
@@ -685,7 +732,11 @@ class TestKubernetesManager(base.BaseTest):
             label_selector='!function_id,runtime_id=%s' % runtime_id)
 
         # in _prepare_pod -> _update_pod_label
-        pod_labels = {'pod1_key1': 'pod1_value1', 'function_id': function_id}
+        pod_labels = {
+            'pod1_key1': 'pod1_value1',
+            'function_id': function_id,
+            'function_version': '0'
+        }
         body = {'metadata': {'labels': pod_labels}}
         self.k8s_v1_api.patch_namespaced_pod.assert_called_once_with(
             pod.metadata.name, self.fake_namespace, body)
@@ -693,8 +744,9 @@ class TestKubernetesManager(base.BaseTest):
         # in _prepare_pod
         service_body = self.manager.service_template.render(
             {
-                'service_name': 'service-%s' % function_id,
+                'service_name': 'service-%s-0' % function_id,
                 'labels': {'function_id': function_id,
+                           'function_version': 0,
                            'runtime_id': runtime_id},
                 'selector': pod_labels
             }
@@ -713,7 +765,7 @@ class TestKubernetesManager(base.BaseTest):
             exc.OrchestratorException,
             "^Not enough workers available\.$",
             self.manager.scaleup_function,
-            function_id, identifier=runtime_id, count=2)
+            function_id, 0, identifier=runtime_id, count=2)
 
     def test_scaleup_function_service_already_exists(self):
         pod = mock.Mock()
@@ -736,11 +788,11 @@ class TestKubernetesManager(base.BaseTest):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.scaleup_function(
-            function_id, identifier=runtime_id)
+            function_id, 0, identifier=runtime_id)
 
         # in _prepare_pod
         self.k8s_v1_api.read_namespaced_service.assert_called_once_with(
-            'service-%s' % function_id, self.fake_namespace)
+            'service-%s-0' % function_id, self.fake_namespace)
 
     def test_scaleup_function_service_create_failed(self):
         pod = mock.Mock()
@@ -759,7 +811,7 @@ class TestKubernetesManager(base.BaseTest):
         self.assertRaises(
             RuntimeError,
             self.manager.scaleup_function,
-            function_id, identifier=runtime_id)
+            function_id, 0, identifier=runtime_id)
 
     def test_scaleup_function_service_internal_ip(self):
         pod = mock.Mock()
@@ -779,7 +831,7 @@ class TestKubernetesManager(base.BaseTest):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.scaleup_function(
-            function_id, identifier=runtime_id)
+            function_id, 0, identifier=runtime_id)
 
         self.assertEqual([pod.metadata.name], pod_names)
         self.assertEqual(

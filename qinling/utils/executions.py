@@ -19,49 +19,86 @@ from qinling.db import api as db_api
 from qinling.db.sqlalchemy import models
 from qinling import exceptions as exc
 from qinling import status
+from qinling.utils import constants
 
 LOG = logging.getLogger(__name__)
 
 
-def _update_function_db(function_id):
-    with db_api.transaction():
-        # NOTE(kong): Store function info in cache?
-        func_db = db_api.get_function(function_id)
-        runtime_db = func_db.runtime
-        if runtime_db and runtime_db.status != status.AVAILABLE:
-            raise exc.RuntimeNotAvailableException(
-                'Runtime %s is not available.' % func_db.runtime_id
-            )
-
+def _update_function_db(function_id, pre_count):
     # Function update is done using UPDATE ... FROM ... WHERE
     # non-locking clause.
-    while func_db:
-        count = func_db.count
+    while True:
         modified = db_api.conditional_update(
             models.Function,
             {
-                'count': count + 1,
+                'count': pre_count + 1,
             },
             {
                 'id': function_id,
-                'count': count
+                'count': pre_count
             },
             insecure=True,
         )
         if not modified:
             LOG.warning("Retrying to update function count.")
-            func_db = db_api.get_function(function_id)
+            pre_count += 1
             continue
         else:
             break
 
-    return func_db.runtime_id
+
+def _update_function_version_db(version_id, pre_count):
+    # Update is done using UPDATE ... FROM ... WHERE non-locking clause.
+    while True:
+        modified = db_api.conditional_update(
+            models.FunctionVersion,
+            {
+                'count': pre_count + 1,
+            },
+            {
+                'id': version_id,
+                'count': pre_count
+            },
+            insecure=True,
+        )
+        if not modified:
+            LOG.warning("Retrying to update function version count.")
+            pre_count += 1
+            continue
+        else:
+            break
 
 
 def create_execution(engine_client, params):
     function_id = params['function_id']
     is_sync = params.get('sync', True)
     input = params.get('input')
+    version = params.get('function_version', 0)
+
+    with db_api.transaction():
+        func_db = db_api.get_function(function_id)
+        runtime_id = func_db.runtime_id
+
+        runtime_db = func_db.runtime
+        if runtime_db and runtime_db.status != status.AVAILABLE:
+            raise exc.RuntimeNotAvailableException(
+                'Runtime %s is not available.' % func_db.runtime_id
+            )
+
+        if version > 0:
+            if func_db.code['source'] != constants.PACKAGE_FUNCTION:
+                raise exc.InputException(
+                    "Can not specify version for %s type function." %
+                    constants.PACKAGE_FUNCTION
+                )
+
+            # update version count
+            version_db = db_api.get_function_version(function_id, version)
+            pre_version_count = version_db.count
+            _update_function_version_db(version_db.id, pre_version_count)
+        else:
+            pre_count = func_db.count
+            _update_function_db(function_id, pre_count)
 
     # input in params should be a string.
     if input:
@@ -70,14 +107,12 @@ def create_execution(engine_client, params):
         except ValueError:
             params['input'] = {'__function_input': input}
 
-    runtime_id = _update_function_db(function_id)
-
     params.update({'status': status.RUNNING})
     db_model = db_api.create_execution(params)
 
     try:
         engine_client.create_execution(
-            db_model.id, function_id, runtime_id,
+            db_model.id, function_id, version, runtime_id,
             input=params.get('input'), is_sync=is_sync
         )
     except exc.QinlingException:

@@ -120,6 +120,7 @@ class FunctionVersion(model_base.QinlingSecureModelBase):
     function = relationship('Function', back_populates="versions")
     description = sa.Column(sa.String(255), nullable=True)
     version_number = sa.Column(sa.Integer, default=0)
+    count = sa.Column(sa.Integer, default=0)
 
 
 Runtime.functions = relationship("Function", back_populates="runtime")

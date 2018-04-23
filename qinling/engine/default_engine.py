@@ -89,33 +89,41 @@ class DefaultEngine(object):
         stop=tenacity.stop_after_attempt(30),
         retry=(tenacity.retry_if_result(lambda result: result is False))
     )
-    def function_load_check(self, function_id, runtime_id):
-        with etcd_util.get_worker_lock() as lock:
+    def function_load_check(self, function_id, version, runtime_id):
+        """Check function load and scale the workers if needed.
+
+        :return: None if no need to scale up otherwise return the service url
+        """
+        with etcd_util.get_worker_lock(function_id, version) as lock:
             if not lock.is_acquired():
                 return False
 
-            workers = etcd_util.get_workers(function_id)
+            workers = etcd_util.get_workers(function_id, version)
             running_execs = db_api.get_executions(
-                function_id=function_id, status=status.RUNNING
+                function_id=function_id,
+                function_version=version,
+                status=status.RUNNING
             )
             concurrency = (len(running_execs) or 1) / (len(workers) or 1)
             if (len(workers) == 0 or
                     concurrency > CONF.engine.function_concurrency):
                 LOG.info(
-                    'Scale up function %s. Current concurrency: %s, execution '
-                    'number %s, worker number %s',
-                    function_id, concurrency, len(running_execs), len(workers)
+                    'Scale up function %s(version %s). Current concurrency: '
+                    '%s, execution number %s, worker number %s',
+                    function_id, version, concurrency, len(running_execs),
+                    len(workers)
                 )
 
                 # NOTE(kong): The increase step could be configurable
-                return self.scaleup_function(None, function_id, runtime_id, 1)
+                return self.scaleup_function(None, function_id, version,
+                                             runtime_id, 1)
 
-    def create_execution(self, ctx, execution_id, function_id, runtime_id,
-                         input=None):
+    def create_execution(self, ctx, execution_id, function_id,
+                         function_version, runtime_id, input=None):
         LOG.info(
             'Creating execution. execution_id=%s, function_id=%s, '
-            'runtime_id=%s, input=%s',
-            execution_id, function_id, runtime_id, input
+            'function_version=%s, runtime_id=%s, input=%s',
+            execution_id, function_id, function_version, runtime_id, input
         )
 
         function = db_api.get_function(function_id)
@@ -129,22 +137,25 @@ class DefaultEngine(object):
         # Auto scale workers if needed
         if not is_image_source:
             try:
-                svc_url = self.function_load_check(function_id, runtime_id)
+                svc_url = self.function_load_check(function_id,
+                                                   function_version,
+                                                   runtime_id)
             except exc.OrchestratorException as e:
                 utils.handle_execution_exception(execution_id, str(e))
                 return
 
-        temp_url = etcd_util.get_service_url(function_id)
+        temp_url = etcd_util.get_service_url(function_id, function_version)
         svc_url = svc_url or temp_url
         if svc_url:
             func_url = '%s/execute' % svc_url
             LOG.debug(
-                'Found service url for function: %s, execution: %s, url: %s',
-                function_id, execution_id, func_url
+                'Found service url for function: %s(version %s), execution: '
+                '%s, url: %s',
+                function_id, function_version, execution_id, func_url
             )
 
             data = utils.get_request_data(
-                CONF, function_id, execution_id,
+                CONF, function_id, function_version, execution_id,
                 input, function.entry, function.trust_id,
                 self.qinling_endpoint
             )
@@ -152,12 +163,13 @@ class DefaultEngine(object):
                 self.session, func_url, body=data
             )
 
-            utils.finish_execution(
-                execution_id, success, res, is_image_source=is_image_source)
+            utils.finish_execution(execution_id, success, res,
+                                   is_image_source=is_image_source)
             return
 
         if source == constants.IMAGE_FUNCTION:
             image = function.code['image']
+            # Be consistent with k8s naming convention
             identifier = ('%s-%s' %
                           (common.generate_unicode_uuid(dashed=False),
                            function_id)
@@ -167,8 +179,13 @@ class DefaultEngine(object):
             labels = {'runtime_id': runtime_id}
 
         try:
+            # For image function, it will be executed inside this method; for
+            # package type function it only sets up underlying resources and
+            # get a service url. If the service url is already created
+            # beforehand, nothing happens.
             _, svc_url = self.orchestrator.prepare_execution(
                 function_id,
+                function_version,
                 image=image,
                 identifier=identifier,
                 labels=labels,
@@ -178,9 +195,12 @@ class DefaultEngine(object):
             utils.handle_execution_exception(execution_id, str(e))
             return
 
+        # For image type function, read the worker log; For package type
+        # function, invoke and get log
         success, res = self.orchestrator.run_execution(
             execution_id,
             function_id,
+            function_version,
             input=input,
             identifier=identifier,
             service_url=svc_url,
@@ -188,34 +208,43 @@ class DefaultEngine(object):
             trust_id=function.trust_id
         )
 
-        utils.finish_execution(
-            execution_id, success, res, is_image_source=is_image_source)
+        utils.finish_execution(execution_id, success, res,
+                               is_image_source=is_image_source)
 
-    def delete_function(self, ctx, function_id):
+    def delete_function(self, ctx, function_id, function_version=0):
         """Deletes underlying resources allocated for function."""
-        LOG.info('Start to delete function %s.', function_id)
+        LOG.info('Start to delete function %s(version %s).', function_id,
+                 function_version)
 
-        self.orchestrator.delete_function(function_id)
+        self.orchestrator.delete_function(function_id, function_version)
 
-        LOG.info('Deleted function %s.', function_id)
+        LOG.info('Deleted function %s(version %s).', function_id,
+                 function_version)
 
-    def scaleup_function(self, ctx, function_id, runtime_id, count=1):
+    def scaleup_function(self, ctx, function_id, function_version, runtime_id,
+                         count=1):
         worker_names, service_url = self.orchestrator.scaleup_function(
             function_id,
+            function_version,
             identifier=runtime_id,
             count=count
         )
 
         for name in worker_names:
-            etcd_util.create_worker(function_id, name)
+            etcd_util.create_worker(function_id, name,
+                                    version=function_version)
 
-        etcd_util.create_service_url(function_id, service_url)
+        etcd_util.create_service_url(function_id, service_url,
+                                     version=function_version)
 
-        LOG.info('Finished scaling up function %s.', function_id)
+        LOG.info('Finished scaling up function %s(version %s).', function_id,
+                 function_version)
+
         return service_url
 
-    def scaledown_function(self, ctx, function_id, count=1):
-        workers = etcd_util.get_workers(function_id)
+    def scaledown_function(self, ctx, function_id, function_version=0,
+                           count=1):
+        workers = etcd_util.get_workers(function_id, function_version)
         worker_deleted_num = (
             count if len(workers) > count else len(workers) - 1
         )
@@ -224,6 +253,8 @@ class DefaultEngine(object):
         for worker in workers:
             LOG.debug('Removing worker %s', worker)
             self.orchestrator.delete_worker(worker)
-            etcd_util.delete_worker(function_id, worker)
+            etcd_util.delete_worker(function_id, worker,
+                                    version=function_version)
 
-        LOG.info('Finished scaling down function %s.', function_id)
+        LOG.info('Finished scaling down function %s(version %s).', function_id,
+                 function_version)

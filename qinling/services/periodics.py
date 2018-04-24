@@ -96,7 +96,9 @@ def handle_job(engine_client):
     for job in db_api.get_next_jobs(timeutils.utcnow() + timedelta(seconds=3)):
         job_id = job.id
         func_id = job.function_id
-        LOG.debug("Processing job: %s, function: %s", job_id, func_id)
+        func_version = job.function_version
+        LOG.debug("Processing job: %s, function: %s(version %s)", job_id,
+                  func_id, func_version)
 
         func_db = db_api.get_function(func_id, insecure=True)
         trust_id = func_db.trust_id
@@ -153,11 +155,13 @@ def handle_job(engine_client):
                 continue
 
             LOG.debug(
-                "Starting to execute function %s by job %s", func_id, job_id
+                "Starting to execute function %s(version %s) by job %s",
+                func_id, func_version, job_id
             )
 
             params = {
                 'function_id': func_id,
+                'function_version': func_version,
                 'input': job.function_input,
                 'sync': False,
                 'description': constants.EXECUTION_BY_JOB % job_id

@@ -41,6 +41,21 @@ class TestJobController(base.APITest):
 
         self.assertEqual(201, resp.status_int)
 
+    def test_post_with_version(self):
+        db_api.increase_function_version(self.function_id, 0)
+
+        body = {
+            'name': self.rand_name('job', prefix=self.prefix),
+            'first_execution_time': str(
+                datetime.utcnow() + timedelta(hours=1)),
+            'function_id': self.function_id,
+            'function_version': 1,
+        }
+        resp = self.app.post_json('/v1/jobs', body)
+
+        self.assertEqual(201, resp.status_int)
+        self.assertEqual(1, resp.json.get('function_version'))
+
     def test_post_pattern(self):
         body = {
             'name': self.rand_name('job', prefix=self.prefix),

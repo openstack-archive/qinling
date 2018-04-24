@@ -61,8 +61,12 @@ class JobsController(rest.RestController):
         first_time, next_time, count = jobs.validate_job(params)
         LOG.info("Creating %s, params: %s", self.type, params)
 
+        version = params.get('function_version', 0)
+
         with db_api.transaction():
             db_api.get_function(params['function_id'])
+            if version > 0:
+                db_api.get_function_version(params['function_id'], version)
 
             values = {
                 'name': params.get('name'),
@@ -71,6 +75,7 @@ class JobsController(rest.RestController):
                 'next_execution_time': next_time,
                 'count': count,
                 'function_id': params['function_id'],
+                'function_version': version,
                 'function_input': params.get('function_input'),
                 'status': status.RUNNING
             }

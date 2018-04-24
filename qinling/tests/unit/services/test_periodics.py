@@ -118,3 +118,53 @@ class TestPeriodics(base.DbTestCase):
         self.assertEqual(2, db_func.count)
         db_execs = db_api.get_executions(function_id=function_id)
         self.assertEqual(2, len(db_execs))
+
+    @mock.patch('qinling.utils.jobs.get_next_execution_time')
+    def test_job_handler_with_version(self, mock_next_time):
+        db_func = self.create_function()
+        function_id = db_func.id
+        new_version = db_api.increase_function_version(function_id, 0)
+
+        self.assertEqual(0, new_version.count)
+
+        now = datetime.utcnow()
+        db_job = self.create_job(
+            function_id,
+            function_version=1,
+            status=status.RUNNING,
+            next_execution_time=now,
+            count=2
+        )
+        job_id = db_job.id
+
+        e_client = mock.Mock()
+        # It doesn't matter what's the returned value, but need to be in
+        # datetime type.
+        mock_next_time.return_value = now + timedelta(seconds=1)
+
+        periodics.handle_job(e_client)
+        context.set_ctx(self.ctx)
+
+        db_job = db_api.get_job(job_id)
+        self.assertEqual(1, db_job.count)
+        db_func = db_api.get_function(function_id)
+        self.assertEqual(0, db_func.count)
+        db_version = db_api.get_function_version(function_id, 1)
+        self.assertEqual(1, db_version.count)
+        db_execs = db_api.get_executions(function_id=function_id,
+                                         function_version=1)
+        self.assertEqual(1, len(db_execs))
+
+        periodics.handle_job(e_client)
+        context.set_ctx(self.ctx)
+
+        db_job = db_api.get_job(job_id)
+        self.assertEqual(0, db_job.count)
+        self.assertEqual(status.DONE, db_job.status)
+        db_func = db_api.get_function(function_id)
+        self.assertEqual(0, db_func.count)
+        db_version = db_api.get_function_version(function_id, 1)
+        self.assertEqual(2, db_version.count)
+        db_execs = db_api.get_executions(function_id=function_id,
+                                         function_version=1)
+        self.assertEqual(2, len(db_execs))

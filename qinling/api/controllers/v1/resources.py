@@ -318,6 +318,7 @@ class Job(Resource):
     id = types.uuid
     name = wtypes.text
     function_id = types.uuid
+    function_version = wsme.wsattr(int, default=0)
     function_input = wtypes.text
     status = wtypes.text
     pattern = wtypes.text
@@ -328,23 +329,6 @@ class Job(Resource):
     created_at = wsme.wsattr(wtypes.text, readonly=True)
     updated_at = wsme.wsattr(wtypes.text, readonly=True)
 
-    @classmethod
-    def sample(cls):
-        return cls(
-            id='123e4567-e89b-12d3-a456-426655440000',
-            name='my_job',
-            function_id='123e4567-e89b-12d3-a456-426655440000',
-            function_input={'data': 'hello, world'},
-            status='done',
-            pattern='* * * * *',
-            count=0,
-            first_execution_time='',
-            next_execution_time='',
-            project_id='default',
-            created_at='1970-01-01T00:00:00.000000',
-            updated_at='1970-01-01T00:00:00.000000'
-        )
-
 
 class Jobs(ResourceList):
     jobs = [Job]
@@ -353,18 +337,6 @@ class Jobs(ResourceList):
         self._type = 'jobs'
 
         super(Jobs, self).__init__(**kwargs)
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        sample.jobs = [Job.sample()]
-        sample.next = (
-            "http://localhost:7070/v1/jobs?"
-            "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
-            "marker=123e4567-e89b-12d3-a456-426655440000"
-        )
-
-        return sample
 
 
 class ScaleInfo(Resource):

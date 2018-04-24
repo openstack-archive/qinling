@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from qinling.db import api as db_api
 from qinling.tests.unit.api import base
 
 
@@ -65,3 +66,30 @@ class TestWebhookController(base.APITest):
         self.assertEqual(204, resp.status_int)
         resp = self.app.get('/v1/webhooks/%s' % webhook_id, expect_errors=True)
         self.assertEqual(404, resp.status_int)
+
+    def test_post_with_version(self):
+        db_api.increase_function_version(self.func_id, 0)
+
+        body = {
+            'function_id': self.func_id,
+            'function_version': 1,
+            'description': 'webhook test'
+        }
+        resp = self.app.post_json('/v1/webhooks', body)
+
+        self.assertEqual(201, resp.status_int)
+        self.assertEqual(1, resp.json.get("function_version"))
+
+    def test_put_with_version(self):
+        db_api.increase_function_version(self.func_id, 0)
+        webhook = self.create_webhook(self.func_id)
+
+        self.assertEqual(0, webhook.function_version)
+
+        resp = self.app.put_json(
+            '/v1/webhooks/%s' % webhook.id,
+            {'function_version': 1}
+        )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(1, resp.json.get("function_version"))

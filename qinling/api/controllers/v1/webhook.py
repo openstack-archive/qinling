@@ -35,7 +35,7 @@ from qinling.utils import rest_utils
 LOG = logging.getLogger(__name__)
 
 POST_REQUIRED = set(['function_id'])
-UPDATE_ALLOWED = set(['function_id', 'description'])
+UPDATE_ALLOWED = set(['function_id', 'function_version', 'description'])
 
 
 class WebhooksController(rest.RestController):
@@ -113,6 +113,11 @@ class WebhooksController(rest.RestController):
 
         # Even admin user can not expose normal user's function
         db_api.get_function(params['function_id'], insecure=False)
+
+        version = params.get('function_version', 0)
+        if version > 0:
+            db_api.get_function_version(params['function_id'], version)
+
         webhook_d = db_api.create_webhook(params).to_dict()
 
         return resources.Webhook.from_dict(
@@ -135,7 +140,7 @@ class WebhooksController(rest.RestController):
     def put(self, id, webhook):
         """Update webhook.
 
-        Currently, we only support update function_id.
+        Currently, only function_id and function_version are allowed to update.
         """
         acl.enforce('webhook:update', context.get_ctx())
 
@@ -146,9 +151,17 @@ class WebhooksController(rest.RestController):
 
         LOG.info('Update %s %s, params: %s', self.type, id, values)
 
-        if 'function_id' in values:
-            # Even admin user can not expose normal user's function
-            db_api.get_function(values['function_id'], insecure=False)
+        # Even admin user can not expose normal user's function
+        webhook_db = db_api.get_webhook(id, insecure=False)
+        pre_function_id = webhook_db.function_id
+        pre_version = webhook_db.function_version
+
+        new_function_id = values.get("function_id", pre_function_id)
+        new_version = values.get("function_version", pre_version)
+
+        db_api.get_function(new_function_id, insecure=False)
+        if new_version > 0:
+            db_api.get_function_version(new_function_id, new_version)
 
         webhook = db_api.update_webhook(id, values).to_dict()
         return resources.Webhook.from_dict(self._add_webhook_url(id, webhook))
@@ -163,10 +176,11 @@ class WebhooksController(rest.RestController):
             function_db = webhook_db.function
             trust_id = function_db.trust_id
             project_id = function_db.project_id
+            version = webhook_db.function_version
 
         LOG.info(
-            'Invoking function %s by webhook %s',
-            webhook_db.function_id, id
+            'Invoking function %s(version %s) by webhook %s',
+            webhook_db.function_id, version, id
         )
 
         # Setup user context
@@ -175,6 +189,7 @@ class WebhooksController(rest.RestController):
 
         params = {
             'function_id': webhook_db.function_id,
+            'function_version': version,
             'sync': False,
             'input': json.dumps(kwargs),
             'description': constants.EXECUTION_BY_WEBHOOK % id

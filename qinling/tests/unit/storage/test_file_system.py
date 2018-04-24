@@ -72,7 +72,7 @@ class TestFileSystemStorage(base.BaseTest):
         function_data = "Some data".encode('utf8')
         not_a_md5sum = "Not a md5sum"
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.InputException,
             "^Package md5 mismatch\.$",
             self.storage.store,
@@ -96,7 +96,7 @@ class TestFileSystemStorage(base.BaseTest):
         # For python3, data should be encoded into bytes before hashing.
         function_data = "Some data".encode('utf8')
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.InputException,
             "^Package is not a valid ZIP package\.$",
             self.storage.store,
@@ -133,7 +133,7 @@ class TestFileSystemStorage(base.BaseTest):
         exists_mock.return_value = False
         function = self.rand_name('function', prefix='TestFileSystemStorage')
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.StorageNotFoundException,
             "^Package of function %s for project %s not found\.$" % (
                 function, self.project_id),

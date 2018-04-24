@@ -34,6 +34,7 @@ from qinling.db import api as db_api
 from qinling import exceptions as exc
 from qinling import rpc
 from qinling.storage import base as storage_base
+from qinling.utils import common
 from qinling.utils import constants
 from qinling.utils import etcd_util
 from qinling.utils.openstack import keystone as keystone_util
@@ -45,7 +46,8 @@ CONF = cfg.CONF
 
 POST_REQUIRED = set(['code'])
 CODE_SOURCE = set(['package', 'swift', 'image'])
-UPDATE_ALLOWED = set(['name', 'description', 'code', 'package', 'entry'])
+UPDATE_ALLOWED = set(['name', 'description', 'code', 'package', 'entry',
+                      'cpu', 'memory_size'])
 
 
 class FunctionWorkerController(rest.RestController):
@@ -147,7 +149,21 @@ class FunctionsController(rest.RestController):
             'runtime_id': kwargs.get('runtime_id'),
             'code': json.loads(kwargs['code']),
             'entry': kwargs.get('entry', 'main.main'),
+            'cpu': kwargs.get('cpu', CONF.resource_limits.default_cpu),
+            'memory_size': kwargs.get(
+                'memory_size', CONF.resource_limits.default_memory
+            ),
         }
+
+        # Check cpu and memory_size values.
+        common.validate_int_in_range(
+            'cpu', values['cpu'], CONF.resource_limits.min_cpu,
+            CONF.resource_limits.max_cpu
+        )
+        common.validate_int_in_range(
+            'memory', values['memory_size'], CONF.resource_limits.min_memory,
+            CONF.resource_limits.max_memory
+        )
 
         source = values['code'].get('source')
         if not source or source not in CODE_SOURCE:
@@ -302,6 +318,22 @@ class FunctionsController(rest.RestController):
         else:
             source = values.get('code', {}).get('source')
             md5sum = values.get('code', {}).get('md5sum')
+            cpu = values.get('cpu')
+            memory_size = values.get('memory_size')
+
+            # Check cpu and memory_size values when updating.
+            if cpu is not None:
+                common.validate_int_in_range(
+                    'cpu', values['cpu'], CONF.resource_limits.min_cpu,
+                    CONF.resource_limits.max_cpu
+                )
+            if memory_size is not None:
+                common.validate_int_in_range(
+                    'memory', values['memory_size'],
+                    CONF.resource_limits.min_memory,
+                    CONF.resource_limits.max_memory
+                )
+
             with db_api.transaction():
                 pre_func = db_api.get_function(id)
 

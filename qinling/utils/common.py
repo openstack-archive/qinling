@@ -20,6 +20,7 @@ import warnings
 from oslo_utils import uuidutils
 import six
 
+from qinling import exceptions as exc
 from qinling import version
 
 
@@ -89,6 +90,22 @@ def datetime_to_str(dct, attr_name):
 
 def generate_unicode_uuid(dashed=True):
     return uuidutils.generate_uuid(dashed=dashed)
+
+
+def validate_int_in_range(name, value, min_allowed, max_allowed):
+    try:
+        value_int = int(value)
+    except ValueError:
+        raise exc.InputException(
+            'Invalid %s resource specified. An integer is required.' % name
+        )
+
+    if (value_int < min_allowed or value_int > max_allowed):
+        raise exc.InputException(
+            '%s resource limitation not within the allowable range: '
+            '%s ~ %s(%s).' % (name, min_allowed, max_allowed,
+                              'millicpu' if name == 'cpu' else 'bytes')
+        )
 
 
 def disable_ssl_warnings(func):

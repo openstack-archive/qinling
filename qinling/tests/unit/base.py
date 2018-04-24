@@ -139,6 +139,7 @@ class DbTestCase(BaseTest):
             (config.STORAGE_GROUP, config.storage_opts),
             (config.KUBERNETES_GROUP, config.kubernetes_opts),
             (config.ETCD_GROUP, config.etcd_opts),
+            (config.RLIMITS_GROUP, config.rlimits_opts),
             (None, [config.launch_opt]),
             (None, config.default_opts)
         ]
@@ -193,6 +194,8 @@ class DbTestCase(BaseTest):
                 # 'auth_enable' is disabled by default, we create runtime for
                 # default tenant.
                 'project_id': DEFAULT_PROJECT_ID,
+                'cpu': cfg.CONF.resource_limits.default_cpu,
+                'memory_size': cfg.CONF.resource_limits.default_memory,
             }
         )
 

@@ -17,6 +17,7 @@ import json
 import tempfile
 
 import mock
+from oslo_config import cfg
 
 from qinling import status
 from qinling.tests.unit.api import base
@@ -97,6 +98,8 @@ class TestFunctionController(base.APITest):
             "name": db_func.name,
             'entry': 'main.main',
             "project_id": unit_base.DEFAULT_PROJECT_ID,
+            "cpu": cfg.CONF.resource_limits.default_cpu,
+            "memory_size": cfg.CONF.resource_limits.default_memory,
         }
 
         resp = self.app.get('/v1/functions/%s' % db_func.id)
@@ -111,6 +114,8 @@ class TestFunctionController(base.APITest):
             "name": db_func.name,
             'entry': 'main.main',
             "project_id": unit_base.DEFAULT_PROJECT_ID,
+            "cpu": cfg.CONF.resource_limits.default_cpu,
+            "memory_size": cfg.CONF.resource_limits.default_memory,
         }
 
         resp = self.app.get('/v1/functions')
@@ -172,6 +177,63 @@ class TestFunctionController(base.APITest):
             )
 
         self.assertEqual(400, resp.status_int)
+
+    def test_put_cpu_with_type_error(self):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+
+        # Check for type of cpu values.
+        resp = self.app.put_json(
+            '/v1/functions/%s' % db_func.id, {'cpu': 'non-int'},
+            expect_errors=True
+        )
+
+        self.assertEqual(400, resp.status_int)
+        self.assertIn(
+            'Invalid cpu resource specified. An integer is required.',
+            resp.json['faultstring']
+        )
+
+    def test_put_cpu_with_overrun_error(self):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+
+        # Check for cpu error with input out of range.
+        resp = self.app.put_json(
+            '/v1/functions/%s' % db_func.id, {'cpu': 0},
+            expect_errors=True
+        )
+
+        self.assertEqual(400, resp.status_int)
+        self.assertIn(
+            'cpu resource limitation not within the allowable range',
+            resp.json['faultstring']
+        )
+
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    def test_put_cpu_and_memorysize(
+            self, mock_delete_func, mock_etcd_del
+    ):
+        # Test for updating cpu/mem with good input values.
+        db_func = self.create_function(runtime_id=self.runtime_id)
+
+        req_body = {
+            'cpu': str(cfg.CONF.resource_limits.default_cpu + 1),
+            'memory_size': str(cfg.CONF.resource_limits.default_memory + 1)
+        }
+
+        resp = self.app.put_json('/v1/functions/%s' % db_func.id, req_body)
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(
+            cfg.CONF.resource_limits.default_cpu + 1,
+            resp.json['cpu']
+        )
+        self.assertEqual(
+            cfg.CONF.resource_limits.default_memory + 1,
+            resp.json['memory_size']
+        )
+        mock_delete_func.assert_called_once_with(db_func.id)
+        mock_etcd_del.assert_called_once_with(db_func.id)
 
     @mock.patch('qinling.utils.etcd_util.delete_function')
     @mock.patch('qinling.rpc.EngineClient.delete_function')

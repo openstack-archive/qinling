@@ -164,6 +164,7 @@ class Function(Resource):
     id = wtypes.text
     name = wtypes.text
     description = wtypes.text
+    cpu = int
     memory_size = int
     timeout = int
     runtime_id = wsme.wsattr(types.uuid, readonly=True)
@@ -181,6 +182,7 @@ class Function(Resource):
             id='123e4567-e89b-12d3-a456-426655440000',
             name='hello_world',
             description='this is the first function.',
+            cpu=1,
             memory_size=1,
             timeout=1,
             runtime_id='123e4567-e89b-12d3-a456-426655440001',

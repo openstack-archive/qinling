@@ -184,6 +184,40 @@ etcd_opts = [
     cfg.PortOpt('port', default=2379, help='Etcd service port.'),
 ]
 
+RLIMITS_GROUP = 'resource_limits'
+rlimits_opts = [
+    cfg.IntOpt(
+        'default_cpu',
+        default=100,
+        help='Default cpu resource(unit: millicpu).'
+    ),
+    cfg.IntOpt(
+        'min_cpu',
+        default=100,
+        help='Minimum cpu resource(unit: millicpu).'
+    ),
+    cfg.IntOpt(
+        'max_cpu',
+        default=300,
+        help='Maximum cpu resource(unit: millicpu).'
+    ),
+    cfg.IntOpt(
+        'default_memory',
+        default=33554432,
+        help='Default memory resource(unit: bytes).'
+    ),
+    cfg.IntOpt(
+        'min_memory',
+        default=33554432,
+        help='Minimum memory resource(unit: bytes).'
+    ),
+    cfg.IntOpt(
+        'max_memory',
+        default=134217728,
+        help='Maximum memory resource(unit: bytes).'
+    ),
+]
+
 
 def list_opts():
     keystone_middleware_opts = auth_token.list_opts()
@@ -198,6 +232,7 @@ def list_opts():
         (STORAGE_GROUP, storage_opts),
         (KUBERNETES_GROUP, kubernetes_opts),
         (ETCD_GROUP, etcd_opts),
+        (RLIMITS_GROUP, rlimits_opts),
         (None, [launch_opt]),
         (None, default_opts),
     ]

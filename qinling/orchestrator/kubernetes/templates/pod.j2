@@ -22,8 +22,8 @@ spec:
   restartPolicy: Never
   resources:
       limits:
-        cpu: "0.3"
-        memory: 128Mi
+        cpu: {{ limit_cpu }}m
+        memory: {{ limit_memory }}
       requests:
-        cpu: "0.1"
-        memory: 32Mi
+        cpu: {{ req_cpu }}m
+        memory: {{ req_memory }}

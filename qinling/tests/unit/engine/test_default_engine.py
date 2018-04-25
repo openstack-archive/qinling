@@ -13,6 +13,7 @@
 #    limitations under the License.
 
 import mock
+from oslo_config import cfg
 
 from qinling.db import api as db_api
 from qinling.engine import default_engine
@@ -31,6 +32,10 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine = default_engine.DefaultEngine(
             self.orchestrator, self.qinling_endpoint
         )
+        self.rlimit = {
+            'cpu': cfg.CONF.resource_limits.default_cpu,
+            'memory_size': cfg.CONF.resource_limits.default_memory
+        }
 
     def _create_running_executions(self, function_id, num):
         for _ in range(num):
@@ -237,12 +242,14 @@ class TestDefaultEngine(base.DbTestCase):
         prepare_calls = [
             mock.call(function_id,
                       0,
+                      rlimit=self.rlimit,
                       image=function.code['image'],
                       identifier=mock.ANY,
                       labels=None,
                       input=None),
             mock.call(function_id,
                       0,
+                      rlimit=self.rlimit,
                       image=function.code['image'],
                       identifier=mock.ANY,
                       labels=None,
@@ -345,8 +352,9 @@ class TestDefaultEngine(base.DbTestCase):
             function_id, 0, runtime_id)
         etcd_util_get_service_url_mock.assert_called_once_with(function_id, 0)
         self.orchestrator.prepare_execution.assert_called_once_with(
-            function_id, 0, image=None, identifier=runtime_id,
-            labels={'runtime_id': runtime_id}, input=None)
+            function_id, 0, rlimit=self.rlimit, image=None,
+            identifier=runtime_id, labels={'runtime_id': runtime_id},
+            input=None)
         self.orchestrator.run_execution.assert_called_once_with(
             execution_id, function_id, 0, input=None, identifier=runtime_id,
             service_url='svc_url', entry=function.entry,

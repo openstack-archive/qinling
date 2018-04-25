@@ -128,6 +128,10 @@ class DefaultEngine(object):
 
         function = db_api.get_function(function_id)
         source = function.code['source']
+        rlimit = {
+            'cpu': function.cpu,
+            'memory_size': function.memory_size
+        }
         image = None
         identifier = None
         labels = None
@@ -186,6 +190,7 @@ class DefaultEngine(object):
             _, svc_url = self.orchestrator.prepare_execution(
                 function_id,
                 function_version,
+                rlimit=rlimit,
                 image=image,
                 identifier=identifier,
                 labels=labels,

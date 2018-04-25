@@ -324,7 +324,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         return pod_name, pod_service_url
 
-    def _create_pod(self, image, pod_name, labels, input):
+    def _create_pod(self, image, rlimit, pod_name, labels, input):
         """Create pod for image type function."""
         if not input:
             input_list = []
@@ -338,7 +338,11 @@ class KubernetesManager(base.OrchestratorBase):
                 "pod_name": pod_name,
                 "labels": labels,
                 "pod_image": image,
-                "input": input_list
+                "input": input_list,
+                "req_cpu": str(rlimit['cpu']),
+                "limit_cpu": str(rlimit['cpu']),
+                "req_memory": str(rlimit['memory_size']),
+                "limit_memory": str(rlimit['memory_size'])
             }
         )
 
@@ -369,12 +373,14 @@ class KubernetesManager(base.OrchestratorBase):
 
         return pod_labels
 
-    def prepare_execution(self, function_id, version, image=None,
+    def prepare_execution(self, function_id, version, rlimit=None, image=None,
                           identifier=None, labels=None, input=None):
         """Prepare service URL for function version.
 
-        For image function, create a single pod with input, so the function
-        will be executed.
+        :param rlimit: optional argument passed to limit cpu/mem resources.
+
+        For image function, create a single pod with rlimit and input, so the
+        function will be executed in the resource limited pod.
 
         For normal function, choose a pod from the pool and expose a service,
         return the service URL.
@@ -386,7 +392,13 @@ class KubernetesManager(base.OrchestratorBase):
         labels = labels or {'function_id': function_id}
 
         if image:
-            self._create_pod(image, identifier, labels, input)
+            if not rlimit:
+                LOG.critical('Param rlimit is required for image function.')
+                raise exc.OrchestratorException(
+                    'Execution preparation failed.'
+                )
+
+            self._create_pod(image, rlimit, identifier, labels, input)
             return identifier, None
         else:
             pods = self._choose_available_pods(labels, function_id=function_id,

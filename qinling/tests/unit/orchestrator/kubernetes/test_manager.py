@@ -36,6 +36,10 @@ class TestKubernetesManager(base.DbTestCase):
 
         self.conf = CONF
         self.qinling_endpoint = 'http://127.0.0.1:7070'
+        self.rlimit = {
+            'cpu': cfg.CONF.resource_limits.default_cpu,
+            'memory_size': cfg.CONF.resource_limits.default_memory
+        }
         self.k8s_v1_api = mock.Mock()
         self.k8s_v1_ext = mock.Mock()
         clients = {'v1': self.k8s_v1_api,
@@ -327,7 +331,7 @@ class TestKubernetesManager(base.DbTestCase):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.prepare_execution(
-            function_id, 0, image=None, identifier=runtime_id,
+            function_id, 0, rlimit=None, image=None, identifier=runtime_id,
             labels={'runtime_id': runtime_id})
 
         self.assertEqual(pod.metadata.name, pod_names)
@@ -372,7 +376,8 @@ class TestKubernetesManager(base.DbTestCase):
                       )[:63]
 
         pod_name, url = self.manager.prepare_execution(
-            function_id, 0, image=image, identifier=identifier)
+            function_id, 0, rlimit=self.rlimit, image=image,
+            identifier=identifier)
 
         self.assertEqual(identifier, pod_name)
         self.assertIsNone(url)
@@ -383,7 +388,11 @@ class TestKubernetesManager(base.DbTestCase):
                 'pod_name': identifier,
                 'labels': {'function_id': function_id},
                 'pod_image': image,
-                'input': []
+                'input': [],
+                'req_cpu': str(cfg.CONF.resource_limits.default_cpu),
+                'req_memory': str(cfg.CONF.resource_limits.default_memory),
+                'limit_cpu': str(cfg.CONF.resource_limits.default_cpu),
+                'limit_memory': str(cfg.CONF.resource_limits.default_memory)
             }
         )
         self.k8s_v1_api.create_namespaced_pod.assert_called_once_with(
@@ -399,8 +408,8 @@ class TestKubernetesManager(base.DbTestCase):
         fake_input = {'__function_input': 'input_item1 input_item2'}
 
         pod_name, url = self.manager.prepare_execution(
-            function_id, 0, image=image, identifier=identifier,
-            input=fake_input)
+            function_id, 0, rlimit=self.rlimit, image=image,
+            identifier=identifier, input=fake_input)
 
         # in _create_pod
         pod_body = self.manager.pod_template.render(
@@ -408,7 +417,11 @@ class TestKubernetesManager(base.DbTestCase):
                 'pod_name': identifier,
                 'labels': {'function_id': function_id},
                 'pod_image': image,
-                'input': ['input_item1', 'input_item2']
+                'input': ['input_item1', 'input_item2'],
+                'req_cpu': str(cfg.CONF.resource_limits.default_cpu),
+                'req_memory': str(cfg.CONF.resource_limits.default_memory),
+                'limit_cpu': str(cfg.CONF.resource_limits.default_cpu),
+                'limit_memory': str(cfg.CONF.resource_limits.default_memory)
             }
         )
         self.k8s_v1_api.create_namespaced_pod.assert_called_once_with(
@@ -424,8 +437,8 @@ class TestKubernetesManager(base.DbTestCase):
         fake_input = '["input_item3", "input_item4"]'
 
         pod_name, url = self.manager.prepare_execution(
-            function_id, 0, image=image, identifier=identifier,
-            input=fake_input)
+            function_id, 0, rlimit=self.rlimit, image=image,
+            identifier=identifier, input=fake_input)
 
         # in _create_pod
         pod_body = self.manager.pod_template.render(
@@ -433,7 +446,11 @@ class TestKubernetesManager(base.DbTestCase):
                 'pod_name': identifier,
                 'labels': {'function_id': function_id},
                 'pod_image': image,
-                'input': ['input_item3', 'input_item4']
+                'input': ['input_item3', 'input_item4'],
+                'req_cpu': str(cfg.CONF.resource_limits.default_cpu),
+                'req_memory': str(cfg.CONF.resource_limits.default_memory),
+                'limit_cpu': str(cfg.CONF.resource_limits.default_cpu),
+                'limit_memory': str(cfg.CONF.resource_limits.default_memory)
             }
         )
         self.k8s_v1_api.create_namespaced_pod.assert_called_once_with(
@@ -451,7 +468,8 @@ class TestKubernetesManager(base.DbTestCase):
             exc.OrchestratorException,
             "^Execution preparation failed\.$",
             self.manager.prepare_execution,
-            function_id, 0, image=None, identifier=runtime_id, labels=labels)
+            function_id, 0, rlimit=None, image=None,
+            identifier=runtime_id, labels=labels)
 
         # in _choose_available_pods
         list_calls = [
@@ -489,7 +507,7 @@ class TestKubernetesManager(base.DbTestCase):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.prepare_execution(
-            function_id, 0, image=None, identifier=runtime_id,
+            function_id, 0, rlimit=None, image=None, identifier=runtime_id,
             labels={'runtime_id': runtime_id})
 
         # in _prepare_pod
@@ -517,7 +535,7 @@ class TestKubernetesManager(base.DbTestCase):
                 exc.OrchestratorException,
                 '^Execution preparation failed\.$',
                 self.manager.prepare_execution,
-                function_id, 0, image=None, identifier=runtime_id,
+                function_id, 0, rlimit=None, image=None, identifier=runtime_id,
                 labels={'runtime_id': runtime_id})
 
             delete_function_mock.assert_called_once_with(
@@ -548,7 +566,7 @@ class TestKubernetesManager(base.DbTestCase):
         function_id = common.generate_unicode_uuid()
 
         pod_names, service_url = self.manager.prepare_execution(
-            function_id, 0, image=None, identifier=runtime_id,
+            function_id, 0, rlimit=None, image=None, identifier=runtime_id,
             labels={'runtime_id': runtime_id})
 
         self.assertEqual(pod.metadata.name, pod_names)

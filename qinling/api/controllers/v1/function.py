@@ -254,7 +254,10 @@ class FunctionsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
     def delete(self, id):
-        """Delete the specified function."""
+        """Delete the specified function.
+
+        Delete function will also delete all its versions.
+        """
         LOG.info("Delete function %s.", id)
 
         with db_api.transaction():
@@ -263,9 +266,9 @@ class FunctionsController(rest.RestController):
                 raise exc.NotAllowedException(
                     'The function is still associated with running job(s).'
                 )
-            if func_db.webhook:
+            if len(func_db.webhooks) > 0:
                 raise exc.NotAllowedException(
-                    'The function is still associated with webhook.'
+                    'The function is still associated with webhook(s).'
                 )
 
             # Even admin user can not delete other project's function because
@@ -275,22 +278,41 @@ class FunctionsController(rest.RestController):
                     'Function can only be deleted by its owner.'
                 )
 
+            # Delete trust if needed
+            if func_db.trust_id:
+                keystone_util.delete_trust(func_db.trust_id)
+
+            for version_db in func_db.versions:
+                # Delete all resources created by orchestrator asynchronously.
+                self.engine_client.delete_function(
+                    id,
+                    version=version_db.version_number
+                )
+                # Delete etcd keys
+                etcd_util.delete_function(
+                    id,
+                    version=version_db.version_number
+                )
+                # Delete function version packages. Versions is only supported
+                # for package type function.
+                self.storage_provider.delete(
+                    func_db.project_id,
+                    id,
+                    None,
+                    version=version_db.version_number
+                )
+
+            # Delete resources for function version 0(func_db.versions==[])
+            self.engine_client.delete_function(id)
+            etcd_util.delete_function(id)
+
             source = func_db.code['source']
             if source == constants.PACKAGE_FUNCTION:
                 self.storage_provider.delete(func_db.project_id, id,
                                              func_db.code['md5sum'])
 
-            # Delete all resources created by orchestrator asynchronously.
-            self.engine_client.delete_function(id)
-
-            # Delete trust if needed
-            if func_db.trust_id:
-                keystone_util.delete_trust(func_db.trust_id)
-
-            # Delete etcd keys
-            etcd_util.delete_function(id)
-
-            # This will also delete function service mapping as well.
+            # This will also delete function service mapping and function
+            # versions as well.
             db_api.delete_function(id)
 
     @rest_utils.wrap_pecan_controller_exception

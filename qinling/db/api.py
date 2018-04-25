@@ -56,12 +56,11 @@ def transaction():
 
 def delete_all():
     """A helper function for testing."""
-    with transaction():
-        delete_jobs(insecure=True)
-        delete_webhooks(insecure=True)
-        delete_executions(insecure=True)
-        delete_functions(insecure=True)
-        delete_runtimes(insecure=True)
+    delete_jobs(insecure=True)
+    delete_webhooks(insecure=True)
+    delete_executions(insecure=True)
+    delete_functions(insecure=True)
+    delete_runtimes(insecure=True)
 
 
 def conditional_update(model, values, expected_values, **kwargs):

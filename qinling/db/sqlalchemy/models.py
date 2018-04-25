@@ -134,7 +134,7 @@ Function.jobs = relationship(
         "~Job.status.in_(['done', 'cancelled']))"
     )
 )
-Function.webhook = relationship("Webhook", uselist=False, backref="function")
+Function.webhooks = relationship("Webhook", uselist=True, backref="function")
 Function.versions = relationship(
     "FunctionVersion",
     order_by="FunctionVersion.version_number",

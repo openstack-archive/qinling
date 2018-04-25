@@ -193,11 +193,11 @@ def _get_db_object_by_id(model, id, insecure=None):
 
 @db_base.insecure_aware()
 def _delete_all(model, insecure=None, **kwargs):
-    # NOTE(kong): Because we use 'in_' operator in _secure_query(), delete()
+    # NOTE(kong): If we use 'in_' operator in _secure_query(), delete()
     # method will raise error with default parameter. Please refer to
     # http://docs.sqlalchemy.org/en/rel_1_0/orm/query.html#sqlalchemy.orm.query.Query.delete
     query = db_base.model_query(model) if insecure else _secure_query(model)
-    query.filter_by(**kwargs).delete(synchronize_session=False)
+    query.filter_by(**kwargs).delete(synchronize_session="fetch")
 
 
 @db_base.session_aware()

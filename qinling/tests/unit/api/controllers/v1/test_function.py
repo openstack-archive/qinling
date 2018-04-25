@@ -19,6 +19,7 @@ import tempfile
 import mock
 from oslo_config import cfg
 
+from qinling.db import api as db_api
 from qinling import status
 from qinling.tests.unit.api import base
 from qinling.tests.unit import base as unit_base
@@ -272,6 +273,64 @@ class TestFunctionController(base.APITest):
 
         resp = self.app.delete(
             '/v1/functions/%s' % db_func.id,
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)
+
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')
+    def test_delete_with_versions(self, mock_package_delete,
+                                  mock_engine_delete, mock_etcd_delete):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+        func_id = db_func.id
+        # Create two versions for the function
+        db_api.increase_function_version(func_id, 0)
+        db_api.increase_function_version(func_id, 1)
+
+        resp = self.app.delete('/v1/functions/%s' % func_id)
+
+        self.assertEqual(204, resp.status_int)
+
+        self.assertEqual(3, mock_package_delete.call_count)
+        self.assertEqual(3, mock_engine_delete.call_count)
+        self.assertEqual(3, mock_etcd_delete.call_count)
+
+        mock_package_delete.assert_has_calls(
+            [
+                mock.call(unit_base.DEFAULT_PROJECT_ID, func_id, None,
+                          version=1),
+                mock.call(unit_base.DEFAULT_PROJECT_ID, func_id, None,
+                          version=2),
+                mock.call(unit_base.DEFAULT_PROJECT_ID, func_id, "fake_md5")
+            ]
+        )
+
+        mock_engine_delete.assert_has_calls(
+            [
+                mock.call(func_id, version=1),
+                mock.call(func_id, version=2),
+                mock.call(func_id)
+            ]
+        )
+
+        mock_etcd_delete.assert_has_calls(
+            [
+                mock.call(func_id, version=1),
+                mock.call(func_id, version=2),
+                mock.call(func_id)
+            ]
+        )
+
+    def test_delete_with_version_associate_webhook(self):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+        func_id = db_func.id
+        db_api.increase_function_version(func_id, 0)
+        self.create_webhook(func_id, function_version=1)
+
+        resp = self.app.delete(
+            '/v1/functions/%s' % func_id,
             expect_errors=True
         )
 

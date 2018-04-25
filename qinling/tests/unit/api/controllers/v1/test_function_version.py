@@ -14,6 +14,7 @@
 
 from datetime import datetime
 from datetime import timedelta
+import json
 
 import mock
 
@@ -28,8 +29,8 @@ class TestFunctionVersionController(base.APITest):
     def setUp(self):
         super(TestFunctionVersionController, self).setUp()
 
-        db_func = self.create_function()
-        self.func_id = db_func.id
+        self.db_func = self.create_function()
+        self.func_id = self.db_func.id
 
     @mock.patch('qinling.storage.file_system.FileSystemStorage.copy')
     @mock.patch('qinling.storage.file_system.FileSystemStorage.changed_since')
@@ -168,3 +169,72 @@ class TestFunctionVersionController(base.APITest):
         )
 
         self.assertEqual(403, resp.status_int)
+
+    @mock.patch('qinling.rpc.EngineClient.scaleup_function')
+    def test_scale_up(self, scaleup_function_mock):
+        db_api.increase_function_version(self.func_id, 0)
+
+        body = {'count': 1}
+        resp = self.app.post(
+            '/v1/functions/%s/versions/1/scale_up' % self.func_id,
+            params=json.dumps(body),
+            content_type='application/json'
+        )
+
+        self.assertEqual(202, resp.status_int)
+        scaleup_function_mock.assert_called_once_with(
+            self.func_id,
+            runtime_id=self.db_func.runtime_id,
+            version=1,
+            count=1
+        )
+
+    @mock.patch('qinling.utils.etcd_util.get_workers')
+    @mock.patch('qinling.rpc.EngineClient.scaledown_function')
+    def test_scale_down(self, scaledown_function_mock, get_workers_mock):
+        db_api.increase_function_version(self.func_id, 0)
+        get_workers_mock.return_value = [mock.Mock(), mock.Mock()]
+
+        body = {'count': 1}
+        resp = self.app.post(
+            '/v1/functions/%s/versions/1/scale_down' % self.func_id,
+            params=json.dumps(body),
+            content_type='application/json'
+        )
+
+        self.assertEqual(202, resp.status_int)
+        scaledown_function_mock.assert_called_once_with(self.func_id,
+                                                        version=1, count=1)
+
+    @mock.patch('qinling.utils.etcd_util.get_workers')
+    @mock.patch('qinling.rpc.EngineClient.scaledown_function')
+    def test_scale_down_no_need(self, scaledown_function_mock,
+                                get_workers_mock):
+        db_api.increase_function_version(self.func_id, 0)
+        get_workers_mock.return_value = [mock.Mock()]
+
+        body = {'count': 1}
+        resp = self.app.post(
+            '/v1/functions/%s/versions/1/scale_down' % self.func_id,
+            params=json.dumps(body),
+            content_type='application/json'
+        )
+
+        self.assertEqual(202, resp.status_int)
+        scaledown_function_mock.assert_not_called()
+
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    def test_detach(self, engine_delete_function_mock,
+                    etcd_delete_function_mock):
+        db_api.increase_function_version(self.func_id, 0)
+
+        resp = self.app.post(
+            '/v1/functions/%s/versions/1/detach' % self.func_id
+        )
+
+        self.assertEqual(202, resp.status_int)
+        engine_delete_function_mock.assert_called_once_with(self.func_id,
+                                                            version=1)
+        etcd_delete_function_mock.assert_called_once_with(self.func_id,
+                                                          version=1)

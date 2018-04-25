@@ -75,30 +75,31 @@ def create_execution(engine_client, params):
     input = params.get('input')
     version = params.get('function_version', 0)
 
-    with db_api.transaction():
-        func_db = db_api.get_function(function_id)
-        runtime_id = func_db.runtime_id
+    func_db = db_api.get_function(function_id)
+    runtime_id = func_db.runtime_id
 
-        runtime_db = func_db.runtime
+    # Image type function does not need runtime
+    if runtime_id:
+        runtime_db = db_api.get_runtime(runtime_id)
         if runtime_db and runtime_db.status != status.AVAILABLE:
             raise exc.RuntimeNotAvailableException(
                 'Runtime %s is not available.' % func_db.runtime_id
             )
 
-        if version > 0:
-            if func_db.code['source'] != constants.PACKAGE_FUNCTION:
-                raise exc.InputException(
-                    "Can not specify version for %s type function." %
-                    constants.PACKAGE_FUNCTION
-                )
+    if version > 0:
+        if func_db.code['source'] != constants.PACKAGE_FUNCTION:
+            raise exc.InputException(
+                "Can not specify version for %s type function." %
+                constants.PACKAGE_FUNCTION
+            )
 
-            # update version count
-            version_db = db_api.get_function_version(function_id, version)
-            pre_version_count = version_db.count
-            _update_function_version_db(version_db.id, pre_version_count)
-        else:
-            pre_count = func_db.count
-            _update_function_db(function_id, pre_count)
+        # update version count
+        version_db = db_api.get_function_version(function_id, version)
+        pre_version_count = version_db.count
+        _update_function_version_db(version_db.id, pre_version_count)
+    else:
+        pre_count = func_db.count
+        _update_function_db(function_id, pre_count)
 
     # input in params should be a string.
     if input:

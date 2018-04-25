@@ -52,15 +52,21 @@ UPDATE_ALLOWED = set(['name', 'description', 'code', 'package', 'entry',
 
 class FunctionWorkerController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
-    @wsme_pecan.wsexpose(resources.FunctionWorkers, types.uuid)
-    def get_all(self, function_id):
+    @wsme_pecan.wsexpose(resources.FunctionWorkers, types.uuid, int)
+    def get_all(self, function_id, function_version=0):
         acl.enforce('function_worker:get_all', context.get_ctx())
-        LOG.info("Get workers for function %s.", function_id)
 
-        workers = etcd_util.get_workers(function_id)
+        LOG.info("Getting workers for function %s(version %s).", function_id,
+                 function_version)
+
+        workers = etcd_util.get_workers(function_id, version=function_version)
         workers = [
             resources.FunctionWorker.from_dict(
-                {'function_id': function_id, 'worker_name': w}
+                {
+                    'function_id': function_id,
+                    'function_version': function_version,
+                    'worker_name': w
+                }
             ) for w in workers
         ]
 

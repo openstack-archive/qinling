@@ -29,6 +29,7 @@ from qinling.api.controllers.v1 import types
 from qinling import context
 from qinling.db import api as db_api
 from qinling import exceptions as exc
+from qinling import rpc
 from qinling.storage import base as storage_base
 from qinling.utils import constants
 from qinling.utils import etcd_util
@@ -39,9 +40,16 @@ CONF = cfg.CONF
 
 
 class FunctionVersionsController(rest.RestController):
+    _custom_actions = {
+        'scale_up': ['POST'],
+        'scale_down': ['POST'],
+        'detach': ['POST'],
+    }
+
     def __init__(self, *args, **kwargs):
         self.type = 'function_version'
         self.storage_provider = storage_base.load_storage_provider(CONF)
+        self.engine_client = rpc.get_engine_client()
 
         super(FunctionVersionsController, self).__init__(*args, **kwargs)
 
@@ -225,3 +233,93 @@ class FunctionVersionsController(rest.RestController):
                 version_db.function.latest_version = latest_version - 1
 
         LOG.info("Version %s of function %s deleted.", version, function_id)
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        None,
+        types.uuid,
+        int,
+        body=resources.ScaleInfo,
+        status_code=202
+    )
+    def scale_up(self, function_id, version, scale):
+        """Scale up the workers for function version execution.
+
+        This is admin only operation. The load monitoring of execution
+        depends on the monitoring solution of underlying orchestrator.
+        """
+        acl.enforce('function_version:scale_up', context.get_ctx())
+
+        func_db = db_api.get_function(function_id)
+
+        # If version=0, it's equivalent to /functions/<funcion-id>/scale_up
+        if version > 0:
+            db_api.get_function_version(function_id, version)
+
+        params = scale.to_dict()
+
+        LOG.info('Starting to scale up function %s(version %s), params: %s',
+                 function_id, version, params)
+
+        self.engine_client.scaleup_function(
+            function_id,
+            runtime_id=func_db.runtime_id,
+            version=version,
+            count=params['count']
+        )
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        None,
+        types.uuid,
+        int,
+        body=resources.ScaleInfo,
+        status_code=202
+    )
+    def scale_down(self, function_id, version, scale):
+        """Scale down the workers for function version execution.
+
+        This is admin only operation. The load monitoring of execution
+        depends on the monitoring solution of underlying orchestrator.
+        """
+        acl.enforce('function_version:scale_down', context.get_ctx())
+
+        db_api.get_function(function_id)
+        params = scale.to_dict()
+
+        # If version=0, it's equivalent to /functions/<funcion-id>/scale_down
+        if version > 0:
+            db_api.get_function_version(function_id, version)
+
+        workers = etcd_util.get_workers(function_id, version=version)
+        if len(workers) <= 1:
+            LOG.info('No need to scale down function %s(version)', function_id,
+                     version)
+            return
+
+        LOG.info('Starting to scale down function %s(version), params: %s',
+                 function_id, version, params)
+        self.engine_client.scaledown_function(function_id, version=version,
+                                              count=params['count'])
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(None, types.uuid, int, status_code=202)
+    def detach(self, function_id, version):
+        """Detach the function version from its underlying workers.
+
+        This is admin only operation, which gives admin user a safe way to
+        clean up the underlying resources allocated for the function version.
+        """
+        acl.enforce('function_version:detach', context.get_ctx())
+
+        db_api.get_function(function_id)
+        # If version=0, it's equivalent to /functions/<funcion-id>/detach
+        if version > 0:
+            db_api.get_function_version(function_id, version)
+
+        LOG.info('Starting to detach function %s(version)', function_id,
+                 version)
+
+        # Delete allocated resources in orchestrator and etcd keys.
+        self.engine_client.delete_function(function_id, version=version)
+        etcd_util.delete_function(function_id, version=version)

@@ -48,65 +48,59 @@ def handle_function_service_expiration(ctx, engine):
     delta = timedelta(seconds=CONF.engine.function_service_expiration)
     expiry_time = datetime.utcnow() - delta
 
-    with db_api.transaction():
-        results = db_api.get_functions(
-            sort_keys=['updated_at'],
-            insecure=True,
-            updated_at={'lte': expiry_time},
-            latest_version=0
+    results = db_api.get_functions(
+        sort_keys=['updated_at'],
+        insecure=True,
+        updated_at={'lte': expiry_time},
+        latest_version=0
+    )
+
+    for func_db in results:
+        if not etcd_util.get_service_url(func_db.id, 0):
+            continue
+
+        LOG.info(
+            'Deleting service mapping and workers for function '
+            '%s(version 0)',
+            func_db.id
         )
 
-        for func_db in results:
-            if not etcd_util.get_service_url(func_db.id, 0):
-                continue
+        # Delete resources related to the function
+        engine.delete_function(ctx, func_db.id, 0)
+        # Delete etcd keys
+        etcd_util.delete_function(func_db.id, 0)
 
-            LOG.info(
-                'Deleting service mapping and workers for function '
-                '%s(version 0)',
-                func_db.id
-            )
+    versions = db_api.get_function_versions(
+        sort_keys=['updated_at'],
+        insecure=True,
+        updated_at={'lte': expiry_time},
+    )
 
-            # Delete resources related to the function
-            engine.delete_function(ctx, func_db.id, 0)
-            # Delete etcd keys
-            etcd_util.delete_function(func_db.id, 0)
+    for v in versions:
+        if not etcd_util.get_service_url(v.function_id, v.version_number):
+            continue
 
-        versions = db_api.get_function_versions(
-            sort_keys=['updated_at'],
-            insecure=True,
-            updated_at={'lte': expiry_time},
+        LOG.info(
+            'Deleting service mapping and workers for function '
+            '%s(version %s)',
+            v.function_id, v.version_number
         )
 
-        for v in versions:
-            if not etcd_util.get_service_url(v.function_id, v.version_number):
-                continue
-
-            LOG.info(
-                'Deleting service mapping and workers for function '
-                '%s(version %s)',
-                v.function_id, v.version_number
-            )
-
-            # Delete resources related to the function
-            engine.delete_function(ctx, v.function_id, v.version_number)
-            # Delete etcd keys
-            etcd_util.delete_function(v.function_id, v.version_number)
+        # Delete resources related to the function
+        engine.delete_function(ctx, v.function_id, v.version_number)
+        # Delete etcd keys
+        etcd_util.delete_function(v.function_id, v.version_number)
 
 
 @periodics.periodic(3)
 def handle_job(engine_client):
-    """Execute job task with no db transactions.
-
-    We don't do iterations on jobs_db directly to avoid the potential
-    'Cursor needed to be reset' error.
-    """
+    """Execute job task with no db transactions."""
     jobs_db = db_api.get_next_jobs(timeutils.utcnow() + timedelta(seconds=3))
-    jobs_dict = [j.to_dict() for j in jobs_db]
 
-    for job in jobs_dict:
-        job_id = job["id"]
-        func_id = job["function_id"]
-        func_version = job["function_version"]
+    for job in jobs_db:
+        job_id = job.id
+        func_id = job.function_id
+        func_version = job.function_version
         LOG.debug("Processing job: %s, function: %s(version %s)", job_id,
                   func_id, func_version)
 
@@ -116,16 +110,16 @@ def handle_job(engine_client):
         try:
             # Setup context before schedule job.
             ctx = keystone_utils.create_trust_context(
-                trust_id, job["project_id"]
+                trust_id, job.project_id
             )
             context.set_ctx(ctx)
 
-            if (job["count"] is not None and job["count"] > 0):
-                job["count"] -= 1
+            if (job.count is not None and job.count > 0):
+                job.count -= 1
 
             # Job delete/update is done using UPDATE ... FROM ... WHERE
             # non-locking clause.
-            if job["count"] == 0:
+            if job.count == 0:
                 modified = db_api.conditional_update(
                     models.Job,
                     {
@@ -140,19 +134,19 @@ def handle_job(engine_client):
                 )
             else:
                 next_time = jobs.get_next_execution_time(
-                    job["pattern"],
-                    job["next_execution_time"]
+                    job.pattern,
+                    job.next_execution_time
                 )
 
                 modified = db_api.conditional_update(
                     models.Job,
                     {
                         'next_execution_time': next_time,
-                        'count': job["count"]
+                        'count': job.count
                     },
                     {
                         'id': job_id,
-                        'next_execution_time': job["next_execution_time"]
+                        'next_execution_time': job.next_execution_time
                     },
                     insecure=True,
                 )
@@ -172,7 +166,7 @@ def handle_job(engine_client):
             params = {
                 'function_id': func_id,
                 'function_version': func_version,
-                'input': job["function_input"],
+                'input': job.function_input,
                 'sync': False,
                 'description': constants.EXECUTION_BY_JOB % job_id
             }

@@ -38,6 +38,10 @@ class APITest(base.DbTestCase):
         # Disable authentication by default for API tests.
         self.override_config('auth_enable', False, group='pecan')
 
+        # Disable job handler. The following pecan app instantiation will
+        # invoke qinling.api.app:setup_app()
+        self.override_config('enable_job_handler', False, group='api')
+
         pecan_opts = CONF.pecan
         self.app = pecan.testing.load_test_app({
             'app': {

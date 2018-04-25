@@ -38,10 +38,6 @@ class Function(model_base.QinlingSecureModelBase):
     runtime_id = sa.Column(
         sa.String(36), sa.ForeignKey(Runtime.id), nullable=True
     )
-    # We want to get runtime info when we query function
-    runtime = relationship(
-        'Runtime', back_populates="functions", innerjoin=True, lazy='select'
-    )
     cpu = sa.Column(sa.Integer, default=0)
     memory_size = sa.Column(sa.Integer, default=0)
     timeout = sa.Column(sa.Integer)
@@ -122,8 +118,6 @@ class FunctionVersion(model_base.QinlingSecureModelBase):
     version_number = sa.Column(sa.Integer, default=0)
     count = sa.Column(sa.Integer, default=0)
 
-
-Runtime.functions = relationship("Function", back_populates="runtime")
 
 # Only get running jobs
 Function.jobs = relationship(

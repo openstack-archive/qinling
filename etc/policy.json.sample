@@ -14,6 +14,10 @@
     "function:scale_down": "rule:context_is_admin",
     "function:detach": "rule:context_is_admin",
 
+    "function_version:scale_up": "rule:context_is_admin",
+    "function_version:scale_down": "rule:context_is_admin",
+    "function_version:detach": "rule:context_is_admin",
+
     "execution:get_all:all_projects": "rule:context_is_admin",
 
     "webhook:get_all:all_projects": "rule:context_is_admin",

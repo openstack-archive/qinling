@@ -192,3 +192,17 @@ class BaseQinlingTest(test.BaseTestCase):
                         version, ignore_notfound=True)
 
         return version
+
+    def create_execution(self, function_id, version=0, input=None):
+        resp, body = self.client.create_execution(function_id, version=version,
+                                                  input=input)
+
+        self.assertEqual(201, resp.status)
+
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        self.assertEqual('success', body['status'])
+
+        return execution_id

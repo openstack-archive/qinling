@@ -95,6 +95,28 @@ class ExecutionsTest(base.BaseQinlingTest):
             context.resp_body.get('faultstring')
         )
 
+    @decorators.idempotent_id('794cdfb2-0a27-4e56-86e8-be18eee9400f')
+    def test_create_with_function_version(self):
+        function_id = self.create_function()
+        execution_id = self.create_execution(function_id)
+        resp, body = self.client.get_execution_log(execution_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('Hello, World', body)
+
+        version_1 = self.create_function_version(function_id)
+        execution_id = self.create_execution(function_id, version=version_1)
+        resp, body = self.client.get_execution_log(execution_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('Hello, World', body)
+
+        self.update_function_package(function_id,
+                                     "python/test_python_sleep.py")
+        version_2 = self.create_function_version(function_id)
+        execution_id = self.create_execution(function_id, version=version_2)
+        resp, body = self.client.get_execution_log(execution_id)
+        self.assertEqual(200, resp.status)
+        self.assertNotIn('Hello, World', body)
+
     @decorators.idempotent_id('8096cc52-64d2-4660-a657-9ac0bdd743ae')
     def test_execution_async(self):
         function_id = self.create_function()

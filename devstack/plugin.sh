@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Save trace setting
 XTRACE=$(set +o | grep xtrace)
 set -o xtrace
@@ -119,6 +120,8 @@ function configure_qinling {
     else
         iniset $QINLING_CONF_FILE kubernetes use_api_certificate False
     fi
+
+    iniset $QINLING_CONF_FILE kubernetes replicas 5
 }
 
 

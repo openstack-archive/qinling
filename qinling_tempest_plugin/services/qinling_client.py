@@ -115,8 +115,13 @@ class QinlingClient(client_base.QinlingClientBase):
                          None,
                          headers={})
 
-    def create_execution(self, function_id, input=None, sync=True):
-        req_body = {'function_id': function_id, 'sync': sync, 'input': input}
+    def create_execution(self, function_id, input=None, sync=True, version=0):
+        req_body = {
+            'function_id': function_id,
+            'function_version': version,
+            'sync': sync,
+            'input': input
+        }
         resp, body = self.post_json('executions', req_body)
 
         return resp, body

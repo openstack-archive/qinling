@@ -65,7 +65,7 @@ class FunctionVersionsController(rest.RestController):
 
             with db_api.transaction():
                 # Get latest function package md5 and version number
-                func_db = db_api.get_function(function_id)
+                func_db = db_api.get_function(function_id, insecure=False)
                 if func_db.code['source'] != constants.PACKAGE_FUNCTION:
                     raise exc.NotAllowedException(
                         "Function versioning only allowed for %s type "
@@ -140,8 +140,12 @@ class FunctionVersionsController(rest.RestController):
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.FunctionVersions, types.uuid)
     def get_all(self, function_id):
+        """Get all the versions of the given function.
+
+        Admin user can get all versions for the normal user's function.
+        """
         acl.enforce('function_version:get_all', context.get_ctx())
-        LOG.info("Getting function versions for function %s.", function_id)
+        LOG.info("Getting versions for function %s.", function_id)
 
         # Getting function and versions needs to happen in a db transaction
         with db_api.transaction():
@@ -155,7 +159,13 @@ class FunctionVersionsController(rest.RestController):
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose()
+    @pecan.expose('json')
     def get(self, function_id, version):
+        """Get function version or download function version package.
+
+        This method can support HTTP request using either
+        'Accept:application/json' or no 'Accept' header.
+        """
         ctx = context.get_ctx()
         acl.enforce('function_version:get', ctx)
 
@@ -175,7 +185,7 @@ class FunctionVersionsController(rest.RestController):
         LOG.info("Downloading version %s for function %s.", version,
                  function_id)
 
-        f = self.storage_provider.retrieve(ctx.projectid, function_id,
+        f = self.storage_provider.retrieve(version_db.project_id, function_id,
                                            None, version=version)
 
         if isinstance(f, collections.Iterable):

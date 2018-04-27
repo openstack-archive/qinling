@@ -68,12 +68,27 @@ class FunctionsTest(base.BaseQinlingTest):
 
         self.assertEqual(400, resp.status_code)
 
-    @decorators.idempotent_id('051f3106-df01-4fcd-a0a3-c81c99653163')
-    def test_get_all_admin(self):
-        # Create function by normal user
+    @decorators.idempotent_id('f8dde7fc-fbcc-495c-9b39-70666b7d3f64')
+    def test_get_by_admin(self):
+        """test_get_by_admin
+
+        Admin user can get the function by directly specifying the function id.
+        """
         function_id = self.create_function(self.python_zip_file)
 
-        # Get functions by admin
+        resp, body = self.admin_client.get_function(function_id)
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual(function_id, body['id'])
+
+    @decorators.idempotent_id('051f3106-df01-4fcd-a0a3-c81c99653163')
+    def test_get_all_admin(self):
+        """test_get_all_admin
+
+        Admin user needs to specify filters to get all the functions.
+        """
+        function_id = self.create_function(self.python_zip_file)
+
         resp, body = self.admin_client.get_resources('functions')
 
         self.assertEqual(200, resp.status)
@@ -82,7 +97,6 @@ class FunctionsTest(base.BaseQinlingTest):
             [function['id'] for function in body['functions']]
         )
 
-        # Get other projects functions by admin
         resp, body = self.admin_client.get_resources(
             'functions?all_projects=true'
         )

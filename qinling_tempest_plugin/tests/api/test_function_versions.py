@@ -13,6 +13,7 @@
 #    limitations under the License.
 from tempest.lib import decorators
 from tempest.lib import exceptions
+import tenacity
 
 from qinling_tempest_plugin.tests import base
 
@@ -70,3 +71,81 @@ class FunctionVersionsTest(base.BaseQinlingTest):
         numbers = [v['version_number'] for v in body['function_versions']]
         self.assertIn(version_1, numbers)
         self.assertIn(version_2, numbers)
+
+    @decorators.idempotent_id('3f735ed4-64b0-4ec3-8bf2-507e38dcea19')
+    def test_create_admin_not_allowed(self):
+        """test_create_admin_not_allowed
+
+        Even admin user can not create function version for normal user's
+        function.
+        """
+        function_id = self.create_function()
+
+        self.assertRaises(
+            exceptions.NotFound,
+            self.admin_client.create_function_version,
+            function_id
+        )
+
+    @decorators.idempotent_id('43c06f41-d116-43a7-a61c-115f7591b22e')
+    def test_get_by_admin(self):
+        """Admin user can get normal user's function version."""
+        function_id = self.create_function()
+        version = self.create_function_version(function_id)
+
+        resp, body = self.admin_client.get_function_version(function_id,
+                                                            version)
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual(version, body.get("version_number"))
+
+    @decorators.idempotent_id('e6b865d8-ffa8-4cfc-8afb-820c64f9b2af')
+    def test_get_all_by_admin(self):
+        """Admin user can list normal user's function version."""
+        function_id = self.create_function()
+        version = self.create_function_version(function_id)
+
+        resp, body = self.admin_client.get_function_versions(function_id)
+
+        self.assertEqual(200, resp.status)
+        self.assertIn(
+            version,
+            [v['version_number'] for v in body['function_versions']]
+        )
+
+    @decorators.idempotent_id('7898f89f-a490-42a3-8cf7-63cbd9543a06')
+    def test_detach(self):
+        """Admin only operation."""
+        function_id = self.create_function()
+        version = self.create_function_version(function_id)
+
+        # Create execution to allocate worker
+        resp, _ = self.client.create_execution(
+            function_id, input='{"name": "Qinling"}', version=version
+        )
+        self.assertEqual(201, resp.status)
+
+        resp, body = self.admin_client.get_function_workers(function_id,
+                                                            version=version)
+        self.assertEqual(200, resp.status)
+        self.assertEqual(1, len(body['workers']))
+
+        # Detach function version from workers
+        resp, _ = self.admin_client.detach_function(function_id,
+                                                    version=version)
+        self.assertEqual(202, resp.status)
+
+        def _assert_workers():
+            resp, body = self.admin_client.get_function_workers(
+                function_id,
+                version=version
+            )
+            self.assertEqual(200, resp.status)
+            self.assertEqual(0, len(body['workers']))
+
+        r = tenacity.Retrying(
+            wait=tenacity.wait_fixed(1),
+            stop=tenacity.stop_after_attempt(5),
+            retry=tenacity.retry_if_exception_type(AssertionError)
+        )
+        r.call(_assert_workers)

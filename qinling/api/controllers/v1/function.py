@@ -100,7 +100,13 @@ class FunctionsController(rest.RestController):
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose()
+    @pecan.expose('json')
     def get(self, id):
+        """Get function information or download function package.
+
+        This method can support HTTP request using either
+        'Accept:application/json' or no 'Accept' header.
+        """
         LOG.info("Get function %s.", id)
 
         download = strutils.bool_from_string(

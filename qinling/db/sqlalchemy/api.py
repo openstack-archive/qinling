@@ -516,10 +516,18 @@ def increase_function_version(function_id, old_version, session=None,
     return version
 
 
+@db_base.insecure_aware()
 @db_base.session_aware()
-def get_function_version(function_id, version, session=None):
-    version_db = _secure_query(models.FunctionVersion).filter_by(
-        function_id=function_id, version_number=version).first()
+def get_function_version(function_id, version, session=None, insecure=None):
+    if insecure:
+        query = db_base.model_query(models.FunctionVersion)
+    else:
+        query = _secure_query(models.FunctionVersion)
+
+    version_db = query.filter_by(
+        function_id=function_id, version_number=version
+    ).first()
+
     if not version_db:
         raise exc.DBEntityNotFoundError(
             "FunctionVersion not found [function_id=%s, version_number=%s]" %

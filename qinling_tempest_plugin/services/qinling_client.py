@@ -106,14 +106,25 @@ class QinlingClient(client_base.QinlingClientBase):
 
         return resp, json.loads(resp.text)
 
+    def get_function(self, function_id):
+        resp, body = self.get(
+            '/v1/functions/{id}'.format(id=function_id),
+        )
+
+        return resp, json.loads(body)
+
     def download_function(self, function_id):
         return self.get('/v1/functions/%s?download=true' % function_id,
                         headers={})
 
-    def detach_function(self, function_id):
-        return self.post('/v1/functions/%s/detach' % function_id,
-                         None,
-                         headers={})
+    def detach_function(self, function_id, version=0):
+        if version == 0:
+            url = '/v1/functions/%s/detach' % function_id
+        else:
+            url = '/v1/functions/%s/versions/%s/detach' % \
+                  (function_id, version)
+
+        return self.post(url, None, headers={})
 
     def create_execution(self, function_id, input=None, sync=True, version=0):
         req_body = {
@@ -130,8 +141,16 @@ class QinlingClient(client_base.QinlingClientBase):
         return self.get('/v1/executions/%s/log' % execution_id,
                         headers={'Accept': 'text/plain'})
 
-    def get_function_workers(self, function_id):
-        return self.get_resources('functions/%s/workers' % function_id)
+    def get_function_workers(self, function_id, version=0):
+        q_params = None
+        if version > 0:
+            q_params = "/?function_version=%s" % version
+
+        url = 'functions/%s/workers' % function_id
+        if q_params:
+            url += q_params
+
+        return self.get_resources(url)
 
     def create_webhook(self, function_id, version=0):
         req_body = {"function_id": function_id, "function_version": version}
@@ -174,3 +193,17 @@ class QinlingClient(client_base.QinlingClientBase):
                 pass
             else:
                 raise
+
+    def get_function_version(self, function_id, version):
+        resp, body = self.get(
+            '/v1/functions/%s/versions/%s' % (function_id, version),
+        )
+
+        return resp, json.loads(body)
+
+    def get_function_versions(self, function_id):
+        resp, body = self.get(
+            '/v1/functions/%s/versions' % (function_id),
+        )
+
+        return resp, json.loads(body)

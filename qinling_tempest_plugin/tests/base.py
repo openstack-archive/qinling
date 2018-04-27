@@ -144,6 +144,20 @@ class BaseQinlingTest(test.BaseTestCase):
 
         return function_id
 
+    def update_function_package(self, function_id, function_path):
+        package_path = self.create_package(name=function_path)
+        base_name, _ = os.path.splitext(package_path)
+        module_name = os.path.basename(base_name)
+
+        with open(package_path, 'rb') as package_data:
+            resp, _ = self.client.update_function(
+                function_id,
+                package_data=package_data,
+                entry='%s.main' % module_name
+            )
+
+        self.assertEqual(200, resp.status_code)
+
     def create_webhook(self):
         resp, body = self.client.create_webhook(self.function_id)
         self.assertEqual(201, resp.status)
@@ -164,3 +178,17 @@ class BaseQinlingTest(test.BaseTestCase):
                         job_id, ignore_notfound=True)
 
         return job_id
+
+    def create_function_version(self, function_id=None):
+        if not function_id:
+            function_id = self.create_function()
+
+        resp, body = self.client.create_function_version(function_id)
+        self.assertEqual(201, resp.status)
+
+        version = body['version_number']
+
+        self.addCleanup(self.client.delete_function_version, function_id,
+                        version, ignore_notfound=True)
+
+        return version

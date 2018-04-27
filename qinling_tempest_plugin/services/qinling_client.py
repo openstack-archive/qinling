@@ -84,6 +84,28 @@ class QinlingClient(client_base.QinlingClientBase):
 
         return resp, json.loads(resp.text)
 
+    def update_function(self, function_id, package_data=None, code=None,
+                        entry=None):
+        headers = {'X-Auth-Token': self.auth_provider.get_token()}
+
+        req_body = {}
+        if code:
+            req_body['code'] = json.dumps(code)
+        if entry:
+            req_body['entry'] = entry
+
+        req_kwargs = {
+            'headers': headers,
+            'data': req_body
+        }
+        if package_data:
+            req_kwargs.update({'files': {'package': package_data}})
+
+        url_path = '%s/v1/functions/%s' % (self.base_url, function_id)
+        resp = requests.put(url_path, **req_kwargs)
+
+        return resp, json.loads(resp.text)
+
     def download_function(self, function_id):
         return self.get('/v1/functions/%s?download=true' % function_id,
                         headers={})
@@ -121,3 +143,29 @@ class QinlingClient(client_base.QinlingClientBase):
 
         resp, body = self.post_json('jobs', req_body)
         return resp, body
+
+    def create_function_version(self, function_id, description=None):
+        req_body = {}
+        if description is not None:
+            req_body['description'] = description
+
+        resp, body = self.post_json(
+            'functions/%s/versions' % function_id,
+            req_body
+        )
+
+        return resp, body
+
+    def delete_function_version(self, function_id, version,
+                                ignore_notfound=False):
+        try:
+            resp, _ = self.delete(
+                '/v1/functions/{id}/versions/{version}'.format(
+                    id=function_id, version=version)
+            )
+            return resp
+        except exceptions.NotFound:
+            if ignore_notfound:
+                pass
+            else:
+                raise

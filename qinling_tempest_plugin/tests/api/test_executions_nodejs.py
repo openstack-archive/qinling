@@ -22,7 +22,7 @@ class NodeJSExecutionsTest(base.BaseQinlingTest):
 
     def setUp(self):
         super(NodeJSExecutionsTest, self).setUp()
-        self.await_runtime_available(self.runtime_id)
+        self.wait_runtime_available(self.runtime_id)
 
     @decorators.idempotent_id('e3046fa4-2289-11e8-b720-00224d6b7bc1')
     def test_basic_nodejs_execution(self):

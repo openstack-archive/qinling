@@ -38,7 +38,7 @@ class BasicOpsTest(base.BaseQinlingTest):
 
         # Wait for runtime to be available
         self.runtime_id = body['id']
-        self.await_runtime_available(self.runtime_id)
+        self.wait_runtime_available(self.runtime_id)
         self.addCleanup(self.admin_client.delete_resource, 'runtimes',
                         self.runtime_id, ignore_notfound=True)
 

@@ -369,6 +369,7 @@ class Webhooks(ResourceList):
 class FunctionVersion(Resource):
     id = types.uuid
     description = wtypes.text
+    function_id = wsme.wsattr(types.uuid, readonly=True)
     version_number = wsme.wsattr(int, readonly=True)
     count = wsme.wsattr(int, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)

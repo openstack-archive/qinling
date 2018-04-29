@@ -22,12 +22,12 @@ class WebhooksTest(base.BaseQinlingTest):
 
     def setUp(self):
         super(WebhooksTest, self).setUp()
-        self.await_runtime_available(self.runtime_id)
+        self.wait_runtime_available(self.runtime_id)
         self.function_id = self.create_function()
 
     @decorators.idempotent_id('37DCD022-32D6-48D1-B90C-31D605DBE53B')
     def test_webhook_invoke(self):
-        webhook_id, url = self.create_webhook()
+        webhook_id, url = self.create_webhook(self.function_id)
         resp = requests.post(url, data={'name': 'qinling'}, verify=False)
         self.assertEqual(202, resp.status_code)
         resp_exec_id = resp.json().get('execution_id')
@@ -42,16 +42,44 @@ class WebhooksTest(base.BaseQinlingTest):
         self.assertEqual(1, len(body['executions']))
         exec_id = body['executions'][0]['id']
         self.assertEqual(resp_exec_id, exec_id)
-        self.await_execution_success(exec_id)
+        self.wait_execution_success(exec_id)
 
         resp, body = self.client.get_execution_log(exec_id)
         self.assertEqual(200, resp.status)
         self.assertIn('qinling', body)
 
+    @decorators.idempotent_id('68605edb-1e36-4953-907d-aa6e2352bb85')
+    def test_webhook_with_function_version(self):
+        version = self.create_function_version(self.function_id)
+        webhook_id, url = self.create_webhook(self.function_id,
+                                              version=version)
+        resp = requests.post(url, data={'name': 'version_test'}, verify=False)
+
+        self.assertEqual(202, resp.status_code)
+
+        resp_exec_id = resp.json().get('execution_id')
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        resp_exec_id, ignore_notfound=True)
+
+        resp, body = self.client.get_resources(
+            'executions',
+            {'description': 'has:%s' % webhook_id}
+        )
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual(1, len(body['executions']))
+        exec_id = body['executions'][0]['id']
+        self.assertEqual(resp_exec_id, exec_id)
+        self.wait_execution_success(exec_id)
+
+        resp, body = self.client.get_execution_log(exec_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('version_test', body)
+
     @decorators.idempotent_id('8e6e4f76-f748-11e7-8ec3-00224d6b7bc1')
     def test_get_all_admin(self):
         """Admin user can get webhooks of other projects"""
-        webhook_id, _ = self.create_webhook()
+        webhook_id, _ = self.create_webhook(self.function_id)
 
         resp, body = self.admin_client.get_resources(
             'webhooks?all_projects=true'

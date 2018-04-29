@@ -133,13 +133,13 @@ class QinlingClient(client_base.QinlingClientBase):
     def get_function_workers(self, function_id):
         return self.get_resources('functions/%s/workers' % function_id)
 
-    def create_webhook(self, function_id):
-        req_body = {"function_id": function_id}
+    def create_webhook(self, function_id, version=0):
+        req_body = {"function_id": function_id, "function_version": version}
         resp, body = self.post_json('webhooks', req_body)
         return resp, body
 
-    def create_job(self, function_id, first_execution_time=None):
-        req_body = {"function_id": function_id}
+    def create_job(self, function_id, version=0, first_execution_time=None):
+        req_body = {"function_id": function_id, "function_version": version}
         if not first_execution_time:
             first_execution_time = str(
                 datetime.utcnow() + timedelta(hours=1)

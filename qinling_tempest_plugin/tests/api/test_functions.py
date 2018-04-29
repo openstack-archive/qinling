@@ -28,7 +28,7 @@ class FunctionsTest(base.BaseQinlingTest):
         super(FunctionsTest, self).setUp()
 
         # Wait until runtime is available
-        self.await_runtime_available(self.runtime_id)
+        self.wait_runtime_available(self.runtime_id)
         self.python_zip_file = self.create_package()
 
     @decorators.idempotent_id('9c36ac64-9a44-4c44-9e44-241dcc6b0933')

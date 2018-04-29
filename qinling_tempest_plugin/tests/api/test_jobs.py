@@ -11,6 +11,9 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+from datetime import datetime
+from datetime import timedelta
+
 from tempest.lib import decorators
 
 from qinling_tempest_plugin.tests import base
@@ -22,7 +25,7 @@ class JobsTest(base.BaseQinlingTest):
     def setUp(self):
         super(JobsTest, self).setUp()
 
-        self.await_runtime_available(self.runtime_id)
+        self.wait_runtime_available(self.runtime_id)
         self.function_id = self.create_function()
 
     @decorators.idempotent_id('68e4d562-f762-11e7-875d-00224d6b7bc1')
@@ -38,3 +41,28 @@ class JobsTest(base.BaseQinlingTest):
             job_id,
             [item['id'] for item in body['jobs']]
         )
+
+    @decorators.idempotent_id('82a694a7-d3b5-4b6c-86e5-5fac6eae0f2a')
+    def test_create_with_function_version(self):
+        version = self.create_function_version(self.function_id)
+        # first_execution_time is at least 1 min ahead of current time.
+        first_execution_time = str(datetime.utcnow() + timedelta(seconds=90))
+        job_id = self.create_job(self.function_id, version=version,
+                                 first_execution_time=first_execution_time)
+
+        # Wait for job to be finished
+        self.wait_job_done(job_id)
+
+        resp, body = self.client.get_resources(
+            'executions',
+            {'description': 'has:%s' % job_id}
+        )
+        self.assertEqual(200, resp.status)
+        self.assertEqual(1, len(body['executions']))
+
+        exec_id = body['executions'][0]['id']
+        self.wait_execution_success(exec_id)
+
+        resp, body = self.client.get_execution_log(exec_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('Hello, World', body)

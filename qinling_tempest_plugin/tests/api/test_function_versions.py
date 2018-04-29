@@ -24,7 +24,7 @@ class FunctionVersionsTest(base.BaseQinlingTest):
         super(FunctionVersionsTest, self).setUp()
 
         # Wait until runtime is available
-        self.await_runtime_available(self.runtime_id)
+        self.wait_runtime_available(self.runtime_id)
 
     @decorators.idempotent_id('ce630c59-a79d-4b2d-89af-c7c5c8f8bd3f')
     def test_create(self):

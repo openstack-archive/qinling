@@ -26,7 +26,7 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     def setUp(self):
         super(ExecutionsTest, self).setUp()
-        self.await_runtime_available(self.runtime_id)
+        self.wait_runtime_available(self.runtime_id)
 
     @decorators.idempotent_id('2a93fab0-2dae-4748-b0d4-f06b735ff451')
     def test_crud_execution(self):
@@ -128,7 +128,7 @@ class ExecutionsTest(base.BaseQinlingTest):
                         execution_id, ignore_notfound=True)
 
         self.assertEqual('running', body['status'])
-        self.await_execution_success(execution_id)
+        self.wait_execution_success(execution_id)
 
     @decorators.idempotent_id('6cb47b1d-a8c6-48f2-a92f-c4f613c33d1c')
     def test_execution_log(self):

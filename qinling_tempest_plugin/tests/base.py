@@ -69,7 +69,7 @@ class BaseQinlingTest(test.BaseTestCase):
         stop=tenacity.stop_after_attempt(10),
         retry=tenacity.retry_if_exception_type(AssertionError)
     )
-    def await_runtime_available(self, id):
+    def wait_runtime_available(self, id):
         resp, body = self.client.get_resource('runtimes', id)
 
         self.assertEqual(200, resp.status)
@@ -80,11 +80,22 @@ class BaseQinlingTest(test.BaseTestCase):
         stop=tenacity.stop_after_attempt(10),
         retry=tenacity.retry_if_exception_type(AssertionError)
     )
-    def await_execution_success(self, id):
+    def wait_execution_success(self, id):
         resp, body = self.client.get_resource('executions', id)
 
         self.assertEqual(200, resp.status)
         self.assertEqual('success', body['status'])
+
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(10),
+        stop=tenacity.stop_after_attempt(12),
+        retry=tenacity.retry_if_exception_type(AssertionError)
+    )
+    def wait_job_done(self, id):
+        resp, body = self.client.get_resource('jobs', id)
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual('done', body['status'])
 
     def create_package(self, name="python/test_python_basic.py"):
         file_path = pkg_resources.resource_filename(
@@ -158,19 +169,28 @@ class BaseQinlingTest(test.BaseTestCase):
 
         self.assertEqual(200, resp.status_code)
 
-    def create_webhook(self):
-        resp, body = self.client.create_webhook(self.function_id)
+    def create_webhook(self, function_id=None, version=0):
+        if not function_id:
+            function_id = self.create_function()
+
+        resp, body = self.client.create_webhook(function_id, version=version)
         self.assertEqual(201, resp.status)
+
         webhook_id = body['id']
         self.addCleanup(self.client.delete_resource, 'webhooks',
                         webhook_id, ignore_notfound=True)
 
         return webhook_id, body['webhook_url']
 
-    def create_job(self, function_id=None):
+    def create_job(self, function_id=None, version=0,
+                   first_execution_time=None):
         if not function_id:
             function_id = self.create_function()
-        resp, body = self.client.create_job(function_id)
+        resp, body = self.client.create_job(
+            function_id,
+            version=version,
+            first_execution_time=first_execution_time
+        )
         self.assertEqual(201, resp.status)
         job_id = body['id']
 

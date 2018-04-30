@@ -111,7 +111,7 @@ class FunctionsController(rest.RestController):
 
         if not download:
             pecan.override_template('json')
-            return resources.Function.from_dict(func_db.to_dict()).to_dict()
+            return resources.Function.from_db_obj(func_db).to_dict()
         else:
             LOG.info("Downloading function %s", id)
             source = func_db.code['source']
@@ -230,7 +230,7 @@ class FunctionsController(rest.RestController):
                     raise e
 
         pecan.response.status = 201
-        return resources.Function.from_dict(func_db.to_dict()).to_dict()
+        return resources.Function.from_db_obj(func_db).to_dict()
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Functions, bool, wtypes.text)
@@ -252,7 +252,7 @@ class FunctionsController(rest.RestController):
         )
         LOG.info("Get all functions. filters=%s", filters)
         db_functions = db_api.get_functions(insecure=all_projects, **filters)
-        functions = [resources.Function.from_dict(db_model.to_dict())
+        functions = [resources.Function.from_db_obj(db_model)
                      for db_model in db_functions]
 
         return resources.Functions(functions=functions)
@@ -422,7 +422,7 @@ class FunctionsController(rest.RestController):
                 self.storage_provider.delete(ctx.projectid, id, pre_md5sum)
 
         pecan.response.status = 200
-        return resources.Function.from_dict(func_db.to_dict()).to_dict()
+        return resources.Function.from_db_obj(func_db).to_dict()
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(

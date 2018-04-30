@@ -64,7 +64,7 @@ class ExecutionsController(rest.RestController):
 
         db_model = executions.create_execution(self.engine_client, params)
 
-        return resources.Execution.from_dict(db_model.to_dict())
+        return resources.Execution.from_db_obj(db_model)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Executions, wtypes.text, bool, wtypes.text,
@@ -95,7 +95,7 @@ class ExecutionsController(rest.RestController):
         LOG.info("Get all %ss. filters=%s", self.type, filters)
 
         db_execs = db_api.get_executions(insecure=all_projects, **filters)
-        executions = [resources.Execution.from_dict(db_model.to_dict())
+        executions = [resources.Execution.from_db_obj(db_model)
                       for db_model in db_execs]
 
         return resources.Executions(executions=executions)
@@ -107,7 +107,7 @@ class ExecutionsController(rest.RestController):
 
         execution_db = db_api.get_execution(id)
 
-        return resources.Execution.from_dict(execution_db.to_dict())
+        return resources.Execution.from_db_obj(execution_db)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)

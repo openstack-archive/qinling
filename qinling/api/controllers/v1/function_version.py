@@ -135,7 +135,7 @@ class FunctionVersionsController(rest.RestController):
         version = self._create_function_version(ctx.project_id, function_id,
                                                 **values)
 
-        return resources.FunctionVersion.from_dict(version.to_dict())
+        return resources.FunctionVersion.from_db_obj(version)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.FunctionVersions, types.uuid)
@@ -148,7 +148,7 @@ class FunctionVersionsController(rest.RestController):
             func_db = db_api.get_function(function_id)
             db_versions = func_db.versions
 
-        versions = [resources.FunctionVersion.from_dict(v.to_dict())
+        versions = [resources.FunctionVersion.from_db_obj(v)
                     for v in db_versions]
 
         return resources.FunctionVersions(function_versions=versions)
@@ -170,8 +170,7 @@ class FunctionVersionsController(rest.RestController):
             LOG.info("Getting version %s for function %s.", version,
                      function_id)
             pecan.override_template('json')
-            return resources.FunctionVersion.from_dict(
-                version_db.to_dict()).to_dict()
+            return resources.FunctionVersion.from_db_obj(version_db).to_dict()
 
         LOG.info("Downloading version %s for function %s.", version,
                  function_id)

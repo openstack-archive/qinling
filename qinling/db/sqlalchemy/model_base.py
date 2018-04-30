@@ -15,7 +15,6 @@
 from oslo_db.sqlalchemy import models as oslo_models
 import sqlalchemy as sa
 from sqlalchemy.ext import declarative
-from sqlalchemy.orm import attributes
 
 from qinling import context
 from qinling.utils import common
@@ -65,14 +64,8 @@ class _QinlingModelBase(oslo_models.ModelBase, oslo_models.TimestampMixin):
         """sqlalchemy based automatic to_dict method."""
         d = {}
 
-        # If a column is unloaded at this point, it is
-        # probably deferred. We do not want to access it
-        # here and thereby cause it to load.
-        unloaded = attributes.instance_state(self).unloaded
-
         for col in self.__table__.columns:
-            if col.name not in unloaded and hasattr(self, col.name):
-                d[col.name] = getattr(self, col.name)
+            d[col.name] = getattr(self, col.name)
 
         common.datetime_to_str(d, 'created_at')
         common.datetime_to_str(d, 'updated_at')

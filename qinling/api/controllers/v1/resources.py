@@ -45,6 +45,10 @@ class Resource(wtypes.Base):
 
         return obj
 
+    @classmethod
+    def from_db_obj(cls, db_obj):
+        return cls.from_dict(db_obj.to_dict())
+
     def __str__(self):
         """WSME based implementation of __str__."""
 

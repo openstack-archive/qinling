@@ -81,7 +81,7 @@ class JobsController(rest.RestController):
             }
             db_job = db_api.create_job(values)
 
-        return resources.Job.from_dict(db_job.to_dict())
+        return resources.Job.from_db_obj(db_job)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
@@ -95,7 +95,7 @@ class JobsController(rest.RestController):
         LOG.info("Get resource.", resource={'type': self.type, 'id': id})
         job_db = db_api.get_job(id)
 
-        return resources.Job.from_dict(job_db.to_dict())
+        return resources.Job.from_db_obj(job_db)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Jobs, bool, wtypes.text)
@@ -111,7 +111,7 @@ class JobsController(rest.RestController):
         )
         LOG.info("Get all %ss. filters=%s", self.type, filters)
         db_jobs = db_api.get_jobs(insecure=all_projects, **filters)
-        jobs = [resources.Job.from_dict(db_model.to_dict())
+        jobs = [resources.Job.from_db_obj(db_model)
                 for db_model in db_jobs]
 
         return resources.Jobs(jobs=jobs)
@@ -177,4 +177,4 @@ class JobsController(rest.RestController):
                 ).get_next(datetime.datetime)
 
         updated_job = db_api.update_job(id, values)
-        return resources.Job.from_dict(updated_job.to_dict())
+        return resources.Job.from_db_obj(updated_job)

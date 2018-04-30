@@ -47,14 +47,14 @@ class RuntimesController(rest.RestController):
 
         runtime_db = db_api.get_runtime(id)
 
-        return resources.Runtime.from_dict(runtime_db.to_dict())
+        return resources.Runtime.from_db_obj(runtime_db)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(resources.Runtimes)
     def get_all(self):
         LOG.info("Get all %ss.", self.type)
 
-        runtimes = [resources.Runtime.from_dict(db_model.to_dict())
+        runtimes = [resources.Runtime.from_db_obj(db_model)
                     for db_model in db_api.get_runtimes()]
 
         return resources.Runtimes(runtimes=runtimes)
@@ -82,7 +82,7 @@ class RuntimesController(rest.RestController):
         db_model = db_api.create_runtime(params)
         self.engine_client.create_runtime(db_model.id)
 
-        return resources.Runtime.from_dict(db_model.to_dict())
+        return resources.Runtime.from_db_obj(db_model)
 
     @rest_utils.wrap_wsme_controller_exception
     @wsme_pecan.wsexpose(None, types.uuid, status_code=204)
@@ -161,4 +161,4 @@ class RuntimesController(rest.RestController):
 
             runtime_db = db_api.update_runtime(id, values)
 
-        return resources.Runtime.from_dict(runtime_db.to_dict())
+        return resources.Runtime.from_db_obj(runtime_db)

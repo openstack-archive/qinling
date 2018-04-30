@@ -204,13 +204,15 @@ class FunctionVersionsController(rest.RestController):
 
         - The version should not being used by any job
         - The version should not being used by any webhook
+        - Admin user can not delete normal user's version
         """
         ctx = context.get_ctx()
         acl.enforce('function_version:delete', ctx)
         LOG.info("Deleting version %s of function %s.", version, function_id)
 
         with db_api.transaction():
-            version_db = db_api.get_function_version(function_id, version)
+            version_db = db_api.get_function_version(function_id, version,
+                                                     insecure=False)
             latest_version = version_db.function.latest_version
 
             version_jobs = db_api.get_jobs(

@@ -1,0 +1,10 @@
+---
+prelude: >
+    Support versioning for functions. The function developer can work with
+    different variations of a single function in the development workflow,
+    such as development, beta, and production.
+features:
+  - Support versioning for functions. End users can create one or more versions
+    for a single function, the code package of a function version is immutable.
+    Each function version has a version number that can be used for creating
+    execution, job and webhook.

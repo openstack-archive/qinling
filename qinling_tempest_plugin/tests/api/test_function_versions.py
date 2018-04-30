@@ -113,6 +113,39 @@ class FunctionVersionsTest(base.BaseQinlingTest):
             [v['version_number'] for v in body['function_versions']]
         )
 
+    @decorators.idempotent_id('0e70ef18-687c-4ce4-ae29-aee2f88b4b9c')
+    def test_delete(self):
+        function_id = self.create_function()
+        version = self.create_function_version(function_id)
+
+        resp = self.client.delete_function_version(function_id, version)
+
+        self.assertEqual(204, resp.status)
+
+        resp, body = self.client.get_function_versions(function_id)
+
+        self.assertEqual(200, resp.status)
+        self.assertNotIn(
+            version,
+            [v['version_number'] for v in body['function_versions']]
+        )
+
+    @decorators.idempotent_id('c6717e2e-e80a-43d9-a25b-84f4b7453c76')
+    def test_delete_by_admin(self):
+        """test_delete_by_admin
+
+        Admin user can not delete normal user's function version.
+        """
+        function_id = self.create_function()
+        version = self.create_function_version(function_id)
+
+        self.assertRaises(
+            exceptions.NotFound,
+            self.admin_client.delete_function_version,
+            function_id,
+            version
+        )
+
     @decorators.idempotent_id('7898f89f-a490-42a3-8cf7-63cbd9543a06')
     def test_detach(self):
         """Admin only operation."""

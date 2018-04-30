@@ -208,8 +208,8 @@ def increase_function_version(function_id, old_version, **kwargs):
     return IMPL.increase_function_version(function_id, old_version, **kwargs)
 
 
-def get_function_version(function_id, version):
-    return IMPL.get_function_version(function_id, version)
+def get_function_version(function_id, version, **kwargs):
+    return IMPL.get_function_version(function_id, version, **kwargs)
 
 
 # This function is only used in unit test.

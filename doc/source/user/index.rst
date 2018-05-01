@@ -15,15 +15,11 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-Administration/Operation Guide
-==============================
+User Guide
+==========
 
 .. toctree::
     :maxdepth: 1
-
-    installation
-    runtime
-    security
 
 Indices and tables
 ------------------

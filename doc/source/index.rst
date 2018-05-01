@@ -42,6 +42,7 @@ Overview
    :maxdepth: 1
 
    quick_start
+   glossary
    features
 
 Administration/Operation Guide
@@ -60,6 +61,14 @@ Contributor/Developer Guide
 
    contributor/index
    specs/index
+
+User Guide
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   user/index
 
 Function Programming Guide
 --------------------------

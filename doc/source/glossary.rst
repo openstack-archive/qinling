@@ -1,9 +1,6 @@
 ..
-      Copyright 2010-2011 United States Government as represented by the
-      Administrator of the National Aeronautics and Space Administration.
+      Copyright 2018 Catalyst IT Ltd
       All Rights Reserved.
-
-      Licensed under the Apache License, Version 2.0 (the "License"); you may
       not use this file except in compliance with the License. You may obtain
       a copy of the License at
 
@@ -15,18 +12,10 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-Administration/Operation Guide
-==============================
+Qinling Glossary
+================
 
-.. toctree::
-    :maxdepth: 1
-
-    installation
-    runtime
-    security
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`search`
+As the Qinling project evolves, it’s important that people working on Qinling,
+users using Qinling, and operators deploying Qinling use a common set of
+terminology in order to avoid misunderstandings and confusion. To that end, we
+are providing the following glossary of terms.

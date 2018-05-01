@@ -12,7 +12,7 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-Qinling features
+Qinling Features
 ================
 
 This section does not intend to give you an exhaustive feature list of Qinling,

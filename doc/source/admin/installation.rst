@@ -1,9 +1,6 @@
 ..
-      Copyright 2010-2011 United States Government as represented by the
-      Administrator of the National Aeronautics and Space Administration.
+      Copyright 2018 Catalyst IT Ltd
       All Rights Reserved.
-
-      Licensed under the Apache License, Version 2.0 (the "License"); you may
       not use this file except in compliance with the License. You may obtain
       a copy of the License at
 
@@ -15,18 +12,18 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-Administration/Operation Guide
-==============================
+Installation Guide
+==================
 
-.. toctree::
-    :maxdepth: 1
+Install Qinling in DevStack
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    installation
-    runtime
-    security
+Refer to
+`Developer Guide <https://docs.openstack.org/qinling/latest/contributor/development-environment-devstack.html>`_
 
-Indices and tables
-------------------
+Config Qinling using existing Kubernetes cluster
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* :ref:`genindex`
-* :ref:`search`
+In most cases, it's not ideal to set up a new dedicated kubernetes cluster for
+Qinling. Follow the steps below to config Qinling work with the existing
+kubernetes cluster

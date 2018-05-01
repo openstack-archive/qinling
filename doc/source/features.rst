@@ -24,8 +24,13 @@ Auto Scaling
 
 With Qinling, the function invocation can be automatically scaled up and down
 to meet the needs of your function. It's not necessary to monitor usage by
-yourself, Qinling can scale up new containers if traffic ticks up, and scale
+yourself, Qinling can scale up new workers if traffic ticks up, and scale
 back down when it drops.
+
+To handle any burst in traffic, Qinling will immediately increase the workers
+concurrently executing functions by a predetermined amount. After the increased
+load is handled successfully, the workers will be released in a predefined
+expiration time.
 
 Webhook
 ~~~~~~~

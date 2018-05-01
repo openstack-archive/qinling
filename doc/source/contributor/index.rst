@@ -26,6 +26,7 @@ project.
     :maxdepth: 1
 
     development-environment-devstack
+    architecture
     contributing
 
 Indices and tables

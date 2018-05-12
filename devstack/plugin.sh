@@ -55,12 +55,14 @@ function mkdir_chown_stack {
     if [[ ! -d "$1" ]]; then
         sudo mkdir -p "$1"
     fi
-    sudo chown $STACK_USER:$STACK_USER "$1"
+    sudo chown -R $STACK_USER:$STACK_USER "$1"
 }
 
 
 function configure_k8s_certificates {
     pushd $QINLING_DIR
+
+    mkdir_chown_stack "$QINLING_CONF_DIR"/pki
     mkdir_chown_stack "$QINLING_CONF_DIR"/pki/kubernetes
 
     curl -L https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 -o /tmp/cfssl

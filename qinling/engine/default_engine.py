@@ -160,7 +160,7 @@ class DefaultEngine(object):
 
             data = utils.get_request_data(
                 CONF, function_id, function_version, execution_id,
-                input, function.entry, function.trust_id,
+                rlimit, input, function.entry, function.trust_id,
                 self.qinling_endpoint
             )
             success, res = utils.url_request(
@@ -206,6 +206,7 @@ class DefaultEngine(object):
             execution_id,
             function_id,
             function_version,
+            rlimit=rlimit if svc_url else None,
             input=input,
             identifier=identifier,
             service_url=svc_url,

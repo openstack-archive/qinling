@@ -74,8 +74,8 @@ def url_request(request_session, url, body=None):
     return False, {'error': 'Internal service error.'}
 
 
-def get_request_data(conf, function_id, version, execution_id, input, entry,
-                     trust_id, qinling_endpoint):
+def get_request_data(conf, function_id, version, execution_id, rlimit, input,
+                     entry, trust_id, qinling_endpoint):
     """Prepare the request body should send to the worker."""
     ctx = context.get_ctx()
 
@@ -94,6 +94,8 @@ def get_request_data(conf, function_id, version, execution_id, input, entry,
 
     data = {
         'execution_id': execution_id,
+        'cpu': rlimit['cpu'],
+        'memory_size': rlimit['memory_size'],
         'input': input,
         'function_id': function_id,
         'function_version': version,

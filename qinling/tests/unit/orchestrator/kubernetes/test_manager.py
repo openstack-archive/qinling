@@ -1,4 +1,4 @@
-# Copyright 2018 AWCloud Software Co., Ltd.
+# Copyright 2018 AWCloud Software Co., Ltd
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -601,13 +601,16 @@ class TestKubernetesManager(base.DbTestCase):
         function_id = common.generate_unicode_uuid()
 
         result, output = self.manager.run_execution(
-            execution_id, function_id, 0, service_url='FAKE_URL'
+            execution_id, function_id, 0, rlimit=self.rlimit,
+            service_url='FAKE_URL'
         )
 
         download_url = ('http://127.0.0.1:7070/v1/functions/%s?download=true'
                         % function_id)
         data = {
             'execution_id': execution_id,
+            'cpu': self.rlimit['cpu'],
+            'memory_size': self.rlimit['memory_size'],
             'input': None,
             'function_id': function_id,
             'function_version': 0,

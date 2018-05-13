@@ -73,10 +73,34 @@ def _get_responce(output, duration, logs, success, code):
 
 
 def _invoke_function(execution_id, zip_file, module_name, method, arg, input,
-                     return_dict):
-    """Thie function is supposed to be running in a child process."""
+                     return_dict, rlimit):
+    """Thie function is supposed to be running in a child process.
+
+    HOSTNAME will be used to create cgroup directory related to worker.
+
+    Current execution pid will be added to cgroup tasks file, and then all
+    its child processes will be automatically added to this 'cgroup'.
+
+    Once executions exceed the cgroup limit, they will be killed by OOMKill
+    and this subprocess will exit with number(-9).
+    """
     # Set resource limit for current sub-process
     _set_ulimit()
+
+    # Set cpu and memory limits to cgroup by calling cglimit service
+    pid = os.getpid()
+    root_resp = requests.post(
+        'http://localhost:9092/cglimit',
+        json={
+            'cpu': rlimit['cpu'],
+            'memory_size': rlimit['memory_size'],
+            'pid': pid
+        }
+    )
+    if not root_resp.ok:
+        return_dict['result'] = root_resp.content
+        return_dict['success'] = False
+        sys.exit(0)
 
     sys.path.insert(0, zip_file)
     sys.stdout = open("%s.out" % execution_id, "w", 0)
@@ -123,6 +147,10 @@ def execute():
     username = params.get('username')
     password = params.get('password')
     zip_file = '/var/qinling/packages/%s.zip' % function_id
+    rlimit = {
+        'cpu': params['cpu'],
+        'memory_size': params['memory_size']
+    }
 
     function_module, function_method = 'main', 'main'
     if entry:
@@ -182,7 +210,7 @@ def execute():
     p = Process(
         target=_invoke_function,
         args=(execution_id, zip_file, function_module, function_method,
-              input.pop('__function_input', None), input, return_dict)
+              input.pop('__function_input', None), input, return_dict, rlimit)
     )
     p.start()
     p.join()

@@ -14,7 +14,6 @@
 
 import collections
 import json
-import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -107,42 +106,43 @@ class FunctionsController(rest.RestController):
         This method can support HTTP request using either
         'Accept:application/json' or no 'Accept' header.
         """
-        LOG.info("Get function %s.", id)
+        ctx = context.get_ctx()
+        acl.enforce('function:get', ctx)
 
         download = strutils.bool_from_string(
             pecan.request.GET.get('download', False)
         )
         func_db = db_api.get_function(id)
-        ctx = context.get_ctx()
 
         if not download:
+            LOG.info("Getting function %s.", id)
             pecan.override_template('json')
             return resources.Function.from_db_obj(func_db).to_dict()
+
+        LOG.info("Downloading function %s", id)
+        source = func_db.code['source']
+
+        if source == constants.PACKAGE_FUNCTION:
+            f = self.storage_provider.retrieve(func_db.project_id, id,
+                                               func_db.code['md5sum'])
+        elif source == constants.SWIFT_FUNCTION:
+            container = func_db.code['swift']['container']
+            obj = func_db.code['swift']['object']
+            f = swift_util.download_object(container, obj)
         else:
-            LOG.info("Downloading function %s", id)
-            source = func_db.code['source']
-
-            if source == constants.PACKAGE_FUNCTION:
-                f = self.storage_provider.retrieve(ctx.projectid, id,
-                                                   func_db.code['md5sum'])
-            elif source == constants.SWIFT_FUNCTION:
-                container = func_db.code['swift']['container']
-                obj = func_db.code['swift']['object']
-                f = swift_util.download_object(container, obj)
-            else:
-                msg = 'Download image function is not allowed.'
-                pecan.abort(
-                    status_code=405,
-                    detail=msg,
-                    headers={'Server-Error-Message': msg}
-                )
-
-            pecan.response.app_iter = (f if isinstance(f, collections.Iterable)
-                                       else FileIter(f))
-            pecan.response.headers['Content-Type'] = 'application/zip'
-            pecan.response.headers['Content-Disposition'] = (
-                'attachment; filename="%s"' % os.path.basename(func_db.name)
+            msg = 'Download image function is not allowed.'
+            pecan.abort(
+                status_code=405,
+                detail=msg,
+                headers={'Server-Error-Message': msg}
             )
+
+        pecan.response.app_iter = (f if isinstance(f, collections.Iterable)
+                                   else FileIter(f))
+        pecan.response.headers['Content-Type'] = 'application/zip'
+        pecan.response.headers['Content-Disposition'] = (
+            'attachment; filename="%s"' % id
+        )
 
     @rest_utils.wrap_pecan_controller_exception
     @pecan.expose('json')

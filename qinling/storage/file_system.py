@@ -89,7 +89,7 @@ class FileSystemStorage(base.PackageStorage):
         LOG.debug(
             'Getting package data, function: %s, version: %s, md5sum: %s, '
             'project: %s',
-            function, md5sum, version, project_id
+            function, version, md5sum, project_id
         )
 
         if version != 0:

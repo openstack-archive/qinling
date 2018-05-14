@@ -218,8 +218,8 @@ class TestKubernetesManager(base.DbTestCase):
             self.fake_namespace,
             label_selector='runtime_id=%s' % fake_deployment_name)
         delete_service_calls = [
-            mock.call(svc1_name, self.fake_namespace),
-            mock.call(svc2_name, self.fake_namespace),
+            mock.call(svc1_name, self.fake_namespace, mock.ANY),
+            mock.call(svc2_name, self.fake_namespace, mock.ANY),
         ]
         self.k8s_v1_api.delete_namespaced_service.assert_has_calls(
             delete_service_calls)
@@ -680,8 +680,8 @@ class TestKubernetesManager(base.DbTestCase):
         )
 
         delete_service_calls = [
-            mock.call(svc1_name, self.fake_namespace),
-            mock.call(svc2_name, self.fake_namespace)
+            mock.call(svc1_name, self.fake_namespace, mock.ANY),
+            mock.call(svc2_name, self.fake_namespace, mock.ANY)
         ]
         self.k8s_v1_api.delete_namespaced_service.assert_has_calls(
             delete_service_calls)

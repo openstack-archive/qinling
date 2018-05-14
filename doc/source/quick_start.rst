@@ -32,35 +32,25 @@ Getting started with Qinling
    during following steps.
 
 Log into the devstack host, we will create python runtime/function/execution
-during the steps.
+in the following steps.
 
-#. (Optional) Prepare a docker image including development environment for a
-   specific programming language. For your convenience, there is a pre-built
-   image ``openstackqinling/python-runtime`` that you could
-   directly use to create runtime in Qinling. Only ``Python 2`` runtime is
-   supported for now, but it is very easy to add another program language
-   support. If you indeed want to build a new image, run the following commands
-   in ``qinling`` repo directory, replace ``DOCKER_USER`` with your own docker
-   hub username:
+#. (Optional) Prepare a docker image for a specific programming language. For
+   your convenience, there is a pre-built image
+   ``openstackqinling/python-runtime`` that you could directly use to create a
+   Python runtime in Qinling. Refer to the
+   `image creation guide <https://docs.openstack.org/qinling/latest/admin/runtime.html>`_
+   for how to build your own runtime images to be used in Qinling.
 
-   .. code-block:: console
-
-      $ cd /opt/stack/qinling/runtimes/python2
-      $ docker build -t DOCKER_USER/python-runtime .
-      $ docker push DOCKER_USER/python-runtime
-
-   .. end
-
-#. Create python runtime using admin user. ``runtime`` in Qinling is running
-   environment for a specific language, this resource is supposed to be
-   created/deleted/updated only by cloud operator. After creation, check the
-   runtime status until it's ``available`` before invoking any functions:
+#. Create Python runtime using admin credential. ``Runtime`` in Qinling is the
+   environment in which the function is actually running, ``runtime`` is
+   supposed to be created/deleted/updated only by cloud operator. After
+   creation, check the runtime status until it's ``available`` before invoking
+   any functions:
 
    .. code-block:: console
 
       $ pip install httpie
-      $ cd $DEVSTACK_DIR
-      $ source openrc admin admin
+      $ cd $DEVSTACK_DIR && source openrc admin admin
       $ TOKEN=$(openstack token issue -f yaml -c id | awk '{print $2}')
       $ http POST http://localhost:7070/v1/runtimes name=python2.7 \
           image=openstackqinling/python-runtime X-Auth-Token:$TOKEN
@@ -72,12 +62,14 @@ during the steps.
 
       {
           "created_at": "2017-12-11 22:35:08.660498",
+          "description": null,
           "id": "601efeb8-3e41-4e5c-a12a-986dbda252e3",
           "image": "openstackqinling/python-runtime",
           "is_public": true,
           "name": "python2.7",
           "project_id": "ce157785ffb24b3c862720283be4dbc8",
-          "status": "creating"
+          "status": "creating",
+          "updated_at": null
       }
       $ http GET http://localhost:7070/v1/runtimes/601efeb8-3e41-4e5c-a12a-986dbda252e3 \
         X-Auth-Token:$TOKEN
@@ -105,8 +97,7 @@ during the steps.
 
    .. code-block:: console
 
-      $ cd $DEVSTACK_DIR
-      $ source openrc admin admin
+      $ cd $DEVSTACK_DIR && source openrc admin admin
       $ openstack runtime create openstackqinling/python-runtime --name python2.7
       +-------------+--------------------------------------+
       | Field       | Value                                |
@@ -123,33 +114,34 @@ during the steps.
 
    .. end
 
-#. Create a customized function package:
+   Record the runtime ID for the function invocation later on.
+
+#. Create a customized Python function package:
 
    .. code-block:: console
 
       $ mkdir ~/qinling_test
       $ cat <<EOF > ~/qinling_test/github_test.py
-        import requests
-        def main(*args, **kwargs):
-            r = requests.get('https://api.github.com/events')
-            return len(r.json())
-        if __name__ == '__main__':
-            main()
-        EOF
-      $ cd ~/qinling_test
-      $ zip -r ~/qinling_test/github_test.zip ./*
+      import requests
+      def main(*args, **kwargs):
+          r = requests.get('https://api.github.com/events')
+          return len(r.json())
+      if __name__ == '__main__':
+          main()
+      EOF
+      $ cd ~/qinling_test && zip -r ~/qinling_test/github_test.zip ./*
 
    .. end
 
-#. Create function, ``runtime_id`` comes from the output of the above command:
+#. Create function:
 
    .. code-block:: console
 
-      $ cd $DEVSTACK_DIR
-      $ source openrc demo demo
+      $ cd $DEVSTACK_DIR && source openrc demo demo
+      $ runtime_id=601efeb8-3e41-4e5c-a12a-986dbda252e3
       $ TOKEN=$(openstack token issue -f yaml -c id | awk '{print $2}')
       $ http -f POST http://localhost:7070/v1/functions name=github_test \
-          runtime_id=601efeb8-3e41-4e5c-a12a-986dbda252e3 \
+          runtime_id=$runtime_id \
           code='{"source": "package"}' \
           entry='github_test.main' \
           package@~/qinling_test/github_test.zip \
@@ -181,8 +173,7 @@ during the steps.
    .. code-block:: console
 
       $ openstack function create --name github_test \
-          --code-type package \
-          --runtime 601efeb8-3e41-4e5c-a12a-986dbda252e3 \
+          --runtime $runtime_id \
           --entry github_test.main \
           --package ~/qinling_test/github_test.zip
       +-------------+--------------------------------------+
@@ -220,7 +211,7 @@ during the steps.
           "function_id": "c9195311-9aa7-4748-bd4b-1b0f9c28d858",
           "id": "c3d61744-254a-4f41-8e6d-9e7dc1eb6a24",
           "input": null,
-          "output": "{\"duration\": 1.299, \"output\": 30}",
+          "result": "{\"duration\": 1.299, \"output\": 30}",
           "project_id": "c2a457c46df64ed4adcb31fdc80052d4",
           "status": "success",
           "sync": true,
@@ -234,7 +225,7 @@ during the steps.
 
    .. code-block:: console
 
-      $ openstack function execution create c9195311-9aa7-4748-bd4b-1b0f9c28d858 --sync
+      $ openstack function execution create c9195311-9aa7-4748-bd4b-1b0f9c28d858
       +-------------+--------------------------------------+
       | Field       | Value                                |
       +-------------+--------------------------------------+
@@ -242,7 +233,7 @@ during the steps.
       | function_id | c9195311-9aa7-4748-bd4b-1b0f9c28d858 |
       | description | None                                 |
       | input       | {}                                   |
-      | output      | {"duration": 1.483, "output": 30}    |
+      | result      | {"duration": 1.483, "output": 30}    |
       | status      | success                              |
       | sync        | True                                 |
       | created_at  | 2017-12-11 23:27:04                  |
@@ -251,5 +242,5 @@ during the steps.
 
    .. end
 
-Now, you have defined your first function and invoked it. Have fun with
-Qinling!
+Now, you have defined your first Qinling function and have it invoked
+on-demand. Have fun with Qinling!

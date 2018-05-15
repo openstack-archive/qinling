@@ -46,7 +46,7 @@ def create_worker(function_id, worker, version=0):
 
     The worker parameter is assumed to be unique.
     """
-    # NOTE(huntxu): for the kubernetes orchestrator, which is the the only
+    # NOTE(huntxu): for the kubernetes orchestrator, which is the only
     # available orchestrator at the moment, the value of the worker param
     # is the name of the pod so it is unique.
     client = get_client()

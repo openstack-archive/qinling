@@ -30,6 +30,7 @@ Specs
 
     function_versioning
     customize_resource
+    function_aliases
 
 Template
 --------

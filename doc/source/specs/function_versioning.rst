@@ -10,7 +10,7 @@ Support Qinling function versioning
 
 https://storyboard.openstack.org/#!/story/2001587
 
-Function versions are like git commits, they’re snapshots of your project
+Function versions are like git commits, they're snapshots of your project
 history. Each version has a number that serves as its ID, starting with 1 and
 incrementing up, and never reused. The code for a published version of a
 function is immutable (i.e. cannot be changed). So, a version number

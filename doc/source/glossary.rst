@@ -15,7 +15,7 @@
 Qinling Glossary
 ================
 
-As the Qinling project evolves, it’s important that people working on Qinling,
+As the Qinling project evolves, it's important that people working on Qinling,
 users using Qinling, and operators deploying Qinling use a common set of
 terminology in order to avoid misunderstandings and confusion. To that end, we
 are providing the following glossary of terms.

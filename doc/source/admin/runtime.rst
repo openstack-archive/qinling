@@ -16,4 +16,4 @@ Create your own runtime
 =======================
 
 Although there are several runtime implementation in-tree, it's very easy to
-implement your own runtime for the prefered programming language.
+implement your own runtime for the preferred programming language.

@@ -15,7 +15,7 @@ history. Each version has a number that serves as its ID, starting with 1 and
 incrementing up, and never reused. The code for a published version of a
 function is immutable (i.e. cannot be changed). So, a version number
 corresponds to a specific set of function code with certainty. With function
-versioning, users can get the following benifits:
+versioning, users can get the following benefits:
 
 - Update the function code without breaking the existing applications that rely
   on the function.

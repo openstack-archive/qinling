@@ -235,6 +235,10 @@ class FunctionVersionsController(rest.RestController):
                     'The function versioin is still associated with webhook.'
                 )
 
+            # Delete resources for function version
+            self.engine_client.delete_function(function_id, version=version)
+            etcd_util.delete_function(function_id, version=version)
+
             self.storage_provider.delete(ctx.projectid, function_id, None,
                                          version=version)
 

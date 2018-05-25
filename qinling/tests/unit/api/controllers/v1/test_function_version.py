@@ -121,16 +121,23 @@ class TestFunctionVersionController(base.APITest):
         self.assertEqual(200, resp.status_int)
         self.assertEqual("version 1", resp.json.get('description'))
 
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
     @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')
-    def test_delete(self, mock_delete):
+    def test_delete(self, mock_package_delete, mock_engine_delete,
+                    mock_etcd_delete):
         db_api.increase_function_version(self.func_id, 0,
                                          description="version 1")
 
         resp = self.app.delete('/v1/functions/%s/versions/1' % self.func_id)
 
         self.assertEqual(204, resp.status_int)
-        mock_delete.assert_called_once_with(unit_base.DEFAULT_PROJECT_ID,
-                                            self.func_id, None, version=1)
+        mock_engine_delete.assert_called_once_with(self.func_id, version=1)
+        mock_etcd_delete.assert_called_once_with(self.func_id, version=1)
+        mock_package_delete.assert_called_once_with(
+            unit_base.DEFAULT_PROJECT_ID,
+            self.func_id, None, version=1
+        )
 
         # We need to set context as it was removed after the API call
         context.set_ctx(self.ctx)

@@ -324,7 +324,8 @@ class TestDefaultEngine(base.DbTestCase):
         execution = db_api.get_execution(execution_id)
         self.assertEqual(execution.status, status.ERROR)
         self.assertEqual(execution.logs, '')
-        self.assertEqual(execution.result, {})
+        self.assertEqual(execution.result,
+                         {'EngineError': 'Exception in prepare_execution'})
 
     @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_create_execution_package_type_function(
@@ -385,7 +386,8 @@ class TestDefaultEngine(base.DbTestCase):
 
         self.assertEqual(execution.status, status.ERROR)
         self.assertEqual(execution.logs, '')
-        self.assertEqual(execution.result, {})
+        self.assertEqual(execution.result,
+                         {'EngineError': 'Exception in scaleup_function'})
 
     @mock.patch('qinling.engine.utils.get_request_data')
     @mock.patch('qinling.engine.utils.url_request')

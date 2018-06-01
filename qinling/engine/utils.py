@@ -151,4 +151,6 @@ def handle_execution_exception(execution_id, exc_str):
     LOG.error(
         'Error running execution %s: %s', execution_id, exc_str
     )
-    db_set_execution_status(execution_id, status.ERROR, '', {})
+    db_set_execution_status(
+        execution_id, status.ERROR, '', {'EngineError': exc_str}
+    )

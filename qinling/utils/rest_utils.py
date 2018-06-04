@@ -26,6 +26,9 @@ from qinling import exceptions as exc
 
 LOG = logging.getLogger(__name__)
 
+FILTER_TYPES = ('in', 'nin', 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'has')
+LIST_VALUE_FILTER_TYPES = {'in', 'nin'}
+
 
 def wrap_wsme_controller_exception(func):
     """Decorator for controllers method.
@@ -122,38 +125,17 @@ def _extract_filter_type_and_value(data):
                  'filter_type:value'.
     :return: filter type and value.
     """
-    if data.startswith("in:"):
-        value = list(six.text_type(data[3:]).split(","))
-        filter_type = 'in'
-    elif data.startswith("nin:"):
-        value = list(six.text_type(data[4:]).split(","))
-        filter_type = 'nin'
-    elif data.startswith("neq:"):
-        value = six.text_type(data[4:])
-        filter_type = 'neq'
-    elif data.startswith("gt:"):
-        value = six.text_type(data[3:])
-        filter_type = 'gt'
-    elif data.startswith("gte:"):
-        value = six.text_type(data[4:])
-        filter_type = 'gte'
-    elif data.startswith("lt:"):
-        value = six.text_type(data[3:])
-        filter_type = 'lt'
-    elif data.startswith("lte:"):
-        value = six.text_type(data[4:])
-        filter_type = 'lte'
-    elif data.startswith("eq:"):
-        value = six.text_type(data[3:])
-        filter_type = 'eq'
-    elif data.startswith("has:"):
-        value = six.text_type(data[4:])
-        filter_type = 'has'
-    else:
-        value = data
-        filter_type = 'eq'
+    for filter_type in FILTER_TYPES:
+        prefix = filter_type + ':'
+        prefix_len = len(prefix)
+        if data.startswith(prefix):
+            value = six.text_type(data[prefix_len:])
+            if filter_type in LIST_VALUE_FILTER_TYPES:
+                value = list(value.split(','))
+            return filter_type, value
 
-    return filter_type, value
+    # Not matching any filter types, defaults to 'eq'.
+    return 'eq', data
 
 
 def get_project_params(project_id, all_projects):

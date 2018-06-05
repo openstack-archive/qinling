@@ -40,4 +40,10 @@ QinlingGroup = [
                choices=['public', 'admin', 'internal',
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the qinling service."),
+    cfg.StrOpt("python_runtime_image",
+               default="openstackqinling/python-runtime:0.0.2",
+               help="The Python runtime being used in the tests."),
+    cfg.StrOpt("nodejs_runtime_image",
+               default="openstackqinling/nodejs-runtime:0.0.1",
+               help="The NodeJS runtime being used in the tests."),
 ]

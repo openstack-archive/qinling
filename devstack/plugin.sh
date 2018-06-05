@@ -29,7 +29,7 @@ function install_k8s {
     # test.
     sudo docker pull $QINLING_PYTHON_RUNTIME_IMAGE
     sudo docker pull $QINLING_NODEJS_RUNTIME_IMAGE
-    sudo docker pull openstackqinling/sidecar
+    sudo docker pull $QINLING_SIDECAR_IMAGE
     sudo docker pull openstackqinling/alpine-test
 }
 

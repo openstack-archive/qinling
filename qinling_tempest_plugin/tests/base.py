@@ -27,7 +27,7 @@ CONF = config.CONF
 class BaseQinlingTest(test.BaseTestCase):
     credentials = ('admin', 'primary', 'alt')
     create_runtime = True
-    image = 'openstackqinling/python-runtime'
+    image = CONF.qinling.python_runtime_image
 
     @classmethod
     def skip_checks(cls):

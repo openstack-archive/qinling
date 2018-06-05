@@ -35,7 +35,7 @@ spec:
           - name: package-folder
             mountPath: /var/qinling/packages
       - name: sidecar
-        image: openstackqinling/sidecar
+        image: {{ sidecar_image }}
         imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 9091

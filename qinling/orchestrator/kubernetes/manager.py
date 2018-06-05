@@ -111,6 +111,7 @@ class KubernetesManager(base.OrchestratorBase):
                 "replicas": self.conf.kubernetes.replicas,
                 "container_name": 'worker',
                 "image": image,
+                "sidecar_image": self.conf.engine.sidecar_image
             }
         )
 

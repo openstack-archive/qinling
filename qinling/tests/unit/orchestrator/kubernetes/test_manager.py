@@ -152,7 +152,8 @@ class TestKubernetesManager(base.DbTestCase):
                 'labels': {'runtime_id': fake_deployment_name},
                 'replicas': fake_replicas,
                 'container_name': 'worker',
-                'image': fake_image
+                'image': fake_image,
+                'sidecar_image': CONF.engine.sidecar_image
             }
         )
         self.k8s_v1_ext.create_namespaced_deployment.assert_called_once_with(

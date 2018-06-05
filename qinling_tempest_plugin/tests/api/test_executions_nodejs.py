@@ -11,14 +11,17 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+from tempest import config
 from tempest.lib import decorators
 
 from qinling_tempest_plugin.tests import base
 
+CONF = config.CONF
+
 
 class NodeJSExecutionsTest(base.BaseQinlingTest):
     name_prefix = 'NodeJSExecutionsTest'
-    image = 'openstackqinling/nodejs-runtime'
+    image = CONF.qinling.nodejs_runtime_image
 
     def setUp(self):
         super(NodeJSExecutionsTest, self).setUp()

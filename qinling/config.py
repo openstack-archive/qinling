@@ -112,6 +112,11 @@ engine_opts = [
         default=3,
         help='Maximum number of concurrent executions per function.'
     ),
+    cfg.StrOpt(
+        'sidecar_image',
+        default='openstackqinling/sidecar:0.0.1',
+        help='The sidecar image being used in the worker.'
+    ),
 ]
 
 STORAGE_GROUP = 'storage'

@@ -39,17 +39,18 @@ Overview
 --------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    quick_start
    glossary
    features
+   videos
 
 Administration/Operation Guide
 ------------------------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    admin/index
 
@@ -66,7 +67,7 @@ User Guide
 ----------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    user/index
 
@@ -74,7 +75,7 @@ Function Programming Guide
 --------------------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    function_developer/index
 

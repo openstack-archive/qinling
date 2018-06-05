@@ -308,11 +308,11 @@ class FunctionVersionsController(rest.RestController):
 
         workers = etcd_util.get_workers(function_id, version=version)
         if len(workers) <= 1:
-            LOG.info('No need to scale down function %s(version)', function_id,
-                     version)
+            LOG.info('No need to scale down function %s(version %s)',
+                     function_id, version)
             return
 
-        LOG.info('Starting to scale down function %s(version), params: %s',
+        LOG.info('Starting to scale down function %s(version %s), params: %s',
                  function_id, version, params)
         self.engine_client.scaledown_function(function_id, version=version,
                                               count=params['count'])
@@ -332,7 +332,7 @@ class FunctionVersionsController(rest.RestController):
         if version > 0:
             db_api.get_function_version(function_id, version)
 
-        LOG.info('Starting to detach function %s(version)', function_id,
+        LOG.info('Starting to detach function %s(version %s)', function_id,
                  version)
 
         # Delete allocated resources in orchestrator and etcd keys.

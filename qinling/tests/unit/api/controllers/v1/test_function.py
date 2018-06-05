@@ -209,11 +209,11 @@ class TestFunctionController(base.APITest):
             resp.json['faultstring']
         )
 
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')
     @mock.patch('qinling.utils.etcd_util.delete_function')
     @mock.patch('qinling.rpc.EngineClient.delete_function')
-    def test_put_cpu_and_memorysize(
-            self, mock_delete_func, mock_etcd_del
-    ):
+    def test_put_cpu_and_memorysize(self, mock_delete_func, mock_etcd_del,
+                                    mock_storage_delete):
         # Test for updating cpu/mem with good input values.
         db_func = self.create_function(runtime_id=self.runtime_id)
 
@@ -235,6 +235,7 @@ class TestFunctionController(base.APITest):
         )
         mock_delete_func.assert_called_once_with(db_func.id)
         mock_etcd_del.assert_called_once_with(db_func.id)
+        self.assertFalse(mock_storage_delete.called)
 
     @mock.patch('qinling.utils.etcd_util.delete_function')
     @mock.patch('qinling.rpc.EngineClient.delete_function')

@@ -119,6 +119,34 @@ class FunctionVersion(model_base.QinlingSecureModelBase):
     count = sa.Column(sa.Integer, default=0)
 
 
+class FunctionAlias(model_base.QinlingSecureModelBase):
+    __tablename__ = 'function_aliases'
+
+    __table_args__ = (
+        sa.UniqueConstraint('project_id', 'function_id', 'function_version'),
+        sa.Index(
+            '%s_project_id_function_id_function_version' % __tablename__,
+            'project_id',
+            'function_id',
+            'function_version'
+        ),
+        sa.UniqueConstraint('project_id', 'name'),
+        sa.Index(
+            '%s_project_id_name' % __tablename__,
+            'project_id',
+            'name'
+        )
+    )
+
+    function_id = sa.Column(
+        sa.String(36),
+        sa.ForeignKey(Function.id)
+    )
+    name = sa.Column(sa.String(255), nullable=False)
+    description = sa.Column(sa.String(255), nullable=True)
+    function_version = sa.Column(sa.Integer, default=0)
+
+
 # Only get running jobs
 Function.jobs = relationship(
     "Job",

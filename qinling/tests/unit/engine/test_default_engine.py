@@ -261,6 +261,7 @@ class TestDefaultEngine(base.DbTestCase):
             mock.call(execution_1_id,
                       function_id,
                       0,
+                      rlimit=None,
                       input=None,
                       identifier=mock.ANY,
                       service_url=None,
@@ -269,6 +270,7 @@ class TestDefaultEngine(base.DbTestCase):
             mock.call(execution_2_id,
                       function_id,
                       0,
+                      rlimit=None,
                       input='input',
                       identifier=mock.ANY,
                       service_url=None,
@@ -357,8 +359,8 @@ class TestDefaultEngine(base.DbTestCase):
             identifier=runtime_id, labels={'runtime_id': runtime_id},
             input=None)
         self.orchestrator.run_execution.assert_called_once_with(
-            execution_id, function_id, 0, input=None, identifier=runtime_id,
-            service_url='svc_url', entry=function.entry,
+            execution_id, function_id, 0, rlimit=self.rlimit, input=None,
+            identifier=runtime_id, service_url='svc_url', entry=function.entry,
             trust_id=function.trust_id)
 
         execution = db_api.get_execution(execution_id)
@@ -419,7 +421,7 @@ class TestDefaultEngine(base.DbTestCase):
             function_id, 0, runtime_id)
         etcd_util_get_service_url_mock.assert_called_once_with(function_id, 0)
         engine_utils_get_request_data_mock.assert_called_once_with(
-            mock.ANY, function_id, 0, execution_id,
+            mock.ANY, function_id, 0, execution_id, self.rlimit,
             'input', function.entry, function.trust_id,
             self.qinling_endpoint)
         engine_utils_url_request_mock.assert_called_once_with(

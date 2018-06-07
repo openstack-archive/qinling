@@ -1,7 +1,7 @@
 FROM phusion/baseimage:0.9.22
 MAINTAINER anlin.kong@gmail.com
 
-# We need to use non-root user because root user is not affected by ulimit.
+# We need to use non-root user to execute functions and root user to set resource limits.
 USER root
 RUN useradd -Ms /bin/bash qinling
 
@@ -12,8 +12,10 @@ RUN apt-get update && \
 COPY . /app
 WORKDIR /app
 RUN pip install --no-cache-dir -r requirements.txt && \
+    chmod 0750 custom-entrypoint.sh && \
+    mkdir /qinling_cgroup && \
+    mkdir -p /var/lock/qinling && \
     mkdir -p /var/qinling/packages && \
     chown -R qinling:qinling /app /var/qinling/packages
 
-# uwsgi --http :9090 --uid qinling --wsgi-file server.py --callable app --master --processes 5 --threads 1
-CMD ["/usr/local/bin/uwsgi", "--http", ":9090", "--uid", "qinling", "--wsgi-file", "server.py", "--callable", "app", "--master", "--processes", "5", "--threads", "1"]
+CMD ["/bin/bash", "custom-entrypoint.sh"]

@@ -21,3 +21,16 @@
     - kubelet-1.9.3
     - kubectl-1.9.3
     - kubeadm-1.9.3
+
+# On CentOS 7, the kubeadm package adds a configuration file that overrides
+# kubelet's cgroup driver to systemd, we want to use the default driver
+# cgroupfs to get the same cgroup paths for resource limiting.
+#
+#   $ rpm -qf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+#   kubeadm-1.9.3-0.x86_64
+#
+- name: Change kubelet cgroup driver
+  replace:
+    path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    regexp: '(KUBELET_CGROUP_ARGS=)[^"]+'
+    replace: '\1'

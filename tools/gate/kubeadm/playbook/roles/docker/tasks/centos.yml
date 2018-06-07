@@ -20,25 +20,7 @@
          docker-ce-17.03.2.ce-1.el7.centos \
          docker-ce-selinux-17.03.2.ce-1.el7.centos
 
-- name: Ensure docker.service.d directory
-  file:
-    path: /etc/systemd/system/docker.service.d
-    recurse: yes
-    state: directory
-
-- name: Change docker cgroup driver
-  copy:
-    content: |
-      [Service]
-      ExecStart=
-      ExecStart=/usr/bin/dockerd --exec-opt native.cgroupdriver=systemd
-    dest: /etc/systemd/system/docker.service.d/10-docker-kubeadm.conf
-    mode: 0644
-    group: root
-    owner: root
-
-- name: Restart docker service
+- name: Start docker service
   systemd:
     name: docker
-    daemon_reload: yes
-    state: restarted
+    state: started

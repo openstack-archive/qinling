@@ -12,6 +12,30 @@ submitted for review via the Gerrit tool:
 
 Pull requests submitted through GitHub will be ignored.
 
-Bugs should be filed on StoryBoard, not Launchpad or GitHub:
+How to file a bug
+~~~~~~~~~~~~~~~~~
 
-   https://storyboard.openstack.org/#!/project/927
+* Go to
+  `Qinling project storyboard <https://storyboard.openstack.org/#!/project/927>`_,
+  click ``Add story``.
+* Input the bug title and description, be aware the Markdown formatting is
+  supported, it's useful if you want to paste code or log. After completion,
+  click ``Save Changes``.
+* In the created story page, add a tag named 'bug' in the ``Tags`` section.
+* Now, you can see the new bug in
+  `Qinling project dashboard <https://storyboard.openstack.org/#!/board/79>`_.
+
+How to propose a feature
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Go to
+  `Qinling project storyboard <https://storyboard.openstack.org/#!/project/927>`_,
+  click ``Add story``.
+* Input the feature title and description, be aware the Markdown formatting is
+  supported, it's useful if you want to paste code or log. After completion,
+  click ``Save Changes``.
+* In the created story page, add a tag named 'feature' in the ``Tags`` section.
+* You can optionally break the story into different tasks so that the whole
+  story can be tracked properly in different patches.
+* Now, you can see the new feature in
+  `Qinling project dashboard <https://storyboard.openstack.org/#!/board/79>`_.

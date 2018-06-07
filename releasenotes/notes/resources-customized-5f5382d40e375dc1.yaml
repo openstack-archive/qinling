@@ -1,0 +1,10 @@
+---
+prelude: >
+    Support customizing resource limitation for functions, both cpu and memory
+    are supported.
+features:
+  - |
+    Support customizing memory and cpu resource limitation for functions. The
+    user can specify ``memory_size`` and ``cpu`` when creating functions,
+    otherwise the default values are used. Refer to Qinling documentation for
+    more details.

@@ -85,7 +85,7 @@ class QinlingClient(client_base.QinlingClientBase):
         return resp, json.loads(resp.text)
 
     def update_function(self, function_id, package_data=None, code=None,
-                        entry=None):
+                        entry=None, **kwargs):
         headers = {'X-Auth-Token': self.auth_provider.get_token()}
 
         req_body = {}
@@ -93,6 +93,7 @@ class QinlingClient(client_base.QinlingClientBase):
             req_body['code'] = json.dumps(code)
         if entry:
             req_body['entry'] = entry
+        req_body.update(kwargs)
 
         req_kwargs = {
             'headers': headers,

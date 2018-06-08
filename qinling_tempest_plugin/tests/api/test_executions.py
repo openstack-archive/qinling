@@ -12,6 +12,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 from concurrent import futures
+import json
 
 import futurist
 from oslo_serialization import jsonutils
@@ -19,6 +20,9 @@ from tempest.lib import decorators
 from tempest.lib import exceptions
 
 from qinling_tempest_plugin.tests import base
+
+INVOKE_ERROR = "Function execution failed because of too much resource " \
+               "consumption"
 
 
 class ExecutionsTest(base.BaseQinlingTest):
@@ -273,3 +277,121 @@ class ExecutionsTest(base.BaseQinlingTest):
                         execution_id, ignore_notfound=True)
         self.assertEqual('success', body['status'])
         self.assertIn('Qinling', jsonutils.loads(body['result'])['output'])
+
+    @decorators.idempotent_id('2b5f0787-b82d-4fc4-af76-cf86d389a76b')
+    def test_python_execution_memory_limit_non_image(self):
+        """In this case, the following steps are taken:
+
+        1. Create a function that requires ~80M memory to run.
+        2. Create an execution using the function.
+        3. Verify that the execution is killed by the OOM-killer
+           because the function memory limit is only 32M(default).
+        4. Increase the function memory limit to 96M.
+        5. Create another execution.
+        6. Check the execution finished normally.
+        """
+
+        # Create function
+        package = self.create_package(
+            name='python/test_python_memory_limit.py'
+        )
+        function_id = self.create_function(package_path=package)
+
+        # Invoke function
+        resp, body = self.client.create_execution(function_id)
+
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        # Check the process is killed
+        self.assertEqual(201, resp.status)
+        result = json.loads(body['result'])
+        output = result.get('output')
+        self.assertEqual(INVOKE_ERROR, output)
+
+        # Increase the memory limit to 100663296(96M).
+        resp, body = self.client.update_function(
+            function_id, memory_size=100663296)
+        self.assertEqual(200, resp.status_code)
+
+        # Invoke the function again
+        resp, body = self.client.create_execution(function_id)
+
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        # Check the process exited normally
+        self.assertEqual(201, resp.status)
+        result = json.loads(body['result'])
+        output = result.get('output')
+        # The function returns the length of a list containing 4 long strings.
+        self.assertEqual(4, output)
+
+    @decorators.idempotent_id('ed714f98-29fe-4e8d-b6ee-9730f92bddea')
+    def test_python_execution_cpu_limit_non_image(self):
+        """In this case, the following steps are taken:
+
+        1. Create a function that takes some time to finish (calculating the
+           first 50000 digits of PI)
+        2. Create an execution using the function.
+        3. Store the duration of the first execution.
+        4. Increase the function cpu limit from 100(default) to 200 millicpu.
+        5. Create another execution.
+        6. Check whether the duration of the first execution is approximately
+           the double of the duration of the second one as its cpu resource is
+           half of the second run.
+        """
+
+        # Create function
+        package = self.create_package(
+            name='python/test_python_cpu_limit.py'
+        )
+        function_id = self.create_function(package_path=package)
+
+        # Invoke function
+        resp, body = self.client.create_execution(function_id)
+
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        # Record the duration, check whether the result is correct.
+        self.assertEqual(201, resp.status)
+        result = json.loads(body['result'])
+        output = result.get('output')
+        # Only the first 15 digits are returned.
+        self.assertEqual('314159265358979', output)
+        first_duration = result.get('duration', 0)
+
+        # Increase the cpu limit
+        resp, body = self.client.update_function(function_id, cpu=200)
+        self.assertEqual(200, resp.status_code)
+
+        # Invoke the function again
+        resp, body = self.client.create_execution(function_id)
+
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        # Record the second duration, check whether the result is correct.
+        self.assertEqual(201, resp.status)
+        result = json.loads(body['result'])
+        output = result.get('output')
+        # Only the first 15 digits are returned.
+        self.assertEqual('314159265358979', output)
+        second_duration = result.get('duration', 0)
+
+        # Check whether the duration of the first execution is approximately
+        # the double (1.8x ~ 2.2x) of the duration of the second one.
+        # NOTE(huntxu): on my testbed, the result is quite near 2x. However
+        # it may vary in different environments, so we give a wider range
+        # here.
+        self.assertNotEqual(0, first_duration)
+        self.assertNotEqual(0, second_duration)
+        upper = second_duration * 2.2
+        lower = second_duration * 1.8
+        self.assertGreaterEqual(upper, first_duration)
+        self.assertLessEqual(lower, first_duration)

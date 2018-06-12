@@ -10,7 +10,7 @@ Support Qinling function aliases
 
 https://storyboard.openstack.org/#!/story/2001588
 
-Function aliases are like pointers to the specific funtion versions. By using
+Function aliases are like pointers to the specific function versions. By using
 aliases, you can access the specific version of a function an alias is pointing
 to (for example, to invoke the function) without having to know the specific
 version the alias is pointing to. Function aliases enable the following use

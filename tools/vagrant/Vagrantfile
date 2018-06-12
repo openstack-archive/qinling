@@ -64,8 +64,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Initialize Qinling configuration.
     sudo mkdir -p /vagrant/etc/qinling
     sudo mkdir -p /vagrant/log
-    sudo mkdir -p /opt/qinling/funtion
-    sudo chown ubuntu:ubuntu /opt/qinling/funtion
+    sudo mkdir -p /opt/qinling/function
+    sudo chown ubuntu:ubuntu /opt/qinling/function
     cp /vagrant/qinling.conf.sample /vagrant/etc/qinling/qinling.conf
 
     # Qinling db migration.

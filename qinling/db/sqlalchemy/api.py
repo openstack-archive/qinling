@@ -200,6 +200,13 @@ def _delete_all(model, insecure=None, **kwargs):
     query.filter_by(**kwargs).delete(synchronize_session="fetch")
 
 
+@db_base.insecure_aware()
+def _get_db_object_by_name(model, name, insecure=None):
+    query = db_base.model_query(model) if insecure else _secure_query(model)
+
+    return query.filter_by(name=name).first()
+
+
 @db_base.session_aware()
 def conditional_update(model, values, expected_values, insecure=False,
                        filters=None, session=None):
@@ -555,3 +562,44 @@ def delete_function_version(function_id, version, session=None):
 @db_base.session_aware()
 def get_function_versions(session=None, **kwargs):
     return _get_collection_sorted_by_time(models.FunctionVersion, **kwargs)
+
+
+@db_base.session_aware()
+def create_function_alias(session=None, **kwargs):
+    alias = models.FunctionAlias()
+    alias.update(kwargs.copy())
+
+    try:
+        alias.save(session=session)
+    except oslo_db_exc.DBDuplicateEntry as e:
+        raise exc.DBError(
+            "Duplicate entry for function_aliases: %s" % e.columns
+        )
+
+    return alias
+
+
+@db_base.insecure_aware()
+@db_base.session_aware()
+def get_function_alias(name, session=None, insecure=None):
+    alias = _get_db_object_by_name(models.FunctionAlias,
+                                   name,
+                                   insecure=insecure)
+
+    if not alias:
+        raise exc.DBEntityNotFoundError(
+            "FunctionAlias not found [name=%s]" %
+            (name)
+        )
+
+    return alias
+
+
+@db_base.session_aware()
+def get_function_aliases(session=None, **kwargs):
+    return _get_collection_sorted_by_time(models.FunctionAlias, **kwargs)
+
+
+@db_base.session_aware()
+def delete_function_aliases(session=None, **kwargs):
+    return _delete_all(models.FunctionAlias, **kwargs)

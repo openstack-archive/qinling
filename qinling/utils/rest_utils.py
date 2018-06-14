@@ -88,7 +88,6 @@ def get_filters(**params):
         if data is not None:
             if isinstance(data, six.string_types):
                 f_type, value = _extract_filter_type_and_value(data)
-
                 create_or_update_filter(column, value, f_type, filters)
             else:
                 create_or_update_filter(column, data, _filter=filters)

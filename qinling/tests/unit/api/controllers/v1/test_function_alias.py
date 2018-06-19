@@ -14,6 +14,7 @@
 
 from qinling import context
 from qinling.db import api as db_api
+from qinling import exceptions as exc
 from qinling.tests.unit.api import base
 from qinling.tests.unit import base as unit_base
 
@@ -96,3 +97,58 @@ class TestFunctionAliasController(base.APITest):
         actual = self._assert_single_item(resp.json['function_aliases'],
                                           name=name)
         self._assertDictContainsSubset(actual, expected)
+
+    def test_delete(self):
+        name = self.rand_name(name="alias", prefix=self.prefix)
+        function_version = 0
+        body = {'function_id': self.func_id,
+                'function_version': function_version,
+                'name': name,
+                'description': 'new alias'}
+
+        db_api.create_function_alias(**body)
+
+        resp = self.app.delete('/v1/aliases/%s' % name)
+
+        self.assertEqual(204, resp.status_int)
+
+        context.set_ctx(self.ctx)
+
+        self.assertRaises(exc.DBEntityNotFoundError,
+                          db_api.get_function_alias,
+                          name)
+
+    def test_put(self):
+        name = self.rand_name(name="alias", prefix=self.prefix)
+        function_version = 0
+        body = {'function_id': self.func_id,
+                'function_version': function_version,
+                'name': name,
+                'description': 'new alias'}
+
+        db_api.create_function_alias(**body)
+
+        body['function_version'] = 1
+        body['description'] = 'update alias'
+
+        resp = self.app.put_json('/v1/aliases/%s' % name, body)
+
+        self.assertEqual(200, resp.status_int)
+        self._assertDictContainsSubset(resp.json, body)
+
+    def test_put_without_optional_params(self):
+        name = self.rand_name(name="alias", prefix=self.prefix)
+        function_version = 1
+        body = {'function_id': self.func_id,
+                'function_version': function_version,
+                'name': name,
+                'description': 'new alias'}
+
+        db_api.create_function_alias(**body)
+
+        update_body = {}
+
+        resp = self.app.put_json('/v1/aliases/%s' % name, update_body)
+
+        self.assertEqual(200, resp.status_int)
+        self._assertDictContainsSubset(resp.json, body)

@@ -30,6 +30,7 @@ LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
 POST_REQUIRED = set(['name', 'function_id'])
+UPDATE_ALLOWED = set(['function_id', 'function_version', 'description'])
 
 
 class FunctionAliasesController(rest.RestController):
@@ -111,3 +112,45 @@ class FunctionAliasesController(rest.RestController):
                    for db_model in db_aliases]
 
         return resources.FunctionAliases(function_aliases=aliases)
+
+    @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
+    def delete(self, alias_name):
+        """Delete a specific alias.
+
+        """
+        ctx = context.get_ctx()
+        acl.enforce('function_alias:delete', ctx)
+        LOG.info("Deleting alias %s.", alias_name)
+
+        db_api.delete_function_alias(alias_name)
+
+        LOG.info("Alias %s deleted.", alias_name)
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(
+        resources.FunctionAlias,
+        wtypes.text,
+        body=resources.FunctionAlias,
+    )
+    def put(self, alias_name, body):
+        """Update alias for the specified function.
+
+        The supported body params:
+            - function_id: Optional. Function id the alias point to.
+            - function_version: Optional. Version number the alias point to.
+            - description: Optional. The description of the alias.
+        """
+        ctx = context.get_ctx()
+        acl.enforce('function_alias:update', ctx)
+
+        params = body.to_dict()
+        values = {}
+        for key in UPDATE_ALLOWED:
+            if params.get(key) is not None:
+                values.update({key: params[key]})
+        LOG.info("Updating Alias %s, params: %s", alias_name, values)
+
+        alias = db_api.update_function_alias(alias_name, **values)
+
+        LOG.info("Alias updated.")
+        return resources.FunctionAlias.from_db_obj(alias)

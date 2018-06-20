@@ -20,4 +20,5 @@ plugin mechanism.
 * Source: http://git.openstack.org/cgit/openstack/qinling
 * Features: https://storyboard.openstack.org/#!/project/927
 * Bug Track: https://storyboard.openstack.org/#!/project/927
+* Release notes:  https://docs.openstack.org/releasenotes/qinling/
 * IRC channel on Freenode: #openstack-qinling

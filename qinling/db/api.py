@@ -59,6 +59,7 @@ def delete_all():
     delete_jobs(insecure=True)
     delete_webhooks(insecure=True)
     delete_executions(insecure=True)
+    delete_function_aliases(insecure=True)
     delete_functions(insecure=True)
     delete_runtimes(insecure=True)
 
@@ -223,3 +224,20 @@ def delete_function_version(function_id, version):
 
 def get_function_versions(**kwargs):
     return IMPL.get_function_versions(**kwargs)
+
+
+def create_function_alias(**kwargs):
+    return IMPL.create_function_alias(**kwargs)
+
+
+def get_function_alias(name, **kwargs):
+    return IMPL.get_function_alias(name, **kwargs)
+
+
+def get_function_aliases(**kwargs):
+    return IMPL.get_function_aliases(**kwargs)
+
+
+# For unit test
+def delete_function_aliases(**kwargs):
+    return IMPL.delete_function_aliases(**kwargs)

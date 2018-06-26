@@ -388,3 +388,23 @@ class FunctionVersions(ResourceList):
         self._type = 'function_versions'
 
         super(FunctionVersions, self).__init__(**kwargs)
+
+
+class FunctionAlias(Resource):
+    id = types.uuid
+    name = wtypes.text
+    description = wtypes.text
+    function_id = types.uuid
+    function_version = wsme.wsattr(int, default=0)
+    project_id = wsme.wsattr(wtypes.text, readonly=True)
+    created_at = wsme.wsattr(wtypes.text, readonly=True)
+    updated_at = wsme.wsattr(wtypes.text, readonly=True)
+
+
+class FunctionAliases(ResourceList):
+    function_aliases = [FunctionAlias]
+
+    def __init__(self, **kwargs):
+        self._type = 'function_aliases'
+
+        super(FunctionAliases, self).__init__(**kwargs)

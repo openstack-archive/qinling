@@ -25,6 +25,17 @@ Demos
 * `(2018.05) Qinling function autoscaling <https://youtu.be/9YK3t2hoaJA>`_
 * `(2018.05) Qinling function versioning <https://asciinema.org/a/xaglSGBQ8R9hdkyOFCxg1GkzM?speed=2&rows=40>`_
 
+Cookbooks
+---------
+
+.. toctree::
+    :maxdepth: 1
+
+    cookbook_function
+    cookbook_function_version
+    cookbook_webhook
+    cookbook_job
+
 Integration with other services
 -------------------------------
 

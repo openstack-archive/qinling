@@ -14,4 +14,3 @@
 
 Python developer guide
 ======================
-

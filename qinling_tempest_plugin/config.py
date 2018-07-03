@@ -18,8 +18,7 @@ from oslo_config import cfg
 service_option = cfg.BoolOpt(
     'qinling',
     default=True,
-    help="Whether or not Qinling is expected to be"
-         "available"
+    help="Whether or not Qinling is expected to be available"
 )
 
 
@@ -41,7 +40,7 @@ QinlingGroup = [
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the qinling service."),
     cfg.StrOpt("python_runtime_image",
-               default="openstackqinling/python-runtime:0.0.3",
+               default="openstackqinling/python-runtime:0.0.4",
                help="The Python runtime being used in the tests."),
     cfg.StrOpt("nodejs_runtime_image",
                default="openstackqinling/nodejs-runtime:0.0.1",

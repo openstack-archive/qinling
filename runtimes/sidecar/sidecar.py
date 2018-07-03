@@ -98,7 +98,7 @@ def download():
         params['download_url'],
         zip_file,
         token=params.get('token'),
-        unzip=params.get('unzip')
+        unzip=params.get('unzip', True)
     )
 
     return resp if resp else 'downloaded'

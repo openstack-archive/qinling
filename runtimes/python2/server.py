@@ -72,8 +72,8 @@ def _get_responce(output, duration, logs, success, code):
     )
 
 
-def _invoke_function(execution_id, zip_file, module_name, method, arg, input,
-                     return_dict, rlimit):
+def _invoke_function(execution_id, zip_file_dir, module_name, method, arg,
+                     input, return_dict, rlimit):
     """Thie function is supposed to be running in a child process.
 
     HOSTNAME will be used to create cgroup directory related to worker.
@@ -102,7 +102,7 @@ def _invoke_function(execution_id, zip_file, module_name, method, arg, input,
         return_dict['success'] = False
         sys.exit(0)
 
-    sys.path.insert(0, zip_file)
+    sys.path.insert(0, zip_file_dir)
     sys.stdout = open("%s.out" % execution_id, "w", 0)
 
     print('Start execution: %s' % execution_id)
@@ -146,7 +146,7 @@ def execute():
     auth_url = params.get('auth_url')
     username = params.get('username')
     password = params.get('password')
-    zip_file = '/var/qinling/packages/%s.zip' % function_id
+    zip_file_dir = '/var/qinling/packages/%s' % function_id
     rlimit = {
         'cpu': params['cpu'],
         'memory_size': params['memory_size']
@@ -209,7 +209,7 @@ def execute():
     # Run the function in a separate process to avoid messing up the log
     p = Process(
         target=_invoke_function,
-        args=(execution_id, zip_file, function_module, function_method,
+        args=(execution_id, zip_file_dir, function_module, function_method,
               input.pop('__function_input', None), input, return_dict, rlimit)
     )
     p.start()

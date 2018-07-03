@@ -114,8 +114,8 @@ engine_opts = [
     ),
     cfg.StrOpt(
         'sidecar_image',
-        default='openstackqinling/sidecar:0.0.1',
-        help='The sidecar image being used in the worker.'
+        default='openstackqinling/sidecar:0.0.2',
+        help='The sidecar image being used together with the worker.'
     ),
 ]
 

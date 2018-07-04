@@ -15,6 +15,7 @@
 import sys
 
 import cotyledon
+from cotyledon import oslo_config_glue
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -39,6 +40,7 @@ def main():
             eng_service.EngineService,
             workers=1,
         )
+        oslo_config_glue.setup(sm, CONF, reload_method="mutate")
         sm.run()
     except RuntimeError as excp:
         sys.stderr.write("ERROR: %s\n" % excp)

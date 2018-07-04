@@ -38,7 +38,8 @@ def main():
         rpc.get_transport()
 
         api_server = api_service.WSGIService()
-        launcher = service.launch(CONF, api_server, workers=api_server.workers)
+        launcher = service.launch(CONF, api_server, workers=api_server.workers,
+                                  restart_method='mutate')
         launcher.wait()
     except RuntimeError as excp:
         sys.stderr.write("ERROR: %s\n" % excp)

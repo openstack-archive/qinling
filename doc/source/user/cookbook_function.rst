@@ -18,8 +18,278 @@ Function Cookbook
 Introduction
 ~~~~~~~~~~~~
 
+Qinling function lets you execute your code in a serverless environment without
+having to first create a VM or container. This cookbook contains several
+examples for how to create functions in Qinling.
+
 Examples
 ~~~~~~~~
 
 Create python function with libraries in a package
 --------------------------------------------------
+
+This guide describes how to create a python function with libraries in a
+package and how to invoke the function in a Python runtime(the steps assume
+there is already a Python 2.7 runtime available in the deployment).
+
+The function resizes an image which stores in Swift and uploads the resized
+image to a new container with a same object name. For the function to work, a
+python library called ``Pillow`` needs to be installed together with the
+function code, the ``python-swiftclient`` doesn't need to be installed because
+Qinling supports it as a built-in library in Qinling's default Python 2.7
+runtime implementation.
+
+The function needs two positional parameters:
+
+* ``container_name``: The container name in Swift that the original image file
+  is stored in.
+* ``object_name``: The object name in the container.
+
+There is no output for the function itself, but you can check the function
+execution log to see the whole process.
+
+.. note::
+
+  The following process has been tested in a Devstack environment in which
+  Swift is also installed.
+
+#. Create a directory, for example ``~/qinling_test``
+
+   .. code-block:: console
+
+      $ mkdir ~/qinling_test
+
+   .. end
+
+#. Write a custom python code for resizing an image at the root level of the
+   directory created above.
+
+   .. code-block:: console
+
+      $ cat <<EOF > ~/qinling_test/resize_image.py
+      import os
+
+      from PIL import Image
+      import swiftclient
+      from swiftclient.exceptions import ClientException
+
+
+      def resize_image(image_path, resized_path):
+          with Image.open(image_path) as image:
+              image.thumbnail(tuple(x / 4 for x in image.size))
+              image.save(resized_path)
+
+
+      def main(context, container_name, object_name):
+          conn = swiftclient.Connection(
+              session=context['os_session'],
+              os_options={'region_name': 'RegionOne'},
+          )
+
+          # Download original image
+          image_path = os.path.abspath('./%s' % object_name)
+          _, obj_contents = conn.get_object(container_name, object_name)
+          with open(image_path, 'w') as local:
+              local.write(obj_contents)
+
+          print('Downloaded object %s from container %s' % (object_name, container_name))
+
+          thumb_path = os.path.abspath('./%s_resized.png' % object_name)
+          resize_image(image_path, thumb_path)
+
+          print('Resized.')
+
+          # Create new container if needed
+          new_container_name = '%s_resized' % container_name
+          try:
+              conn.head_container(new_container_name)
+          except ClientException:
+              conn.put_container(new_container_name)
+              print("New container %s created." % new_container_name)
+
+          # Upload resized image
+          with open(thumb_path, 'r') as new_local:
+              conn.put_object(
+                  new_container_name,
+                  object_name,
+                  contents=new_local,
+                  content_type='text/plain'
+              )
+          os.remove(image_path)
+          os.remove(thumb_path)
+
+          print('Uploaded object %s to container %s' % (object_name, new_container_name))
+      EOF
+
+   .. end
+
+#. Install the python libraries necessary for the program execution using
+   ``pip``. The libraries need to be installed at the root level of the
+   directory.
+
+   .. code-block:: console
+
+      pip install module-name -t path/to/dir
+
+   .. end
+
+   In this example, we would install the library ``Pillow`` in the project
+   directory.
+
+   .. code-block:: console
+
+      $ pip install Pillow -t ~/qinling_test
+
+   .. end
+
+   .. note::
+
+      Qinling's default Python runtime includes most of the OpenStack project
+      SDKs, so you don't need to include python-swiftclient in your function
+      code package, but you can optionally include it for your local testing.
+
+#. Add the contents of the whole directory to a zip file which is now your
+   function code package. Make sure you zip the contents of the directory and
+   not the directory itself.
+
+   .. code-block:: console
+
+      $ cd ~/qinling_test; zip -r9 ~/qinling_test/resize_image.zip .
+
+   .. end
+
+#. Create function and get the function ID, replace the ``runtime_id`` with
+   the one in your deployment.
+
+   .. code-block:: console
+
+      $ runtime_id=601efeb8-3e41-4e5c-a12a-986dbda252e3
+      $ openstack function create --name resize_image \
+          --runtime $runtime_id \
+          --entry resize_image.main \
+          --package ~/qinling_test/resize_image.zip
+      +-------------+-------------------------------------------------------------------------+
+      | Field       | Value                                                                   |
+      +-------------+-------------------------------------------------------------------------+
+      | id          | f8b18de6-1751-46d6-8c0d-0f1ecf943d12                                    |
+      | name        | resize_test                                                             |
+      | description | None                                                                    |
+      | count       | 0                                                                       |
+      | code        | {u'source': u'package', u'md5sum': u'ae7ad9ae450a8c5c31dca8e96f42247c'} |
+      | runtime_id  | 685c1e6c-e175-4b32-9ec4-244d39c1077e                                    |
+      | entry       | resize_image.main                                                       |
+      | project_id  | a1e58c83923a4e2ca9370df6007c7fe6                                        |
+      | created_at  | 2018-07-03 04:38:50.147277                                              |
+      | updated_at  | None                                                                    |
+      | cpu         | 100                                                                     |
+      | memory_size | 33554432                                                                |
+      +-------------+-------------------------------------------------------------------------+
+      $ function_id=f8b18de6-1751-46d6-8c0d-0f1ecf943d12
+
+    .. end
+
+#. Upload an image to Swift.
+
+   .. code-block:: console
+
+      $ curl -SL http://greenstack.die.upm.es/files/2017/10/sydney-openstack-summit-750x422.jpg -o ~/origin.jpg
+      $ openstack container create origin_folder
+      +---------------------------------------+---------------+------------------------------------+
+      | account                               | container     | x-trans-id                         |
+      +---------------------------------------+---------------+------------------------------------+
+      | AUTH_a1e58c83923a4e2ca9370df6007c7fe6 | origin_folder | tx664a23a4a6e345b6af30d-005b3b6127 |
+      +---------------------------------------+---------------+------------------------------------+
+      $ openstack object create origin_folder ~/origin.jpg --name image
+      +--------+---------------+----------------------------------+
+      | object | container     | etag                             |
+      +--------+---------------+----------------------------------+
+      | image  | origin_folder | 07855978284adfcbbf76954a7c654a74 |
+      +--------+---------------+----------------------------------+
+      $ openstack object show origin_folder image
+      +----------------+---------------------------------------+
+      | Field          | Value                                 |
+      +----------------+---------------------------------------+
+      | account        | AUTH_a1e58c83923a4e2ca9370df6007c7fe6 |
+      | container      | origin_folder                         |
+      | content-length | 45957                                 |
+      | content-type   | application/octet-stream              |
+      | etag           | 07855978284adfcbbf76954a7c654a74      |
+      | last-modified  | Tue, 03 Jul 2018 11:44:33 GMT         |
+      | object         | image                                 |
+      +----------------+---------------------------------------+
+
+   .. end
+
+#. Invoke the function by specifying function_id and the function inputs as
+   well.
+
+   .. code-block:: console
+
+      $ openstack function execution create $function_id --input '{"container_name": "origin_folder", "object_name": "image"}'
+      +------------------+-------------------------------------------------------------+
+      | Field            | Value                                                       |
+      +------------------+-------------------------------------------------------------+
+      | id               | 04c60ae7-08c9-454c-9b2c-0bbf36391159                        |
+      | function_id      | d3de49fc-7488-4635-aa48-84e754881eb8                        |
+      | function_version | 0                                                           |
+      | description      | None                                                        |
+      | input            | {"object_name": "image", "container_name": "origin_folder"} |
+      | result           | {"duration": 2.74, "output": null}                          |
+      | status           | success                                                     |
+      | sync             | True                                                        |
+      | project_id       | a1e58c83923a4e2ca9370df6007c7fe6                            |
+      | created_at       | 2018-07-03 09:12:12                                         |
+      | updated_at       | 2018-07-03 09:12:16                                         |
+      +------------------+-------------------------------------------------------------+
+
+   .. end
+
+#. Check the function execution log.
+
+   .. code-block:: console
+
+      $ openstack function execution log show 04c60ae7-08c9-454c-9b2c-0bbf36391159
+      Start execution: 04c60ae7-08c9-454c-9b2c-0bbf36391159
+      Downloaded object image from container origin_folder
+      Resized.
+      New container origin_folder_resized created.
+      Uploaded object image to container origin_folder_resized
+      Finished execution: 04c60ae7-08c9-454c-9b2c-0bbf36391159
+
+   .. end
+
+#. Verify that a new object of smaller size was created in a new container in
+   Swift.
+
+   .. code-block:: console
+
+      $ openstack container list
+      +-----------------------+
+      | Name                  |
+      +-----------------------+
+      | origin_folder         |
+      | origin_folder_resized |
+      +-----------------------+
+      $ openstack object list origin_folder_resized
+      +-------+
+      | Name  |
+      +-------+
+      | image |
+      +-------+
+      $ openstack object show origin_folder_resized image
+      +----------------+---------------------------------------+
+      | Field          | Value                                 |
+      +----------------+---------------------------------------+
+      | account        | AUTH_a1e58c83923a4e2ca9370df6007c7fe6 |
+      | container      | origin_folder_resized                 |
+      | content-length | 31779                                 |
+      | content-type   | text/plain                            |
+      | etag           | f737cc7f0fe5c15d8a6897c8fe159c02      |
+      | last-modified  | Tue, 03 Jul 2018 11:46:40 GMT         |
+      | object         | image                                 |
+      +----------------+---------------------------------------+
+
+   .. end
+
+   Pay attention to the object ``content-length`` value which is smaller than
+   the original object.

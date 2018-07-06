@@ -93,3 +93,18 @@ class TestWebhookController(base.APITest):
 
         self.assertEqual(200, resp.status_int)
         self.assertEqual(1, resp.json.get("function_version"))
+
+    def test_put_without_version(self):
+        db_api.increase_function_version(self.func_id, 0)
+        webhook = self.create_webhook(self.func_id, function_version=1)
+
+        self.assertEqual(1, webhook.function_version)
+
+        resp = self.app.put_json(
+            '/v1/webhooks/%s' % webhook.id,
+            {'description': 'updated description'}
+        )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(1, resp.json.get("function_version"))
+        self.assertEqual('updated description', resp.json.get("description"))

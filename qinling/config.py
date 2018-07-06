@@ -13,6 +13,7 @@
 #    limitations under the License.
 from keystoneauth1 import loading
 from keystonemiddleware import auth_token
+from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log
 
@@ -45,7 +46,7 @@ api_opts = [
     ),
     cfg.IntOpt(
         'api_workers',
-        default=1,
+        default=processutils.get_worker_count(),
         help='Number of workers for Qinling API service '
              'default is equal to the number of CPUs available if that can '
              'be determined, else a default worker count of 1 is returned.'

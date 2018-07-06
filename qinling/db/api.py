@@ -238,6 +238,14 @@ def get_function_aliases(**kwargs):
     return IMPL.get_function_aliases(**kwargs)
 
 
+def update_function_alias(name, **kwargs):
+    return IMPL.update_function_alias(name, **kwargs)
+
+
+def delete_function_alias(name, **kwargs):
+    return IMPL.delete_function_alias(name, **kwargs)
+
+
 # For unit test
 def delete_function_aliases(**kwargs):
     return IMPL.delete_function_aliases(**kwargs)

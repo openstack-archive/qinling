@@ -601,5 +601,19 @@ def get_function_aliases(session=None, **kwargs):
 
 
 @db_base.session_aware()
+def update_function_alias(name, session=None, **kwargs):
+    alias_db = get_function_alias(name, session=session)
+    alias_db.update(kwargs.copy())
+
+    return alias_db
+
+
+@db_base.session_aware()
+def delete_function_alias(name, session=None):
+    alias_db = get_function_alias(name)
+    session.delete(alias_db)
+
+
+@db_base.session_aware()
 def delete_function_aliases(session=None, **kwargs):
     return _delete_all(models.FunctionAlias, **kwargs)

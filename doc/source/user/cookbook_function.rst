@@ -186,13 +186,13 @@ execution log to see the whole process.
       +-------------+-------------------------------------------------------------------------+
       $ function_id=f8b18de6-1751-46d6-8c0d-0f1ecf943d12
 
-    .. end
+   .. end
 
 #. Upload an image to Swift.
 
    .. code-block:: console
 
-      $ curl -SL http://greenstack.die.upm.es/files/2017/10/sydney-openstack-summit-750x422.jpg -o ~/origin.jpg
+      $ curl -SL https://docs.openstack.org/arch-design/_images/osog_0001.png -o ~/origin.jpg
       $ openstack container create origin_folder
       +---------------------------------------+---------------+------------------------------------+
       | account                               | container     | x-trans-id                         |

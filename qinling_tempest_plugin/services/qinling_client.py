@@ -127,13 +127,29 @@ class QinlingClient(client_base.QinlingClientBase):
 
         return self.post(url, None, headers={})
 
-    def create_execution(self, function_id, input=None, sync=True, version=0):
-        req_body = {
-            'function_id': function_id,
-            'function_version': version,
-            'sync': sync,
-            'input': input
-        }
+    def create_execution(self, function_id=None, alias_name=None, input=None,
+                         sync=True, version=0):
+        """Create execution.
+
+        alias_name takes precedence over function_id.
+        """
+        if alias_name:
+            req_body = {
+                'function_alias': alias_name,
+                'sync': sync,
+                'input': input
+            }
+        elif function_id:
+            req_body = {
+                'function_id': function_id,
+                'function_version': version,
+                'sync': sync,
+                'input': input
+            }
+        else:
+            raise Exception("Either alias_name or function_id must be "
+                            "provided.")
+
         resp, body = self.post_json('executions', req_body)
 
         return resp, body
@@ -208,3 +224,46 @@ class QinlingClient(client_base.QinlingClientBase):
         )
 
         return resp, json.loads(body)
+
+    def create_function_alias(self, name, function_id,
+                              function_version=0, description=None):
+        req_body = {
+            'function_id': function_id,
+            'function_version': function_version,
+            'name': name
+        }
+        if description is not None:
+            req_body['description'] = description
+
+        resp, body = self.post_json('/aliases', req_body)
+
+        return resp, body
+
+    def delete_function_alias(self, alias_name, ignore_notfound=False):
+        try:
+            resp, _ = self.delete('/v1/aliases/%s' % alias_name)
+            return resp
+        except exceptions.NotFound:
+            if ignore_notfound:
+                pass
+            else:
+                raise
+
+    def get_function_alias(self, alias_name):
+        resp, body = self.get('/v1/aliases/%s' % alias_name)
+
+        return resp, json.loads(body)
+
+    def update_function_alias(self, alias_name, function_id=None,
+                              function_version=None, description=None):
+        req_body = {}
+        if function_id is not None:
+            req_body['function_id'] = function_id
+        if function_version is not None:
+            req_body['function_version'] = function_version
+        if description is not None:
+            req_body['description'] = description
+
+        resp, body = self.put_json('/v1/aliases/%s' % alias_name, req_body)
+
+        return resp, body

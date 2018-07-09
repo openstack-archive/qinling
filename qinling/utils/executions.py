@@ -70,10 +70,18 @@ def _update_function_version_db(version_id, pre_count):
 
 
 def create_execution(engine_client, params):
-    function_id = params['function_id']
+    function_alias = params.get('function_alias')
+    function_id = params.get('function_id')
+    version = params.get('function_version', 0)
     is_sync = params.get('sync', True)
     input = params.get('input')
-    version = params.get('function_version', 0)
+
+    if function_alias:
+        alias_db = db_api.get_function_alias(function_alias)
+        function_id = alias_db.function_id
+        version = alias_db.function_version
+        params.update({'function_id': function_id,
+                       'version': version})
 
     func_db = db_api.get_function(function_id)
     runtime_id = func_db.runtime_id

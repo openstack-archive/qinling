@@ -213,9 +213,15 @@ class BaseQinlingTest(test.BaseTestCase):
 
         return version
 
-    def create_execution(self, function_id, version=0, input=None):
-        resp, body = self.client.create_execution(function_id, version=version,
-                                                  input=input)
+    def create_execution(self, function_id=None, alias_name=None, version=0,
+                         input=None):
+        if alias_name:
+            resp, body = self.client.create_execution(alias_name=alias_name,
+                                                      input=input)
+        else:
+            resp, body = self.client.create_execution(function_id,
+                                                      version=version,
+                                                      input=input)
 
         self.assertEqual(201, resp.status)
 
@@ -226,3 +232,20 @@ class BaseQinlingTest(test.BaseTestCase):
         self.assertEqual('success', body['status'])
 
         return execution_id
+
+    def create_function_alias(self, function_id=None, function_version=0):
+        name = data_utils.rand_name(name="alias", prefix=self.name_prefix)
+        if not function_id:
+            function_id = self.create_function()
+
+        resp, body = self.client.create_function_alias(name,
+                                                       function_id,
+                                                       function_version)
+
+        self.assertEqual(201, resp.status)
+
+        alias_name = body['name']
+        self.addCleanup(self.client.delete_function_alias, alias_name,
+                        ignore_notfound=True)
+
+        return alias_name

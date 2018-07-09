@@ -284,8 +284,9 @@ class Runtimes(ResourceList):
 
 class Execution(Resource):
     id = types.uuid
-    function_id = wsme.wsattr(types.uuid, mandatory=True)
+    function_id = wsme.wsattr(types.uuid)
     function_version = wsme.wsattr(int, default=0)
+    function_alias = wtypes.text
     description = wtypes.text
     status = wsme.wsattr(wtypes.text, readonly=True)
     sync = bool

@@ -12,5 +12,17 @@
       License for the specific language governing permissions and limitations
       under the License.
 
-Security considerations
+Security Considerations
 =======================
+
+This guide talks about the security considerations from the system administrator's perspective, how
+to avoid to be affected by the "bad" function that the end user provides.
+
+Kubernetes
+~~~~~~~~~~
+
+Service account
+---------------
+
+Inter-Pods communication
+------------------------

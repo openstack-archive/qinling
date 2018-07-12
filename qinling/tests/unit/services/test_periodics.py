@@ -48,11 +48,9 @@ class TestPeriodics(base.DbTestCase):
 
         periodics.handle_function_service_expiration(self.ctx, mock_engine)
 
-        self.assertEqual(1, mock_engine.delete_function.call_count)
-        args, _ = mock_engine.delete_function.call_args
-        self.assertIn(function_id, args)
-        self.assertIn(0, args)
-
+        mock_engine.delete_function.assert_called_once_with(
+            self.ctx, function_id, 0
+        )
         mock_etcd_delete.assert_called_once_with(function_id, 0)
 
     @mock.patch('qinling.utils.etcd_util.delete_function')
@@ -61,9 +59,42 @@ class TestPeriodics(base.DbTestCase):
                                                             mock_etcd_delete):
         db_func = self.create_function()
         function_id = db_func.id
-        db_api.increase_function_version(function_id, 0,
-                                         description="new version")
+        self.create_function_version(0, function_id, description="new_version")
         db_api.update_function_version(function_id, 1, count=1)
+        time.sleep(1.5)
+
+        self.override_config('function_service_expiration', 1, 'engine')
+
+        # NOTE(huntxu): although we didn't create any execution using version 0
+        # of the function, it is updated as a new version is created. So the
+        # call to get_service_url with version 0 should return None as there is
+        # not any worker for function version 0.
+        def mock_srv_url_side_effect(function_id, function_version):
+            return 'http://localhost:37718' if function_version != 0 else None
+
+        mock_srv_url.side_effect = mock_srv_url_side_effect
+        mock_engine = mock.Mock()
+
+        periodics.handle_function_service_expiration(self.ctx, mock_engine)
+
+        mock_engine.delete_function.assert_called_once_with(
+            self.ctx, function_id, 1
+        )
+        mock_etcd_delete.assert_called_once_with(function_id, 1)
+
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.utils.etcd_util.get_service_url')
+    def test_handle_function_service_with_versioned_function_version_0(
+            self, mock_srv_url, mock_etcd_delete
+    ):
+        # This case tests that if a function has multiple versions, service
+        # which serves executions of function version 0 is correctly handled
+        # when expired.
+        db_func = self.create_function()
+        function_id = db_func.id
+        self.create_function_version(0, function_id, description="new_version")
+        # Simulate an execution using version 0
+        db_api.update_function(function_id, {'count': 1})
         time.sleep(1.5)
 
         self.override_config('function_service_expiration', 1, 'engine')
@@ -72,12 +103,10 @@ class TestPeriodics(base.DbTestCase):
 
         periodics.handle_function_service_expiration(self.ctx, mock_engine)
 
-        self.assertEqual(1, mock_engine.delete_function.call_count)
-        args, _ = mock_engine.delete_function.call_args
-        self.assertIn(function_id, args)
-        self.assertIn(1, args)
-
-        mock_etcd_delete.assert_called_once_with(function_id, 1)
+        mock_engine.delete_function.assert_called_once_with(
+            self.ctx, function_id, 0
+        )
+        mock_etcd_delete.assert_called_once_with(function_id, 0)
 
     @mock.patch('qinling.utils.jobs.get_next_execution_time')
     def test_job_handler(self, mock_get_next):

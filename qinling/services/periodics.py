@@ -51,8 +51,7 @@ def handle_function_service_expiration(ctx, engine):
     results = db_api.get_functions(
         sort_keys=['updated_at'],
         insecure=True,
-        updated_at={'lte': expiry_time},
-        latest_version=0
+        updated_at={'lte': expiry_time}
     )
 
     for func_db in results:

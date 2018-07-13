@@ -48,6 +48,7 @@ class FunctionsTest(base.BaseQinlingTest):
         # Download function package
         resp, data = self.client.download_function(function_id)
         self.assertEqual(200, resp.status)
+        self.assertEqual('application/zip', resp['content-type'])
         self.assertEqual(os.path.getsize(self.python_zip_file), len(data))
 
         # Delete function

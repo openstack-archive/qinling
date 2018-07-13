@@ -98,7 +98,7 @@ class FunctionsController(rest.RestController):
             raise exc.InputException('Failed to validate object in Swift.')
 
     @rest_utils.wrap_pecan_controller_exception
-    @pecan.expose()
+    @pecan.expose(content_type='application/zip')
     @pecan.expose('json')
     def get(self, id):
         """Get function information or download function package.
@@ -139,7 +139,6 @@ class FunctionsController(rest.RestController):
 
         pecan.response.app_iter = (f if isinstance(f, collections.Iterable)
                                    else FileIter(f))
-        pecan.response.headers['Content-Type'] = 'application/zip'
         pecan.response.headers['Content-Disposition'] = (
             'attachment; filename="%s"' % id
         )

@@ -50,7 +50,8 @@ def _set_ulimit():
     customized_limits = {
         resource.RLIMIT_NOFILE: 1024,
         resource.RLIMIT_NPROC: 128,
-        resource.RLIMIT_FSIZE: 61440
+        # TODO(lxkong): 50M by default, need to be configurable in future.
+        resource.RLIMIT_FSIZE: 524288000
     }
     for t, soft in customized_limits.items():
         _, hard = resource.getrlimit(t)

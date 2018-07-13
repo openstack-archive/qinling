@@ -153,6 +153,14 @@ class EngineClient(object):
         )
 
     @wrap_messaging_exception
+    def get_runtime_pool(self, runtime_id):
+        return self._client.prepare(topic=self.topic, server=None).call(
+            ctx.get_ctx(),
+            'get_runtime_pool',
+            runtime_id=runtime_id
+        )
+
+    @wrap_messaging_exception
     def create_execution(self, execution_id, function_id, version, runtime_id,
                          input=None, is_sync=True):
         method_client = self._client.prepare(topic=self.topic, server=None)

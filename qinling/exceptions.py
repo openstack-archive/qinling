@@ -84,6 +84,11 @@ class DBEntityNotFoundError(DBError):
     message = "Object not found"
 
 
+class RuntimeNotFoundException(QinlingException):
+    http_code = 404
+    message = "Runtime not found"
+
+
 class ApplicationContextNotFoundException(QinlingException):
     http_code = 400
     message = "Application context not found"

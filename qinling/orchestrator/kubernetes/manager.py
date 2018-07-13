@@ -103,6 +103,33 @@ class KubernetesManager(base.OrchestratorBase):
 
         return ret.status.replicas == ret.status.available_replicas
 
+    def get_pool(self, name):
+        total = 0
+        available = 0
+
+        try:
+            ret = self.v1extension.read_namespaced_deployment(
+                name,
+                namespace=self.conf.kubernetes.namespace
+            )
+        except Exception:
+            raise exc.RuntimeNotFoundException()
+
+        if not ret.status.replicas:
+            return {"total": total, "available": available}
+
+        total = ret.status.replicas
+
+        labels = {'runtime_id': name}
+        selector = common.convert_dict_to_string(labels)
+        ret = self.v1.list_namespaced_pod(
+            self.conf.kubernetes.namespace,
+            label_selector='!function_id,%s' % selector
+        )
+        available = len(ret.items)
+
+        return {"total": total, "available": available}
+
     def create_pool(self, name, image):
         deployment_body = self.deployment_template.render(
             {

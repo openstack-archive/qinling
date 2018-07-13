@@ -84,6 +84,11 @@ class DefaultEngine(object):
 
             LOG.info('Rollbacked runtime %s.', runtime_id)
 
+    def get_runtime_pool(self, ctx, runtime_id):
+        LOG.info("Getting pool information for runtime %s", runtime_id)
+
+        return self.orchestrator.get_pool(runtime_id)
+
     @tenacity.retry(
         wait=tenacity.wait_fixed(1),
         stop=tenacity.stop_after_attempt(30),

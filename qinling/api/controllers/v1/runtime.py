@@ -34,6 +34,8 @@ UPDATE_ALLOWED = set(['name', 'description', 'image'])
 
 
 class RuntimesController(rest.RestController):
+    _custom_actions = {'pool': ['GET']}
+
     def __init__(self, *args, **kwargs):
         self.engine_client = rpc.get_engine_client()
         self.type = 'runtime'
@@ -162,3 +164,24 @@ class RuntimesController(rest.RestController):
             runtime_db = db_api.update_runtime(id, values)
 
         return resources.Runtime.from_db_obj(runtime_db)
+
+    @rest_utils.wrap_wsme_controller_exception
+    @wsme_pecan.wsexpose(resources.RuntimePool, types.uuid)
+    def pool(self, id):
+        """Get the pool information for the runtime.
+
+        This operation should be admin only.
+
+        We don't check the runtime existence, because this function
+        also helps us to check the underlying pool even after the runtime
+        is already deleted.
+        """
+        acl.enforce('runtime_pool:get_all', context.get_ctx())
+
+        LOG.info("Getting pool information for runtime %s.", id)
+        capacity = self.engine_client.get_runtime_pool(id)
+        pool_capacity = resources.RuntimePoolCapacity.from_dict(capacity)
+
+        return resources.RuntimePool.from_dict(
+            {"name": id, "capacity": pool_capacity}
+        )

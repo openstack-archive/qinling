@@ -282,6 +282,16 @@ class Runtimes(ResourceList):
         return sample
 
 
+class RuntimePoolCapacity(Resource):
+    total = wsme.wsattr(int, readonly=True)
+    available = wsme.wsattr(int, readonly=True)
+
+
+class RuntimePool(Resource):
+    name = wsme.wsattr(wtypes.text, readonly=True)
+    capacity = wsme.wsattr(RuntimePoolCapacity, readonly=True)
+
+
 class Execution(Resource):
     id = types.uuid
     function_id = wsme.wsattr(types.uuid, mandatory=True)

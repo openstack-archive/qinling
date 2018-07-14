@@ -293,3 +293,125 @@ execution log to see the whole process.
 
    Pay attention to the object ``content-length`` value which is smaller than
    the original object.
+
+Creating a function using OpenStack Swift
+-----------------------------------------
+
+OpenStack object storage service, swift can be integrated with Qinling to
+create functions. You can upload your function package to swift and create
+the function by specifying the container name and object name in Swift. In this
+example the function would return ``"Hello, World"`` by default, you can
+replace the string with the function input. The steps assume there is already
+a Python 2.7 runtime available in the deployment.
+
+#. Create a function deployment package.
+
+   .. code-block:: console
+
+      $ mkdir ~/qinling_swift_test
+      $ cd ~/qinling_swift_test
+      $ cat <<EOF > hello_world.py
+
+      def main(name='World',**kwargs):
+          ret = 'Hello, %s' % name
+          return ret
+      EOF
+
+      $ cd ~/qinling_swift_test && zip -r ~/qinling_swift_test/hello_world.zip ./*
+
+   .. end
+
+#. Upload the file to swift
+
+   .. code-block:: console
+
+      $ openstack container create functions
+
+      +---------------------------------------+------------------+------------------------------------+
+      | account                               | container        | x-trans-id                         |
+      +---------------------------------------+------------------+------------------------------------+
+      | AUTH_6ae7142bff0542d8a8f3859ffa184236 | functions        | 9b45bef5ab2658acb9b72ee32f39dbc8   |
+      +---------------------------------------+------------------+------------------------------------+
+
+      $ openstack object create functions hello_world.zip
+
+      +-----------------+-----------+----------------------------------+
+      | object          | container | etag                             |
+      +-----------------+-----------+----------------------------------+
+      | hello_world.zip | functions | 9b45bef5ab2658acb9b72ee32f39dbc8 |
+      +-----------------+-----------+----------------------------------+
+
+      $ openstack object show functions hello_world.zip
+
+      +----------------+---------------------------------------+
+      | Field          | Value                                 |
+      +----------------+---------------------------------------+
+      | account        | AUTH_6ae7142bff0542d8a8f3859ffa184236 |
+      | container      | functions                             |
+      | content-length | 246                                   |
+      | content-type   | application/zip                       |
+      | etag           | 9b45bef5ab2658acb9b72ee32f39dbc8      |
+      | last-modified  | Wed, 18 Jul 2018 17:45:23 GMT         |
+      | object         | hello_world.zip                       |
+      +----------------+---------------------------------------+
+
+   .. end
+
+#. Create a function and get the function ID, replace the
+   ``runtime_id`` with the one in your deployment. Also, specify swift
+   container and object name.
+
+   .. code-block:: console
+
+      $ openstack function create --name hello_world \
+      --runtime $runtime_id \
+      --entry hello_world.main \
+      --container functions \
+      --object hello_world.zip
+
+      +-------------+----------------------------------------------------------------------------------------------+
+      | Field       | Value                                                                                        |
+      +-------------+----------------------------------------------------------------------------------------------+
+      | id          | f1102bca-fbb4-4baf-874d-ed33bf8251f7                                                         |
+      | name        | hello_world                                                                                  |
+      | description | None                                                                                         |
+      | count       | 0                                                                                            |
+      | code        | {u'source': u'swift', u'swift': {u'object': u'hello_world.zip', u'container': u'functions'}} |
+      | runtime_id  | 0d8bcf73-910b-4fec-86b1-38ace8bd0766                                                         |
+      | entry       | hello_world.main                                                                             |
+      | project_id  | 6ae7142bff0542d8a8f3859ffa184236                                                             |
+      | created_at  | 2018-07-18 17:46:29.974506                                                                   |
+      | updated_at  | None                                                                                         |
+      | cpu         | 100                                                                                          |
+      | memory_size | 33554432                                                                                     |
+      +-------------+----------------------------------------------------------------------------------------------+
+
+   .. end
+
+#. Invoke the function by specifying function_id
+
+   .. code-block:: console
+
+      $ function_id=f1102bca-fbb4-4baf-874d-ed33bf8251f7
+      $ openstack function execution create $function_id
+
+      +------------------+-----------------------------------------------+
+      | Field            | Value                                         |
+      +------------------+-----------------------------------------------+
+      | id               | 3451393d-60c6-4172-bbdf-c681929fae07          |
+      | function_id      | f1102bca-fbb4-4baf-874d-ed33bf8251f7          |
+      | function_version | 0                                             |
+      | description      | None                                          |
+      | input            | None                                          |
+      | result           | {"duration": 0.031, "output": "Hello, World"} |
+      | status           | success                                       |
+      | sync             | True                                          |
+      | project_id       | 6ae7142bff0542d8a8f3859ffa184236              |
+      | created_at       | 2018-07-18 17:49:46                           |
+      | updated_at       | 2018-07-18 17:49:48                           |
+      +------------------+-----------------------------------------------+
+
+   .. end
+
+   It is very easy and simple to use Qinling with swift. We have successfully created and
+   invoked a function using OpenStack Swift.

@@ -48,8 +48,7 @@ class TestKubernetesManager(base.DbTestCase):
             'qinling.orchestrator.kubernetes.utils.get_k8s_clients',
             return_value=clients
         ).start()
-        self.fake_namespace = self.rand_name('namespace',
-                                             prefix='TestKubernetesManager')
+        self.fake_namespace = self.rand_name('namespace', prefix=self.prefix)
         self.override_config('namespace', self.fake_namespace,
                              config.KUBERNETES_GROUP)
 
@@ -140,9 +139,8 @@ class TestKubernetesManager(base.DbTestCase):
         fake_replicas = 5
         self.override_config('replicas', fake_replicas,
                              config.KUBERNETES_GROUP)
-        fake_deployment_name = self.rand_name('deployment',
-                                              prefix='TestKubernetesManager')
-        fake_image = self.rand_name('image', prefix='TestKubernetesManager')
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+        fake_image = self.rand_name('image', prefix=self.prefix)
 
         self.manager.create_pool(fake_deployment_name, fake_image)
 
@@ -174,9 +172,8 @@ class TestKubernetesManager(base.DbTestCase):
         self.k8s_v1_ext.read_namespaced_deployment.side_effect = [
             ret1, ret2, ret3
         ]
-        fake_deployment_name = self.rand_name('deployment',
-                                              prefix='TestKubernetesManager')
-        fake_image = self.rand_name('image', prefix='TestKubernetesManager')
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+        fake_image = self.rand_name('image', prefix=self.prefix)
 
         self.manager.create_pool(fake_deployment_name, fake_image)
 
@@ -188,9 +185,8 @@ class TestKubernetesManager(base.DbTestCase):
         ret = mock.Mock()
         ret.status.replicas = 0
         self.k8s_v1_ext.read_namespaced_deployment.return_value = ret
-        fake_deployment_name = self.rand_name('deployment',
-                                              prefix='TestKubernetesManager')
-        fake_image = self.rand_name('image', prefix='TestKubernetesManager')
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+        fake_image = self.rand_name('image', prefix=self.prefix)
 
         self.manager.create_pool(fake_deployment_name, fake_image)
 
@@ -201,16 +197,15 @@ class TestKubernetesManager(base.DbTestCase):
     def test_delete_pool(self):
         # Deleting namespaced service is also tested in this.
         svc1 = mock.Mock()
-        svc1_name = self.rand_name('service', prefix='TestKubernetesManager')
+        svc1_name = self.rand_name('service', prefix=self.prefix)
         svc1.metadata.name = svc1_name
         svc2 = mock.Mock()
-        svc2_name = self.rand_name('service', prefix='TestKubernetesManager')
+        svc2_name = self.rand_name('service', prefix=self.prefix)
         svc2.metadata.name = svc2_name
         services = mock.Mock()
         services.items = [svc1, svc2]
         self.k8s_v1_api.list_namespaced_service.return_value = services
-        fake_deployment_name = self.rand_name('deployment',
-                                              prefix='TestKubernetesManager')
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
 
         self.manager.delete_pool(fake_deployment_name)
 
@@ -237,9 +232,8 @@ class TestKubernetesManager(base.DbTestCase):
             label_selector='runtime_id=%s' % fake_deployment_name)
 
     def test_update_pool(self):
-        fake_deployment_name = self.rand_name('deployment',
-                                              prefix='TestKubernetesManager')
-        image = self.rand_name('image', prefix='TestKubernetesManager')
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+        image = self.rand_name('image', prefix=self.prefix)
         body = {
             'spec': {
                 'template': {
@@ -269,9 +263,8 @@ class TestKubernetesManager(base.DbTestCase):
                                             self.fake_namespace)
 
     def test_update_pool_retry(self):
-        fake_deployment_name = self.rand_name('deployment',
-                                              prefix='TestKubernetesManager')
-        image = self.rand_name('image', prefix='TestKubernetesManager')
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+        image = self.rand_name('image', prefix=self.prefix)
         ret1 = mock.Mock()
         ret1.status.unavailable_replicas = 1
         ret2 = mock.Mock()
@@ -289,9 +282,8 @@ class TestKubernetesManager(base.DbTestCase):
         self.assertEqual(2, read_status.call_count)
 
     def test_update_pool_rollback(self):
-        fake_deployment_name = self.rand_name('deployment',
-                                              prefix='TestKubernetesManager')
-        image = self.rand_name('image', prefix='TestKubernetesManager')
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+        image = self.rand_name('image', prefix=self.prefix)
         ret = mock.Mock()
         ret.status.unavailable_replicas = 1
         self.k8s_v1_ext.read_namespaced_deployment_status.return_value = ret
@@ -314,10 +306,37 @@ class TestKubernetesManager(base.DbTestCase):
         rollback.assert_called_once_with(
             fake_deployment_name, self.fake_namespace, rollback_body)
 
+    def test_get_pool(self):
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+
+        ret = mock.Mock()
+        ret.status.replicas = 3
+        self.k8s_v1_ext.read_namespaced_deployment.return_value = ret
+
+        list_pod_ret = mock.Mock()
+        list_pod_ret.items = [mock.Mock()]
+        self.k8s_v1_api.list_namespaced_pod.return_value = list_pod_ret
+
+        pool_info = self.manager.get_pool(fake_deployment_name)
+
+        expected = {"total": 3, "available": 1}
+        self.assertEqual(expected, pool_info)
+
+    def test_get_pool_not_ready(self):
+        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
+
+        ret = mock.Mock()
+        ret.status.replicas = None
+        self.k8s_v1_ext.read_namespaced_deployment.return_value = ret
+
+        pool_info = self.manager.get_pool(fake_deployment_name)
+
+        expected = {"total": 0, "available": 0}
+        self.assertEqual(expected, pool_info)
+
     def test_prepare_execution_no_image(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = {'pod1_key1': 'pod1_value1'}
         list_pod_ret = mock.Mock()
         list_pod_ret.items = [pod]
@@ -371,7 +390,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_prepare_execution_with_image(self):
         function_id = common.generate_unicode_uuid()
-        image = self.rand_name('image', prefix='TestKubernetesManager')
+        image = self.rand_name('image', prefix=self.prefix)
         identifier = ('%s-%s' %
                       (common.generate_unicode_uuid(dashed=False), function_id)
                       )[:63]
@@ -401,7 +420,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_prepare_execution_with_image_function_input(self):
         function_id = common.generate_unicode_uuid()
-        image = self.rand_name('image', prefix='TestKubernetesManager')
+        image = self.rand_name('image', prefix=self.prefix)
         identifier = ('%s-%s' % (
                       common.generate_unicode_uuid(dashed=False),
                       function_id)
@@ -430,7 +449,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_prepare_execution_with_image_json_input(self):
         function_id = common.generate_unicode_uuid()
-        image = self.rand_name('image', prefix='TestKubernetesManager')
+        image = self.rand_name('image', prefix=self.prefix)
         identifier = ('%s-%s' % (
                       common.generate_unicode_uuid(dashed=False),
                       function_id)
@@ -489,8 +508,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_prepare_execution_service_already_exists(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = {'pod1_key1': 'pod1_value1'}
         list_pod_ret = mock.Mock()
         list_pod_ret.items = [pod]
@@ -517,8 +535,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_prepare_execution_create_service_failed(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = None
         ret_pods = mock.Mock()
         ret_pods.items = [pod]
@@ -551,8 +568,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_prepare_execution_service_internal_ip(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = {'pod1_key1': 'pod1_value1'}
         list_pod_ret = mock.Mock()
         list_pod_ret.items = [pod]
@@ -660,10 +676,10 @@ class TestKubernetesManager(base.DbTestCase):
     def test_delete_function(self):
         # Deleting namespaced service is also tested in this.
         svc1 = mock.Mock()
-        svc1_name = self.rand_name('service', prefix='TestKubernetesManager')
+        svc1_name = self.rand_name('service', prefix=self.prefix)
         svc1.metadata.name = svc1_name
         svc2 = mock.Mock()
-        svc2_name = self.rand_name('service', prefix='TestKubernetesManager')
+        svc2_name = self.rand_name('service', prefix=self.prefix)
         svc2.metadata.name = svc2_name
         services = mock.Mock()
         services.items = [svc1, svc2]
@@ -724,8 +740,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_scaleup_function(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = {'pod1_key1': 'pod1_value1'}
         list_pod_ret = mock.Mock()
         list_pod_ret.items = [pod]
@@ -791,8 +806,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_scaleup_function_service_already_exists(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = {'pod1_key1': 'pod1_value1'}
         list_pod_ret = mock.Mock()
         list_pod_ret.items = [pod]
@@ -818,8 +832,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_scaleup_function_service_create_failed(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = None
         list_pod_ret = mock.Mock()
         list_pod_ret.items = [pod]
@@ -837,8 +850,7 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_scaleup_function_service_internal_ip(self):
         pod = mock.Mock()
-        pod.metadata.name = self.rand_name('pod',
-                                           prefix='TestKubernetesManager')
+        pod.metadata.name = self.rand_name('pod', prefix=self.prefix)
         pod.metadata.labels = None
         list_pod_ret = mock.Mock()
         list_pod_ret.items = [pod]
@@ -861,7 +873,7 @@ class TestKubernetesManager(base.DbTestCase):
             service_url)
 
     def test_delete_worker(self):
-        pod_name = self.rand_name('pod', prefix='TestKubernetesManager')
+        pod_name = self.rand_name('pod', prefix=self.prefix)
 
         self.manager.delete_worker(pod_name)
 

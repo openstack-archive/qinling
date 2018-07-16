@@ -156,3 +156,20 @@ class TestRuntimeController(base.APITest):
         self.assertEqual(403, resp.status_int)
         mock_update_runtime.assert_not_called()
         mock_etcd_url.assert_called_once_with(function_id)
+
+    @mock.patch('qinling.rpc.EngineClient.get_runtime_pool')
+    def test_get_runtime_pool(self, mock_get_pool):
+        mock_get_pool.return_value = {"total": 3, "available": 2}
+
+        resp = self.app.get('/v1/runtimes/%s/pool' % self.runtime_id)
+
+        expected = {
+            "capacity": {
+                "available": 2,
+                "total": 3
+            },
+            "name": self.runtime_id
+        }
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(expected, resp.json)

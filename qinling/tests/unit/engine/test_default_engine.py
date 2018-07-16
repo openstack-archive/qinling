@@ -562,3 +562,11 @@ class TestDefaultEngine(base.DbTestCase):
         ]
         etcd_util_delete_workers_mock.assert_has_calls(expected)
         self.assertEqual(3, etcd_util_delete_workers_mock.call_count)
+
+    def test_get_runtime_pool(self):
+        runtime = self.create_runtime()
+        runtime_id = runtime.id
+
+        self.default_engine.get_runtime_pool(mock.Mock(), runtime_id)
+
+        self.orchestrator.get_pool.assert_called_once_with(runtime_id)

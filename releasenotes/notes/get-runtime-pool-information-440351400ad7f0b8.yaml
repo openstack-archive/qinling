@@ -1,0 +1,5 @@
+---
+features:
+  - Add an administrative operation for getting the pool information for the
+    runtime, so that the admin user can check the capacity of the runtime and
+    scale up or scale down the pool accordingly.

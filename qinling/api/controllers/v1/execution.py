@@ -23,6 +23,7 @@ from qinling.api.controllers.v1 import resources
 from qinling.api.controllers.v1 import types
 from qinling import context
 from qinling.db import api as db_api
+from qinling import exceptions as exc
 from qinling import rpc
 from qinling.utils import executions
 from qinling.utils import rest_utils
@@ -60,6 +61,11 @@ class ExecutionsController(rest.RestController):
         acl.enforce('execution:create', ctx)
 
         params = body.to_dict()
+        if not (params.get("function_id") or params.get("function_alias")):
+            raise exc.InputException(
+                'Either function_alias or function_id must be provided.'
+            )
+
         LOG.info("Creating %s. [params=%s]", self.type, params)
 
         db_model = executions.create_execution(self.engine_client, params)

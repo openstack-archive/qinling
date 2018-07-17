@@ -121,6 +121,32 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual(200, resp.status)
         self.assertNotIn('Hello, World', body)
 
+    @decorators.idempotent_id('dbf4bd84-bde3-4d1d-8dec-93aaf18b4b5f')
+    def test_create_with_function_alias(self):
+        function_id = self.create_function()
+
+        alias_name = self.create_function_alias(function_id)
+        execution_id = self.create_execution(alias_name=alias_name)
+        resp, body = self.client.get_execution_log(execution_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('Hello, World', body)
+
+        version_1 = self.create_function_version(function_id)
+        alias_name_1 = self.create_function_alias(function_id, version_1)
+        execution_id = self.create_execution(alias_name=alias_name_1)
+        resp, body = self.client.get_execution_log(execution_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('Hello, World', body)
+
+        self.update_function_package(function_id,
+                                     "python/test_python_sleep.py")
+        version_2 = self.create_function_version(function_id)
+        alias_name_2 = self.create_function_alias(function_id, version_2)
+        execution_id = self.create_execution(alias_name=alias_name_2)
+        resp, body = self.client.get_execution_log(execution_id)
+        self.assertEqual(200, resp.status)
+        self.assertNotIn('Hello, World', body)
+
     @decorators.idempotent_id('8096cc52-64d2-4660-a657-9ac0bdd743ae')
     def test_execution_async(self):
         function_id = self.create_function()

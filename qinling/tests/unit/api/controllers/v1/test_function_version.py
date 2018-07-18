@@ -101,6 +101,19 @@ class TestFunctionVersionController(base.APITest):
 
         self.assertEqual(403, resp.status_int)
 
+    @mock.patch('qinling.utils.etcd_util.get_function_version_lock')
+    def test_post_etcd_lock_failed(self, mock_etcd_lock):
+        lock = mock.Mock()
+        mock_etcd_lock.return_value.__enter__.return_value = lock
+        lock.is_acquired.return_value = False
+
+        body = {'description': 'new version'}
+        resp = self.app.post_json('/v1/functions/%s/versions' % self.func_id,
+                                  body, expect_errors=True)
+
+        self.assertEqual(500, resp.status_int)
+        self.assertEqual("Internal server error.", resp.json['faultstring'])
+
     def test_get_all(self):
         db_api.increase_function_version(self.func_id, 0,
                                          description="version 1")

@@ -90,7 +90,8 @@ class KubernetesManager(base.OrchestratorBase):
     @tenacity.retry(
         wait=tenacity.wait_fixed(2),
         stop=tenacity.stop_after_delay(600),
-        retry=tenacity.retry_if_result(lambda result: not result)
+        reraise=True,
+        retry=tenacity.retry_if_exception_type(exc.OrchestratorException)
     )
     def _wait_deployment_available(self, name):
         ret = self.v1extension.read_namespaced_deployment(
@@ -98,10 +99,11 @@ class KubernetesManager(base.OrchestratorBase):
             self.conf.kubernetes.namespace
         )
 
-        if not ret.status.replicas:
-            return False
-
-        return ret.status.replicas == ret.status.available_replicas
+        if (
+            not ret.status.replicas or
+            ret.status.replicas != ret.status.available_replicas
+        ):
+            raise exc.OrchestratorException('Deployment %s not ready.' % name)
 
     def get_pool(self, name):
         total = 0

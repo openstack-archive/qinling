@@ -11,16 +11,20 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+
 from concurrent import futures
+import etcd3gw
 import json
 
 import futurist
 from oslo_serialization import jsonutils
+from tempest import config
 from tempest.lib import decorators
 from tempest.lib import exceptions
 
 from qinling_tempest_plugin.tests import base
 
+CONF = config.CONF
 INVOKE_ERROR = "Function execution failed because of too much resource " \
                "consumption"
 
@@ -63,6 +67,32 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual(204, resp.status)
         resp = self.client.delete_resource('executions', execution_id_2)
         self.assertEqual(204, resp.status)
+
+    @decorators.idempotent_id('6a388918-86eb-4e10-88e2-0032a7df38e9')
+    def test_create_execution_worker_lock_failed(self):
+        """test_create_execution_worker_lock_failed
+
+        When creating an execution, the qinling-engine will check the load
+        and try to scaleup the function if needed. A lock is required when
+        doing this check.
+
+        In this test we acquire the lock manually, so that qinling will fail
+        to acquire the lock.
+        """
+        function_id = self.create_function()
+
+        etcd3_client = etcd3gw.client(host=CONF.qinling.etcd_host,
+                                      port=CONF.qinling.etcd_port)
+        lock_id = "function_worker_%s_%s" % (function_id, 0)
+        with etcd3_client.lock(id=lock_id):
+            resp, body = self.client.create_execution(
+                function_id, input='{"name": "Qinling"}'
+            )
+
+        self.assertEqual(201, resp.status)
+        self.assertEqual('error', body['status'])
+        result = jsonutils.loads(body['result'])
+        self.assertEqual('Function execution failed.', result['error'])
 
     @decorators.idempotent_id('2199d1e6-de7d-4345-8745-a8184d6022b1')
     def test_get_all_admin(self):

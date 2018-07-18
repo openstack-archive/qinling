@@ -38,6 +38,7 @@ def url_request(request_session, url, body=None):
         r = tenacity.Retrying(
             wait=tenacity.wait_fixed(1),
             stop=tenacity.stop_after_attempt(30),
+            reraise=True,
             retry=tenacity.retry_if_exception_type(IOError)
         )
         r.call(request_session.get, ping_url, timeout=(3, 3), verify=False)
@@ -150,9 +151,10 @@ def finish_execution(execution_id, success, res, is_image_source=False):
 
 
 def handle_execution_exception(execution_id, exc_str):
-    LOG.error(
+    # This method should be called from an exception handler
+    LOG.exception(
         'Error running execution %s: %s', execution_id, exc_str
     )
     db_set_execution_status(
-        execution_id, status.ERROR, '', {'EngineError': exc_str}
+        execution_id, status.ERROR, '', {'error': 'Function execution failed.'}
     )

@@ -56,12 +56,16 @@ class FunctionVersionsController(rest.RestController):
     @tenacity.retry(
         wait=tenacity.wait_fixed(1),
         stop=tenacity.stop_after_attempt(30),
-        retry=(tenacity.retry_if_result(lambda result: result is False))
+        reraise=True,
+        retry=tenacity.retry_if_exception_type(exc.EtcdLockException)
     )
     def _create_function_version(self, project_id, function_id, **kwargs):
         with etcd_util.get_function_version_lock(function_id) as lock:
             if not lock.is_acquired():
-                return False
+                raise exc.EtcdLockException(
+                    "Etcd: failed to acquire version lock for function %s." %
+                    function_id
+                )
 
             with db_api.transaction():
                 # Get latest function package md5 and version number
@@ -132,8 +136,15 @@ class FunctionVersionsController(rest.RestController):
         }
 
         # Try to create a new function version within lock and db transaction
-        version = self._create_function_version(ctx.project_id, function_id,
-                                                **values)
+        try:
+            version = self._create_function_version(
+                ctx.project_id, function_id, **values
+            )
+        except exc.EtcdLockException as e:
+            LOG.exception(str(e))
+            # Reraise a generic exception as the end users should not know
+            # the underlying details.
+            raise exc.QinlingException('Internal server error.')
 
         return resources.FunctionVersion.from_db_obj(version)
 

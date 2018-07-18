@@ -15,6 +15,7 @@
 from datetime import datetime
 import json
 import tempfile
+import uuid
 
 import mock
 from oslo_config import cfg
@@ -58,6 +59,45 @@ class TestFunctionController(base.APITest):
             {
                 'entry': 'main.main',
                 'code': {"source": "package", "md5sum": "fake_md5"}
+            }
+        )
+        self._assertDictContainsSubset(resp.json, body)
+
+    @mock.patch("qinling.utils.openstack.keystone.create_trust")
+    @mock.patch('qinling.utils.openstack.keystone.get_swiftclient')
+    @mock.patch('qinling.context.AuthHook.before')
+    def test_post_from_swift(self, mock_auth, mock_client, mock_trust):
+        self.override_config('auth_enable', True, group='pecan')
+
+        swift_conn = mock.Mock()
+        mock_client.return_value = swift_conn
+        swift_conn.head_object.return_value = {
+            'accept-ranges': 'bytes',
+            'content-length': str(constants.MAX_PACKAGE_SIZE - 1)
+        }
+        mock_trust.return_value.id = str(uuid.uuid4())
+
+        body = {
+            'name': 'swift_function',
+            'code': json.dumps(
+                {
+                    "source": "swift",
+                    "swift": {"container": "container", "object": "object"}
+                }
+            ),
+            'runtime_id': self.runtime_id,
+        }
+        resp = self.app.post('/v1/functions', params=body)
+
+        self.assertEqual(201, resp.status_int)
+
+        body.update(
+            {
+                'entry': 'main.main',
+                'code': {
+                    "source": "swift",
+                    "swift": {"container": "container", "object": "object"}
+                }
             }
         )
         self._assertDictContainsSubset(resp.json, body)

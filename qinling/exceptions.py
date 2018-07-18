@@ -111,3 +111,8 @@ class OrchestratorException(QinlingException):
 class TrustFailedException(QinlingException):
     http_code = 500
     message = "Trust operation failed."
+
+
+class SwiftException(QinlingException):
+    http_code = 500
+    message = "Failed to communicate with Swift."

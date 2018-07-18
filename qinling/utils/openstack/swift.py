@@ -15,6 +15,7 @@
 from oslo_log import log as logging
 from swiftclient.exceptions import ClientException
 
+from qinling import exceptions as exc
 from qinling.utils import common
 from qinling.utils import constants
 from qinling.utils.openstack import keystone
@@ -42,6 +43,9 @@ def check_object(container, object):
             'The object %s in container %s was not found', object, container
         )
         return False
+    except Exception:
+        LOG.exception("Error when communicating with Swift.")
+        return False
 
     if int(header['content-length']) > constants.MAX_PACKAGE_SIZE:
         LOG.error('Object size is greater than %s', constants.MAX_PACKAGE_SIZE)
@@ -54,9 +58,13 @@ def check_object(container, object):
 def download_object(container, object):
     swift_conn = keystone.get_swiftclient()
 
-    # Specify 'resp_chunk_size' here to return a file reader.
-    _, obj_reader = swift_conn.get_object(
-        container, object, resp_chunk_size=65536
-    )
+    try:
+        # Specify 'resp_chunk_size' here to return a file reader.
+        _, obj_reader = swift_conn.get_object(
+            container, object, resp_chunk_size=65536
+        )
+    except Exception:
+        LOG.exception("Error when downloading object from Swift.")
+        raise exc.SwiftException()
 
     return obj_reader

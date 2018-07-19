@@ -174,8 +174,23 @@ class QinlingClient(client_base.QinlingClientBase):
         resp, body = self.post_json('webhooks', req_body)
         return resp, body
 
-    def create_job(self, function_id, version=0, first_execution_time=None):
-        req_body = {"function_id": function_id, "function_version": version}
+    def create_job(self, function_id=None, function_alias=None, version=0,
+                   first_execution_time=None):
+        """Create job.
+
+        function_alias takes precedence over function_id.
+        """
+        if function_alias:
+            req_body = {'function_alias': function_alias}
+        elif function_id:
+            req_body = {
+                'function_id': function_id,
+                'function_version': version
+            }
+        else:
+            raise Exception("Either function_alias or function_id must be "
+                            "provided.")
+
         if not first_execution_time:
             first_execution_time = str(
                 datetime.utcnow() + timedelta(hours=1)

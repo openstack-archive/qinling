@@ -49,6 +49,9 @@ class KubernetesManager(base.OrchestratorBase):
         # Create namespace if not exists
         self._ensure_namespace()
 
+        # Create the network policy if not exists
+        self._ensure_network_policy()
+
         # Get templates.
         template_loader = jinja2.FileSystemLoader(
             searchpath=os.path.dirname(TEMPLATES_DIR)
@@ -86,6 +89,29 @@ class KubernetesManager(base.OrchestratorBase):
             self.v1.create_namespace(namespace_body)
 
             LOG.info('Namespace %s created.', self.conf.kubernetes.namespace)
+
+    def _ensure_network_policy(self):
+        policy_name = 'disable-interpods-connections'
+        namespace = self.conf.kubernetes.namespace
+        ret = self.v1extension.list_namespaced_network_policy(namespace)
+        policies = [i.metadata.name for i in ret.items]
+
+        if policy_name not in policies:
+            LOG.info('Creating network policy %s in namespace %s',
+                     policy_name, namespace)
+
+            policy_body = {
+                'apiVersion': 'extensions/v1beta1',
+                'kind': 'NetworkPolicy',
+                'metadata': {'name': policy_name},
+                'spec': {'pod_selector': {}}
+            }
+
+            self.v1extension.create_namespaced_network_policy(
+                namespace, policy_body)
+
+            LOG.info('Network policy %s in namespace %s created.',
+                     policy_name, namespace)
 
     @tenacity.retry(
         wait=tenacity.wait_fixed(2),

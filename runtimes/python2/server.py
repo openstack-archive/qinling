@@ -98,16 +98,15 @@ def _invoke_function(execution_id, zip_file_dir, module_name, method, arg,
             'pid': pid
         }
     )
-    if not root_resp.ok:
-        return_dict['result'] = root_resp.content
-        return_dict['success'] = False
-        sys.exit(0)
 
-    sys.path.insert(0, zip_file_dir)
     sys.stdout = open("%s.out" % execution_id, "w", 0)
+
+    if not root_resp.ok:
+        print('WARN: Resource limiting failed, run in unlimit mode.')
 
     print('Start execution: %s' % execution_id)
 
+    sys.path.insert(0, zip_file_dir)
     try:
         module = importlib.import_module(module_name)
         func = getattr(module, method)

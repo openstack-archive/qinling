@@ -35,7 +35,6 @@ from qinling.utils import rest_utils
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
 
-POST_REQUIRED = set(['function_id'])
 UPDATE_ALLOWED = set(['name', 'function_input', 'status', 'pattern',
                       'next_execution_time'])
 
@@ -52,9 +51,9 @@ class JobsController(rest.RestController):
     def post(self, job):
         """Creates a new job."""
         params = job.to_dict()
-        if not POST_REQUIRED.issubset(set(params.keys())):
+        if not (params.get("function_id") or params.get("function_alias")):
             raise exc.InputException(
-                'Required param is missing. Required: %s' % POST_REQUIRED
+                'Either function_alias or function_id must be provided.'
             )
 
         # Check the input params.
@@ -62,6 +61,14 @@ class JobsController(rest.RestController):
         LOG.info("Creating %s, params: %s", self.type, params)
 
         version = params.get('function_version', 0)
+        # if function_alias provided
+        function_alias = params.get('function_alias')
+        if function_alias:
+            alias_db = db_api.get_function_alias(function_alias)
+            function_id = alias_db.function_id
+            version = alias_db.function_version
+            params.update({'function_id': function_id,
+                           'version': version})
 
         with db_api.transaction():
             db_api.get_function(params['function_id'])

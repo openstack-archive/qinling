@@ -336,6 +336,7 @@ class Job(Resource):
     id = types.uuid
     name = wtypes.text
     function_id = types.uuid
+    function_alias = wtypes.text
     function_version = wsme.wsattr(int, default=0)
     function_input = wtypes.text
     status = wtypes.text

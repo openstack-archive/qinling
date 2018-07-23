@@ -66,3 +66,29 @@ class JobsTest(base.BaseQinlingTest):
         resp, body = self.client.get_execution_log(exec_id)
         self.assertEqual(200, resp.status)
         self.assertIn('Hello, World', body)
+
+    @decorators.idempotent_id('2ff6b90b-0432-44ec-8698-eed1c7fb7f04')
+    def test_create_with_function_alias(self):
+        version = self.create_function_version(self.function_id)
+        function_alias = self.create_function_alias(self.function_id, version)
+        # first_execution_time is at least 1 min ahead of current time.
+        first_execution_time = str(datetime.utcnow() + timedelta(seconds=90))
+        job_id = self.create_job(function_alias=function_alias,
+                                 first_execution_time=first_execution_time)
+
+        # Wait for job to be finished
+        self.wait_job_done(job_id)
+
+        resp, body = self.client.get_resources(
+            'executions',
+            {'description': 'has:%s' % job_id}
+        )
+        self.assertEqual(200, resp.status)
+        self.assertEqual(1, len(body['executions']))
+
+        exec_id = body['executions'][0]['id']
+        self.wait_execution_success(exec_id)
+
+        resp, body = self.client.get_execution_log(exec_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('Hello, World', body)

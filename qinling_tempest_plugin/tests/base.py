@@ -182,15 +182,21 @@ class BaseQinlingTest(test.BaseTestCase):
 
         return webhook_id, body['webhook_url']
 
-    def create_job(self, function_id=None, version=0,
+    def create_job(self, function_id=None, function_alias=None, version=0,
                    first_execution_time=None):
-        if not function_id:
-            function_id = self.create_function()
-        resp, body = self.client.create_job(
-            function_id,
-            version=version,
-            first_execution_time=first_execution_time
-        )
+        if function_alias:
+            resp, body = self.client.create_job(
+                function_alias=function_alias,
+                first_execution_time=first_execution_time
+            )
+        else:
+            if not function_id:
+                function_id = self.create_function()
+            resp, body = self.client.create_job(
+                function_id,
+                version=version,
+                first_execution_time=first_execution_time
+            )
         self.assertEqual(201, resp.status)
         job_id = body['id']
 

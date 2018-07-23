@@ -365,6 +365,7 @@ class ScaleInfo(Resource):
 class Webhook(Resource):
     id = types.uuid
     function_id = types.uuid
+    function_alias = wtypes.text
     function_version = wsme.wsattr(int)
     description = wtypes.text
     project_id = wsme.wsattr(wtypes.text, readonly=True)

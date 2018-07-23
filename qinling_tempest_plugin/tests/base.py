@@ -169,11 +169,19 @@ class BaseQinlingTest(test.BaseTestCase):
 
         self.assertEqual(200, resp.status_code)
 
-    def create_webhook(self, function_id=None, version=0):
-        if not function_id:
-            function_id = self.create_function()
-
-        resp, body = self.client.create_webhook(function_id, version=version)
+    def create_webhook(self, function_id=None, function_alias=None,
+                       version=0):
+        if function_alias:
+            resp, body = self.client.create_webhook(
+                function_alias=function_alias
+            )
+        else:
+            if not function_id:
+                function_id = self.create_function()
+            resp, body = self.client.create_webhook(
+                function_id,
+                version=version
+            )
         self.assertEqual(201, resp.status)
 
         webhook_id = body['id']

@@ -116,3 +116,8 @@ class TrustFailedException(QinlingException):
 class SwiftException(QinlingException):
     http_code = 500
     message = "Failed to communicate with Swift."
+
+
+class EtcdLockException(QinlingException):
+    http_code = 409
+    message = 'Etcd lock failed'

@@ -11,11 +11,16 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+
+import etcd3gw
+from tempest import config
 from tempest.lib import decorators
 from tempest.lib import exceptions
 import tenacity
 
 from qinling_tempest_plugin.tests import base
+
+CONF = config.CONF
 
 
 class FunctionVersionsTest(base.BaseQinlingTest):
@@ -86,6 +91,28 @@ class FunctionVersionsTest(base.BaseQinlingTest):
             self.admin_client.create_function_version,
             function_id
         )
+
+    @decorators.idempotent_id('78dc5552-fcb8-4b27-86f7-5f3d96143934')
+    def test_create_version_lock_failed(self):
+        """test_create_version_lock_failed
+
+        Creating a function requires a lock. If qinling failed to acquire the
+        lock then an error would be returned after some retries.
+
+        In this test we acquire the lock manually, so that qinling will fail
+        to acquire the lock.
+        """
+        function_id = self.create_function()
+
+        etcd3_client = etcd3gw.client(host=CONF.qinling.etcd_host,
+                                      port=CONF.qinling.etcd_port)
+        lock_id = "function_version_%s" % function_id
+        with etcd3_client.lock(id=lock_id):
+            self.assertRaises(
+                exceptions.ServerFault,
+                self.client.create_function_version,
+                function_id
+            )
 
     @decorators.idempotent_id('43c06f41-d116-43a7-a61c-115f7591b22e')
     def test_get_by_admin(self):

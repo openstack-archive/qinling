@@ -92,7 +92,8 @@ class DefaultEngine(object):
     @tenacity.retry(
         wait=tenacity.wait_fixed(1),
         stop=tenacity.stop_after_attempt(30),
-        retry=(tenacity.retry_if_result(lambda result: result is False))
+        reraise=True,
+        retry=tenacity.retry_if_exception_type(exc.EtcdLockException)
     )
     def function_load_check(self, function_id, version, runtime_id):
         """Check function load and scale the workers if needed.
@@ -101,7 +102,10 @@ class DefaultEngine(object):
         """
         with etcd_util.get_worker_lock(function_id, version) as lock:
             if not lock.is_acquired():
-                return False
+                raise exc.EtcdLockException(
+                    'Etcd: failed to get worker lock for function %s'
+                    '(version %s).' % (function_id, version)
+                )
 
             workers = etcd_util.get_workers(function_id, version)
             running_execs = db_api.get_executions(
@@ -149,7 +153,10 @@ class DefaultEngine(object):
                 svc_url = self.function_load_check(function_id,
                                                    function_version,
                                                    runtime_id)
-            except exc.OrchestratorException as e:
+            except (
+                exc.OrchestratorException,
+                exc.EtcdLockException
+            ) as e:
                 utils.handle_execution_exception(execution_id, str(e))
                 return
 

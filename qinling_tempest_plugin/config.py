@@ -45,4 +45,10 @@ QinlingGroup = [
     cfg.StrOpt("nodejs_runtime_image",
                default="openstackqinling/nodejs-runtime:0.0.1",
                help="The NodeJS runtime being used in the tests."),
+    cfg.StrOpt('etcd_host',
+               default='127.0.0.1',
+               help='Etcd service host address.'),
+    cfg.PortOpt('etcd_port',
+                default=2379,
+                help='Etcd service port.'),
 ]

@@ -198,6 +198,25 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(3, lock.is_acquired.call_count)
         mock_getworkers.assert_called_once_with(function_id, 0)
 
+    @mock.patch('qinling.utils.etcd_util.get_worker_lock')
+    def test_function_load_check_failed_to_get_worker_lock(self, mock_getlock):
+        function = self.create_function()
+        function_id = function.id
+        runtime_id = function.runtime_id
+        function_version = 0
+        lock = mock.Mock()
+        # Lock is never acquired.
+        lock.is_acquired.return_value = False
+        mock_getlock.return_value.__enter__.return_value = lock
+
+        self.assertRaisesRegex(
+            exc.EtcdLockException,
+            "^Etcd: failed to get worker lock for function %s"
+            "\(version %s\)\.$" % (function_id, function_version),
+            self.default_engine.function_load_check,
+            function_id, function_version, runtime_id
+        )
+
     @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_create_execution_image_type_function(self, mock_svc_url):
         """Create 2 executions for an image type function."""
@@ -327,7 +346,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(execution.status, status.ERROR)
         self.assertEqual(execution.logs, '')
         self.assertEqual(execution.result,
-                         {'EngineError': 'Exception in prepare_execution'})
+                         {'error': 'Function execution failed.'})
 
     @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_create_execution_package_type_function(
@@ -389,7 +408,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(execution.status, status.ERROR)
         self.assertEqual(execution.logs, '')
         self.assertEqual(execution.result,
-                         {'EngineError': 'Exception in scaleup_function'})
+                         {'error': 'Function execution failed.'})
 
     @mock.patch('qinling.engine.utils.get_request_data')
     @mock.patch('qinling.engine.utils.url_request')

@@ -188,8 +188,11 @@ class TestKubernetesManager(base.DbTestCase):
         fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
         fake_image = self.rand_name('image', prefix=self.prefix)
 
-        self.manager.create_pool(fake_deployment_name, fake_image)
-
+        self.assertRaisesRegex(
+            exc.OrchestratorException,
+            "^Deployment %s not ready\.$" % fake_deployment_name,
+            self.manager.create_pool,
+            fake_deployment_name, fake_image)
         self.assertLess(
             200,  # Default timeout is 600s with wait interval set to 2s.
             self.k8s_v1_ext.read_namespaced_deployment.call_count)

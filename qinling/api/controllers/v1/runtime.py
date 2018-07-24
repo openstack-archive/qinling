@@ -71,6 +71,8 @@ class RuntimesController(rest.RestController):
         acl.enforce('runtime:create', context.get_ctx())
 
         params = runtime.to_dict()
+        if 'trusted' not in params:
+            params['trusted'] = True
 
         if not POST_REQUIRED.issubset(set(params.keys())):
             raise exc.InputException(
@@ -117,8 +119,9 @@ class RuntimesController(rest.RestController):
     def put(self, id, runtime):
         """Update runtime.
 
-        Currently, we only support update name, description, image. When
-        updating image, send message to engine for asynchronous handling.
+        Currently, we support update name, description, image. When
+        updating image, send message to engine for asynchronous
+        handling.
         """
         acl.enforce('runtime:update', context.get_ctx())
 
@@ -130,8 +133,10 @@ class RuntimesController(rest.RestController):
         LOG.info('Update resource, params: %s', values,
                  resource={'type': self.type, 'id': id})
 
+        image = values.get('image')
+
         with db_api.transaction():
-            if 'image' in values:
+            if image is not None:
                 pre_runtime = db_api.get_runtime(id)
                 if pre_runtime.status != status.AVAILABLE:
                     raise exc.RuntimeNotAvailableException(
@@ -139,7 +144,7 @@ class RuntimesController(rest.RestController):
                     )
 
                 pre_image = pre_runtime.image
-                if pre_image != values['image']:
+                if pre_image != image:
                     # Ensure there is no function running in the runtime.
                     db_funcs = db_api.get_functions(
                         insecure=True, fields=['id'], runtime_id=id
@@ -155,11 +160,9 @@ class RuntimesController(rest.RestController):
                     values['status'] = status.UPGRADING
                     self.engine_client.update_runtime(
                         id,
-                        image=values['image'],
-                        pre_image=pre_image
+                        image=image,
+                        pre_image=pre_image,
                     )
-                else:
-                    values.pop('image')
 
             runtime_db = db_api.update_runtime(id, values)
 

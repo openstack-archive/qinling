@@ -6,6 +6,8 @@ metadata:
   {% for key, value in labels.items() %}
     {{ key }}: {{ value }}
   {% endfor %}
+  annotations:
+    io.kubernetes.cri-o.TrustedSandbox: "false"
 spec:
   terminationGracePeriodSeconds: 5
   automountServiceAccountToken: false

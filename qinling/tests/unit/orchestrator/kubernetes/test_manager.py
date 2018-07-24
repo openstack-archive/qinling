@@ -196,7 +196,8 @@ class TestKubernetesManager(base.DbTestCase):
                 'replicas': fake_replicas,
                 'container_name': 'worker',
                 'image': fake_image,
-                'sidecar_image': CONF.engine.sidecar_image
+                'sidecar_image': CONF.engine.sidecar_image,
+                'trusted': 'true'
             }
         )
         self.k8s_v1_ext.create_namespaced_deployment.assert_called_once_with(
@@ -297,8 +298,8 @@ class TestKubernetesManager(base.DbTestCase):
             }
         }
         ret = mock.Mock()
-        ret.status.unavailable_replicas = 0
-        self.k8s_v1_ext.read_namespaced_deployment_status.return_value = ret
+        ret.status.unavailable_replicas = None
+        self.k8s_v1_ext.read_namespaced_deployment.return_value = ret
 
         update_result = self.manager.update_pool(fake_deployment_name,
                                                  image=image)
@@ -306,7 +307,7 @@ class TestKubernetesManager(base.DbTestCase):
         self.assertTrue(update_result)
         self.k8s_v1_ext.patch_namespaced_deployment.assert_called_once_with(
             fake_deployment_name, self.fake_namespace, body)
-        read_status = self.k8s_v1_ext.read_namespaced_deployment_status
+        read_status = self.k8s_v1_ext.read_namespaced_deployment
         read_status.assert_called_once_with(fake_deployment_name,
                                             self.fake_namespace)
 
@@ -316,9 +317,8 @@ class TestKubernetesManager(base.DbTestCase):
         ret1 = mock.Mock()
         ret1.status.unavailable_replicas = 1
         ret2 = mock.Mock()
-        ret2.status.unavailable_replicas = 0
-        self.k8s_v1_ext.read_namespaced_deployment_status.side_effect = [
-            ret1, ret2]
+        ret2.status.unavailable_replicas = None
+        self.k8s_v1_ext.read_namespaced_deployment.side_effect = [ret1, ret2]
 
         update_result = self.manager.update_pool(fake_deployment_name,
                                                  image=image)
@@ -326,33 +326,8 @@ class TestKubernetesManager(base.DbTestCase):
         self.assertTrue(update_result)
         self.k8s_v1_ext.patch_namespaced_deployment.assert_called_once_with(
             fake_deployment_name, self.fake_namespace, mock.ANY)
-        read_status = self.k8s_v1_ext.read_namespaced_deployment_status
+        read_status = self.k8s_v1_ext.read_namespaced_deployment
         self.assertEqual(2, read_status.call_count)
-
-    def test_update_pool_rollback(self):
-        fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)
-        image = self.rand_name('image', prefix=self.prefix)
-        ret = mock.Mock()
-        ret.status.unavailable_replicas = 1
-        self.k8s_v1_ext.read_namespaced_deployment_status.return_value = ret
-        rollback_body = {
-            "name": fake_deployment_name,
-            "rollbackTo": {
-                "revision": 0
-            }
-        }
-
-        update_result = self.manager.update_pool(fake_deployment_name,
-                                                 image=image)
-
-        self.assertFalse(update_result)
-        self.k8s_v1_ext.patch_namespaced_deployment.assert_called_once_with(
-            fake_deployment_name, self.fake_namespace, mock.ANY)
-        read_status = self.k8s_v1_ext.read_namespaced_deployment_status
-        self.assertEqual(5, read_status.call_count)
-        rollback = self.k8s_v1_ext.create_namespaced_deployment_rollback
-        rollback.assert_called_once_with(
-            fake_deployment_name, self.fake_namespace, rollback_body)
 
     def test_get_pool(self):
         fake_deployment_name = self.rand_name('deployment', prefix=self.prefix)

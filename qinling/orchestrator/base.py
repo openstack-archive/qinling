@@ -27,7 +27,7 @@ class OrchestratorBase(object):
     """OrchestratorBase interface."""
 
     @abc.abstractmethod
-    def create_pool(self, name, image, **kwargs):
+    def create_pool(self, name, image, trusted=True, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -35,7 +35,7 @@ class OrchestratorBase(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def update_pool(self, name, **kwargs):
+    def update_pool(self, name, image=None, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod

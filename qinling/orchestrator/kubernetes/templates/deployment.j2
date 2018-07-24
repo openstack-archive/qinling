@@ -19,6 +19,8 @@ spec:
       {% for key, value in labels.items() %}
         {{ key }}: {{ value }}
       {% endfor %}
+      annotations:
+        io.kubernetes.cri-o.TrustedSandbox: "{{ trusted }}"
     spec:
       terminationGracePeriodSeconds: 5
       automountServiceAccountToken: false

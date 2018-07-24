@@ -43,7 +43,8 @@ class DefaultEngine(object):
             try:
                 self.orchestrator.create_pool(
                     runtime_id,
-                    runtime.image
+                    runtime.image,
+                    trusted=runtime.trusted
                 )
                 runtime.status = status.AVAILABLE
                 LOG.info('Runtime %s created.', runtime_id)
@@ -69,9 +70,7 @@ class DefaultEngine(object):
             runtime_id, image, pre_image
         )
 
-        ret = self.orchestrator.update_pool(
-            runtime_id, image=image
-        )
+        ret = self.orchestrator.update_pool(runtime_id, image=image)
 
         if ret:
             values = {'status': status.AVAILABLE}

@@ -14,7 +14,9 @@
 
 from concurrent import futures
 import etcd3gw
+import hashlib
 import json
+import requests
 
 import futurist
 from oslo_serialization import jsonutils
@@ -451,3 +453,34 @@ class ExecutionsTest(base.BaseQinlingTest):
         lower = second_duration * 1.8
         self.assertGreaterEqual(upper, first_duration)
         self.assertLessEqual(lower, first_duration)
+
+    @decorators.idempotent_id('07edf2ff-7544-4f30-b006-fd5302a2a9cc')
+    def test_python_execution_public_connection(self):
+        """Test connections from k8s pod to the outside.
+
+        Create a function that reads a webpage on the Internet, to
+        verify that pods in Kubernetes can connect to the outside.
+        """
+
+        # Create function
+        package = self.create_package(name='python/test_python_http_get.py')
+        function_id = self.create_function(package_path=package)
+
+        url = 'https://docs.openstack.org/qinling/latest'
+
+        # Gets the page's sha256 outside Qinling
+        response = requests.get(url, timeout=10)
+        page_sha256 = hashlib.sha256(response.text.encode('utf-8')).hexdigest()
+
+        # Create an execution to get the page's sha256 with Qinling
+        resp, body = self.client.create_execution(
+            function_id, input='{"url": "%s"}' % url
+        )
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        self.assertEqual(201, resp.status)
+        self.assertEqual('success', body['status'])
+        result = json.loads(body['result'])
+        self.assertEqual(page_sha256, result['output'])

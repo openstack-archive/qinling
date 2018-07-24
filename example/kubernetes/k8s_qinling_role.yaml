@@ -58,6 +58,9 @@ rules:
 - apiGroups: ["extensions"]
   resources: ["replicasets"]
   verbs: ["deletecollection"]
+- apiGroups: ["extensions"]
+  resources: ["networkpolicies"]
+  verbs: ["list", "get", "create", "delete"]
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

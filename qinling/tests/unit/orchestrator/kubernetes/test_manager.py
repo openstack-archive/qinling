@@ -60,6 +60,14 @@ class TestKubernetesManager(base.DbTestCase):
         namespaces.items = [namespace]
         self.k8s_v1_api.list_namespace.return_value = namespaces
 
+        network_policy = mock.Mock()
+        network_policy.metadata.name = 'disable-interpods-connections'
+        network_policies = mock.Mock()
+        network_policies.items = [network_policy]
+        self.k8s_v1_ext.list_namespaced_network_policy.return_value = (
+            network_policies
+        )
+
         self.manager = k8s_manager.KubernetesManager(self.conf,
                                                      self.qinling_endpoint)
 
@@ -130,6 +138,43 @@ class TestKubernetesManager(base.DbTestCase):
         # setUp also calls list_namespace.
         self.assertEqual(2, self.k8s_v1_api.list_namespace.call_count)
         self.k8s_v1_api.create_namespace.assert_not_called()
+
+    def test__ensure_network_policy(self):
+        # self.manager is not used in this test.
+        network_policies = mock.Mock()
+        network_policies.items = []
+        v1ext = self.k8s_v1_ext
+        v1ext.list_namespaced_network_policy.return_value = network_policies
+
+        k8s_manager.KubernetesManager(self.conf, self.qinling_endpoint)
+
+        network_policy_body = {
+            'apiVersion': 'extensions/v1beta1',
+            'kind': 'NetworkPolicy',
+            'metadata': {'name': 'disable-interpods-connections'},
+            'spec': {'pod_selector': {}}
+        }
+        v1ext.list_namespaced_network_policy.assert_called_with(
+            self.fake_namespace
+        )
+        v1ext.create_namespaced_network_policy.assert_called_once_with(
+            self.fake_namespace, network_policy_body)
+
+    def test__ensure_network_policy_not_create(self):
+        # self.manager is not used in this test.
+        item = mock.Mock()
+        item.metadata.name = 'disable-interpods-connections'
+        network_policies = mock.Mock()
+        network_policies.items = [item]
+        v1ext = self.k8s_v1_ext
+        v1ext.list_namespaced_network_policy.return_value = network_policies
+
+        k8s_manager.KubernetesManager(self.conf, self.qinling_endpoint)
+
+        v1ext.list_namespaced_network_policy.assert_called_with(
+            self.fake_namespace
+        )
+        v1ext.create_namespaced_network_policy.assert_not_called()
 
     def test_create_pool(self):
         ret = mock.Mock()

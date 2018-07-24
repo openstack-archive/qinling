@@ -1,0 +1,8 @@
+---
+security:
+  - |
+    When using Kubernetes as the orchestrator, Qinling will create Kubernetes 
+    pods to run executions of functions. In Kubernetes, pods are non-isolated 
+    unless the NetworkPolicy is configured and enforced. In Qinling, we create 
+    NetworkPolicy to disable the communication between pods and the traffic 
+    from outside the cluster.

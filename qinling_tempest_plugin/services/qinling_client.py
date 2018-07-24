@@ -169,8 +169,22 @@ class QinlingClient(client_base.QinlingClientBase):
 
         return self.get_resources(url)
 
-    def create_webhook(self, function_id, version=0):
-        req_body = {"function_id": function_id, "function_version": version}
+    def create_webhook(self, function_id=None, function_alias=None,
+                       version=0):
+        """Create webhook.
+
+        function_alias takes precedence over function_id.
+        """
+        if function_alias:
+            req_body = {'function_alias': function_alias}
+        elif function_id:
+            req_body = {
+                'function_id': function_id,
+                'function_version': version
+            }
+        else:
+            raise Exception("Either function_alias or function_id must be "
+                            "provided.")
         resp, body = self.post_json('webhooks', req_body)
         return resp, body
 

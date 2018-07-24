@@ -34,7 +34,6 @@ from qinling.utils import rest_utils
 
 LOG = logging.getLogger(__name__)
 
-POST_REQUIRED = set(['function_id'])
 UPDATE_ALLOWED = set(['function_id', 'function_version', 'description'])
 
 
@@ -104,10 +103,19 @@ class WebhooksController(rest.RestController):
         acl.enforce('webhook:create', context.get_ctx())
 
         params = webhook.to_dict()
-        if not POST_REQUIRED.issubset(set(params.keys())):
+        if not (params.get("function_id") or params.get("function_alias")):
             raise exc.InputException(
-                'Required param is missing. Required: %s' % POST_REQUIRED
+                'Either function_alias or function_id must be provided.'
             )
+
+        # if function_alias provided
+        function_alias = params.get('function_alias')
+        if function_alias:
+            alias_db = db_api.get_function_alias(function_alias)
+            function_id = alias_db.function_id
+            version = alias_db.function_version
+            params.update({'function_id': function_id,
+                           'function_version': version})
 
         LOG.info("Creating %s, params: %s", self.type, params)
 

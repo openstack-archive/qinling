@@ -80,6 +80,34 @@ class TestWebhookController(base.APITest):
         self.assertEqual(201, resp.status_int)
         self.assertEqual(1, resp.json.get("function_version"))
 
+    def test_post_with_alias(self):
+        db_api.increase_function_version(self.func_id, 0)
+        name = self.rand_name(name="alias", prefix=self.prefix)
+        body = {
+            'function_id': self.func_id,
+            'function_version': 1,
+            'name': name
+        }
+        db_api.create_function_alias(**body)
+
+        webhook_body = {
+            'function_alias': name,
+            'description': 'webhook test'
+        }
+        resp = self.app.post_json('/v1/webhooks', webhook_body)
+
+        self.assertEqual(201, resp.status_int)
+        self.assertEqual(1, resp.json.get("function_version"))
+
+    def test_post_without_required_params(self):
+        resp = self.app.post(
+            '/v1/webhooks',
+            params={},
+            expect_errors=True
+        )
+
+        self.assertEqual(400, resp.status_int)
+
     def test_put_with_version(self):
         db_api.increase_function_version(self.func_id, 0)
         webhook = self.create_webhook(self.func_id)

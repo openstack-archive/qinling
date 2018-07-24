@@ -76,6 +76,34 @@ class WebhooksTest(base.BaseQinlingTest):
         self.assertEqual(200, resp.status)
         self.assertIn('version_test', body)
 
+    @decorators.idempotent_id('a5b5eed3-82ee-4ab1-b9ca-9898e4da6b5a')
+    def test_webhook_with_function_alias(self):
+        version = self.create_function_version(self.function_id)
+        function_alias = self.create_function_alias(self.function_id, version)
+        webhook_id, url = self.create_webhook(function_alias=function_alias)
+        resp = requests.post(url, data={'name': 'alias_test'}, verify=False)
+
+        self.assertEqual(202, resp.status_code)
+
+        resp_exec_id = resp.json().get('execution_id')
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        resp_exec_id, ignore_notfound=True)
+
+        resp, body = self.client.get_resources(
+            'executions',
+            {'description': 'has:%s' % webhook_id}
+        )
+
+        self.assertEqual(200, resp.status)
+        self.assertEqual(1, len(body['executions']))
+        exec_id = body['executions'][0]['id']
+        self.assertEqual(resp_exec_id, exec_id)
+        self.wait_execution_success(exec_id)
+
+        resp, body = self.client.get_execution_log(exec_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('alias_test', body)
+
     @decorators.idempotent_id('8e6e4f76-f748-11e7-8ec3-00224d6b7bc1')
     def test_get_all_admin(self):
         """Admin user can get webhooks of other projects"""

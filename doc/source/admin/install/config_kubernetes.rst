@@ -21,8 +21,8 @@ Qinling. The component which works with Kubernetes cluster in Qinling is the
 existing Kubernetes cluster, and make Qinling access the Kubernetes API with
 authentication and authorization.
 
-Configurations
-~~~~~~~~~~~~~~
+Qinling Configurations
+~~~~~~~~~~~~~~~~~~~~~~
 
 Below are the options that relate to accessing the Kubernetes API in Qinling's
 configuration file, all of them are under the ``kubernetes`` section.
@@ -58,10 +58,10 @@ server. Refer to
 `Authentication in Kubernetes <https://kubernetes.io/docs/admin/authentication/>`_.
 
 If `RBAC Authorization <https://kubernetes.io/docs/admin/authorization/rbac/>`_
-is enabled in the Kubernetes API, we will also have to grant access to resources
-in Kubernetes for the specific user that Qinling uses to make requests to the
-Kubernetes API. Using RBAC Authorization can ensure that Qinling access the
-Kubernetes API with only the permission that it needs.
+is enabled in the Kubernetes API, we will also have to grant access to
+resources in Kubernetes for the specific user that Qinling uses to make
+requests to the Kubernetes API. Using RBAC Authorization can ensure that
+Qinling access the Kubernetes API with only the permission that it needs.
 
 Generate Client Certificate for Qinling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -84,24 +84,29 @@ for how to generate a client cert. We use ``cfssl`` as the example here.
 
     .. code-block:: console
 
-        mkdir certs; cd certs
+        mkdir /tmp/certs; cd /tmp/certs
         /tmp/cfssl gencert -ca=/path/to/kubernetes_ca_crt \
             -ca-key=/path/to/kubernetes_ca_key \
-            -config=QINLING_SOURCE/example/kubernetes/cfssl-ca-config.json \
+            -config=QINLING_SOURCE_FOLDER/example/kubernetes/cfssl-ca-config.json \
             -profile=client \
-            QINLING_SOURCE/example/kubernetes/cfssl-client-csr.json | /tmp/cfssljson -bare client
+            QINLING_SOURCE_FOLDER/example/kubernetes/cfssl-client-csr.json | /tmp/cfssljson -bare client
 
 #) Copy the needed files to the locations. The command above generates two
    files named ``client-key.pem`` and ``client.pem``, the former is the key
    file of the client certificate, and the latter is the certificate file
    itself.
 
-    .. code-block:: console
+   .. note::
 
-        mkdir -p /etc/qinling/pki/kubernetes
-        cp client-key.pem /etc/qinling/pki/kubernetes/qinling.key
-        cp client.pem /etc/qinling/pki/kubernetes/qinling.crt
-        cp /path/to/kubernetes_ca_crt /etc/qinling/pki/kubernetes/ca.crt
+      Remember to backup the existing files in /etc/qinling/pki/kubernetes
+      folder first.
+
+   .. code-block:: console
+
+       mkdir -p /etc/qinling/pki/kubernetes
+       mv client-key.pem /etc/qinling/pki/kubernetes/qinling.key
+       mv client.pem /etc/qinling/pki/kubernetes/qinling.crt
+       mv /path/to/kubernetes_ca_crt /etc/qinling/pki/kubernetes/ca.crt
 
    .. note::
 
@@ -125,30 +130,21 @@ the common name of the subject in the client certificate. The role is defined
 within a namespace named ``qinling``, which is the default namespace that
 Qinling uses and the name is configurable.
 
-#) Grant access to the resources in the Kubernetes cluster for Qinling. The
-   following command can be running on any host that kubectl is installed
-   to interact with Kubernetes.
+.. code-block:: console
 
-    .. code-block:: console
+    curl -sSL https://raw.githubusercontent.com/openstack/qinling/master/example/kubernetes/k8s_qinling_role.yaml | kubectl apply -f -
 
-        curl -sSL https://raw.githubusercontent.com/openstack/qinling/master/example/kubernetes/k8s_qinling_role.yaml | kubectl create -f -
 
-The command above creates a ``ClusterRole`` named ``qinling`` with the
-cluster-wide permissions that Qinling needs and binds it to the ``qinling``
-user. It also creates a ``Role`` named ``qinling`` within a newly created
-``qinling`` namespace and binds it to the specific user. So the access to
-resources within that namespace is also granted.
+Restart Qinling Engine
+~~~~~~~~~~~~~~~~~~~~~~
 
-Start Qinling Engine
-~~~~~~~~~~~~~~~~~~~~
-
-Start the qinling-engine service after the steps above are done. And now
+Restart the qinling-engine service after the steps above are done, and now
 Qinling is accessing the Kubernetes API with itself authenticated by a client
-certificate. And the requests that Qinling makes to the Kubernetes API
-are also authorized.
+certificate. The requests that Qinling makes to the Kubernetes API are also
+authorized.
 
-Access the Kubernetes API Insecurely (For Testing ONLY)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Access the Kubernetes API Insecurely (For testing purpose ONLY)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Qinling can also connect to the Kubernetes API insecurely if the Kubernetes API
 server serves for insecure connections. However this is not recommended and

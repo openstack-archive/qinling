@@ -281,6 +281,10 @@ class FunctionsController(rest.RestController):
                 raise exc.NotAllowedException(
                     'The function is still associated with webhook(s).'
                 )
+            if len(func_db.aliases) > 0:
+                raise exc.NotAllowedException(
+                    'The function is still associated with function alias(es).'
+                )
 
             # Even admin user can not delete other project's function because
             # the trust associated can only be removed by function owner.

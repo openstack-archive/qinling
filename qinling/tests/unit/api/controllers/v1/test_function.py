@@ -377,6 +377,23 @@ class TestFunctionController(base.APITest):
 
         self.assertEqual(403, resp.status_int)
 
+    def test_delete_with_alias(self):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+        func_id = db_func.id
+        name = self.rand_name(name="alias", prefix=self.prefix)
+        body = {
+            'function_id': func_id,
+            'name': name
+        }
+        db_api.create_function_alias(**body)
+
+        resp = self.app.delete(
+            '/v1/functions/%s' % func_id,
+            expect_errors=True
+        )
+
+        self.assertEqual(403, resp.status_int)
+
     @mock.patch('qinling.rpc.EngineClient.scaleup_function')
     def test_scale_up(self, scaleup_function_mock):
         db_func = self.create_function(runtime_id=self.runtime_id)

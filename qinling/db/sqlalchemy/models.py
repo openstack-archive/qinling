@@ -164,3 +164,7 @@ Function.versions = relationship(
     lazy='select',
     cascade="all, delete-orphan"
 )
+Function.aliases = relationship(
+    "FunctionAlias",
+    uselist=True
+)

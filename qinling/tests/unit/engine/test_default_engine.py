@@ -50,7 +50,8 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.create_runtime(mock.Mock(), runtime_id)
 
         self.orchestrator.create_pool.assert_called_once_with(
-            runtime_id, runtime.image)
+            runtime_id, runtime.image, trusted=True)
+
         runtime = db_api.get_runtime(runtime_id)
         self.assertEqual(status.AVAILABLE, runtime.status)
 
@@ -64,7 +65,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.default_engine.create_runtime(mock.Mock(), runtime_id)
 
         self.orchestrator.create_pool.assert_called_once_with(
-            runtime_id, runtime.image)
+            runtime_id, runtime.image, trusted=True)
         runtime = db_api.get_runtime(runtime_id)
         self.assertEqual(status.ERROR, runtime.status)
 

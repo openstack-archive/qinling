@@ -1,0 +1,9 @@
+---
+features:
+  - Support to specify ``trusted`` for runtime creation. In Kubernetes
+    orchestrator implementation, it's using
+    ``io.kubernetes.cri-o.TrustedSandbox`` annotation in the pod specification
+    to choose the underlying container runtime. This feature is useful to
+    leverage the security container technology such as Kata containers or
+    gVisor. It also gets rid of the security concerns for running image type
+    function.

@@ -241,24 +241,11 @@ class Runtime(Resource):
     image = wtypes.text
     description = wtypes.text
     is_public = wsme.wsattr(bool, default=True)
+    trusted = bool
     status = wsme.wsattr(wtypes.text, readonly=True)
     project_id = wsme.wsattr(wtypes.text, readonly=True)
     created_at = wsme.wsattr(wtypes.text, readonly=True)
     updated_at = wsme.wsattr(wtypes.text, readonly=True)
-
-    @classmethod
-    def sample(cls):
-        return cls(
-            id='123e4567-e89b-12d3-a456-426655440000',
-            name='python2.7',
-            image='lingxiankong/python',
-            status='available',
-            is_public=True,
-            project_id='default',
-            description='Python 2.7 environment.',
-            created_at='1970-01-01T00:00:00.000000',
-            updated_at='1970-01-01T00:00:00.000000'
-        )
 
 
 class Runtimes(ResourceList):
@@ -268,18 +255,6 @@ class Runtimes(ResourceList):
         self._type = 'environments'
 
         super(Runtimes, self).__init__(**kwargs)
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        sample.runtimes = [Runtime.sample()]
-        sample.next = (
-            "http://localhost:7070/v1/environments?"
-            "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
-            "marker=123e4567-e89b-12d3-a456-426655440000"
-        )
-
-        return sample
 
 
 class RuntimePoolCapacity(Resource):

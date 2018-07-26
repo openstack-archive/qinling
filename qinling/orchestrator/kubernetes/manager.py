@@ -125,10 +125,8 @@ class KubernetesManager(base.OrchestratorBase):
             self.conf.kubernetes.namespace
         )
 
-        if (
-            not ret.status.replicas or
-            ret.status.replicas != ret.status.available_replicas
-        ):
+        if (not ret.status.replicas or
+                ret.status.replicas != ret.status.available_replicas):
             raise exc.OrchestratorException('Deployment %s not ready.' % name)
 
     def get_pool(self, name):
@@ -158,7 +156,7 @@ class KubernetesManager(base.OrchestratorBase):
 
         return {"total": total, "available": available}
 
-    def create_pool(self, name, image):
+    def create_pool(self, name, image, trusted=True):
         deployment_body = self.deployment_template.render(
             {
                 "name": name,
@@ -166,7 +164,8 @@ class KubernetesManager(base.OrchestratorBase):
                 "replicas": self.conf.kubernetes.replicas,
                 "container_name": 'worker',
                 "image": image,
-                "sidecar_image": self.conf.engine.sidecar_image
+                "sidecar_image": self.conf.engine.sidecar_image,
+                "trusted": str(trusted).lower()
             }
         )
 
@@ -222,6 +221,21 @@ class KubernetesManager(base.OrchestratorBase):
         LOG.info("Pods in deployment %s deleted.", name)
         LOG.info("Deployment %s deleted.", name)
 
+    @tenacity.retry(
+        wait=tenacity.wait_fixed(5),
+        stop=tenacity.stop_after_delay(600),
+        reraise=True,
+        retry=tenacity.retry_if_exception_type(exc.OrchestratorException)
+    )
+    def _wait_for_upgrade(self, deploy_name):
+        ret = self.v1extension.read_namespaced_deployment(
+            deploy_name,
+            self.conf.kubernetes.namespace
+        )
+        if ret.status.unavailable_replicas is not None:
+            raise exc.OrchestratorException("Deployment %s upgrade not "
+                                            "ready." % deploy_name)
+
     def update_pool(self, name, image=None):
         """Deployment rolling-update.
 
@@ -235,7 +249,6 @@ class KubernetesManager(base.OrchestratorBase):
                     'spec': {
                         'containers': [
                             {
-                                # TODO(kong): Make the name configurable.
                                 'name': 'worker',
                                 'image': image
                             }
@@ -248,30 +261,23 @@ class KubernetesManager(base.OrchestratorBase):
             name, self.conf.kubernetes.namespace, body
         )
 
-        unavailable_replicas = 1
-        # TODO(kong): Make this configurable
-        retry = 5
-        while unavailable_replicas != 0 and retry > 0:
-            time.sleep(5)
-            retry = retry - 1
+        try:
+            time.sleep(10)
+            self._wait_for_upgrade(name)
+        except exc.OrchestratorException:
+            LOG.warn("Timeout when waiting for the deployment %s upgrade, "
+                     "Start to roll back.", name)
 
-            deploy = self.v1extension.read_namespaced_deployment_status(
-                name,
-                self.conf.kubernetes.namespace
-            )
-            unavailable_replicas = deploy.status.unavailable_replicas
-
-        # Handle failure of rolling-update.
-        if unavailable_replicas > 0:
-            body = {
-                "name": name,
-                "rollbackTo": {
-                    "revision": 0
-                }
-            }
-            self.v1extension.create_namespaced_deployment_rollback(
-                name, self.conf.kubernetes.namespace, body
-            )
+            body = {"rollbackTo": {"revision": 0}}
+            try:
+                self.v1extension.create_namespaced_deployment_rollback(
+                    name, self.conf.kubernetes.namespace, body
+                )
+            except Exception:
+                # TODO(lxkong): remove the exception catch until kubernetes
+                # python lib has a new release. Refer to
+                # https://github.com/kubernetes-client/python/issues/491
+                pass
 
             return False
 

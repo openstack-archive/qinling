@@ -71,7 +71,10 @@ class TestRuntimeController(base.APITest):
         resp = self.app.post_json('/v1/runtimes', body)
 
         self.assertEqual(201, resp.status_int)
+
+        body.update({"trusted": True})
         self._assertDictContainsSubset(resp.json, body)
+
         mock_create_time.assert_called_once_with(resp.json['id'])
 
     @mock.patch('qinling.rpc.EngineClient.create_runtime')

@@ -1,0 +1,5 @@
+---
+features:
+  - Support alias for functions. Users can create function alias
+    pointing to the specific function version. Function alias can be used
+    for creating execution, job and webhook.

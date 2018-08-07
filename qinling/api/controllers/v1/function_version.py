@@ -243,7 +243,17 @@ class FunctionVersionsController(rest.RestController):
             )
             if len(version_webhook) > 0:
                 raise exc.NotAllowedException(
-                    'The function versioin is still associated with webhook.'
+                    'The function version is still associated with webhook.'
+                )
+
+            filters = rest_utils.get_filters(
+                function_id=version_db.function_id,
+                function_version=version_db.version_number
+            )
+            version_aliases = db_api.get_function_aliases(**filters)
+            if len(version_aliases) > 0:
+                raise exc.NotAllowedException(
+                    'The function version is still associated with alias.'
                 )
 
             # Delete resources for function version

@@ -638,10 +638,11 @@ class TestKubernetesManager(base.DbTestCase):
         mock_request.return_value = (True, 'fake output')
         execution_id = common.generate_unicode_uuid()
         function_id = common.generate_unicode_uuid()
+        timeout = 3
 
         result, output = self.manager.run_execution(
             execution_id, function_id, 0, rlimit=self.rlimit,
-            service_url='FAKE_URL'
+            service_url='FAKE_URL', timeout=timeout
         )
 
         download_url = ('http://127.0.0.1:7070/v1/functions/%s?download=true'
@@ -656,6 +657,7 @@ class TestKubernetesManager(base.DbTestCase):
             'entry': 'main.main',
             'download_url': download_url,
             'request_id': self.ctx.request_id,
+            'timeout': timeout,
         }
 
         mock_request.assert_called_once_with(

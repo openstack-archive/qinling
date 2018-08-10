@@ -254,6 +254,11 @@ rlimits_opts = [
         default=134217728,
         help='Maximum memory resource(unit: bytes).'
     ),
+    cfg.IntOpt(
+        'default_timeout',
+        default=5,
+        help='Default function execution timeout(unit: seconds)'
+    ),
 ]
 
 

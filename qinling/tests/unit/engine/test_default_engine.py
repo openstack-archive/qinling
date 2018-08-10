@@ -443,7 +443,7 @@ class TestDefaultEngine(base.DbTestCase):
         engine_utils_get_request_data_mock.assert_called_once_with(
             mock.ANY, function_id, 0, execution_id, self.rlimit,
             'input', function.entry, function.trust_id,
-            self.qinling_endpoint)
+            self.qinling_endpoint, function.timeout)
         engine_utils_url_request_mock.assert_called_once_with(
             self.default_engine.session, 'svc_url/execute', body='data')
 

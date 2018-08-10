@@ -1,0 +1,5 @@
+---
+features:
+  - Users can now specify a timeout value for their function to prevent the function from running
+    indefinitely. When the specified timeout is reached, Qinling will terminate the function
+    execution.

@@ -56,7 +56,7 @@ class QinlingClient(client_base.QinlingClientBase):
         return resp, body
 
     def create_function(self, code, runtime_id, name='', package_data=None,
-                        entry=None):
+                        entry=None, timeout=None):
         """Create function.
 
         Tempest rest client doesn't support multipart upload, so use requests
@@ -67,7 +67,8 @@ class QinlingClient(client_base.QinlingClientBase):
         req_body = {
             'name': name,
             'runtime_id': runtime_id,
-            'code': json.dumps(code)
+            'code': json.dumps(code),
+            'timeout': timeout
         }
         if entry:
             req_body['entry'] = entry

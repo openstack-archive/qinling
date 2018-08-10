@@ -118,7 +118,8 @@ class BaseQinlingTest(test.BaseTestCase):
         self.addCleanup(os.remove, zip_file)
         return zip_file
 
-    def create_function(self, package_path=None, image=False, md5sum=None):
+    def create_function(self, package_path=None, image=False,
+                        md5sum=None, timeout=None):
         function_name = data_utils.rand_name(
             'function',
             prefix=self.name_prefix
@@ -139,7 +140,8 @@ class BaseQinlingTest(test.BaseTestCase):
                     self.runtime_id,
                     name=function_name,
                     package_data=package_data,
-                    entry='%s.main' % module_name
+                    entry='%s.main' % module_name,
+                    timeout=timeout
                 )
         else:
             resp, body = self.client.create_function(

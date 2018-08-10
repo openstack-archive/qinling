@@ -57,7 +57,7 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ mkdir ~/qinling_test
+      mkdir ~/qinling_test
 
    .. end
 
@@ -66,7 +66,7 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ cat <<EOF > ~/qinling_test/resize_image.py
+      cat <<EOF > ~/qinling_test/resize_image.py
       import os
 
       from PIL import Image
@@ -138,7 +138,7 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ pip install Pillow -t ~/qinling_test
+      pip install Pillow -t ~/qinling_test
 
    .. end
 
@@ -154,7 +154,7 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ cd ~/qinling_test; zip -r9 ~/qinling_test/resize_image.zip .
+      cd ~/qinling_test; zip -r9 ~/qinling_test/resize_image.zip .
 
    .. end
 
@@ -163,11 +163,11 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ runtime_id=601efeb8-3e41-4e5c-a12a-986dbda252e3
-      $ openstack function create --name resize_image \
-          --runtime $runtime_id \
-          --entry resize_image.main \
-          --package ~/qinling_test/resize_image.zip
+      runtime_id=601efeb8-3e41-4e5c-a12a-986dbda252e3
+      openstack function create --name resize_image \
+        --runtime $runtime_id \
+        --entry resize_image.main \
+        --package ~/qinling_test/resize_image.zip
       +-------------+-------------------------------------------------------------------------+
       | Field       | Value                                                                   |
       +-------------+-------------------------------------------------------------------------+
@@ -184,7 +184,7 @@ execution log to see the whole process.
       | cpu         | 100                                                                     |
       | memory_size | 33554432                                                                |
       +-------------+-------------------------------------------------------------------------+
-      $ function_id=f8b18de6-1751-46d6-8c0d-0f1ecf943d12
+      function_id=f8b18de6-1751-46d6-8c0d-0f1ecf943d12
 
    .. end
 
@@ -192,20 +192,20 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ curl -SL https://docs.openstack.org/arch-design/_images/osog_0001.png -o ~/origin.jpg
-      $ openstack container create origin_folder
+      curl -SL https://docs.openstack.org/arch-design/_images/osog_0001.png -o ~/origin.jpg
+      openstack container create origin_folder
       +---------------------------------------+---------------+------------------------------------+
       | account                               | container     | x-trans-id                         |
       +---------------------------------------+---------------+------------------------------------+
       | AUTH_a1e58c83923a4e2ca9370df6007c7fe6 | origin_folder | tx664a23a4a6e345b6af30d-005b3b6127 |
       +---------------------------------------+---------------+------------------------------------+
-      $ openstack object create origin_folder ~/origin.jpg --name image
+      openstack object create origin_folder ~/origin.jpg --name image
       +--------+---------------+----------------------------------+
       | object | container     | etag                             |
       +--------+---------------+----------------------------------+
       | image  | origin_folder | 07855978284adfcbbf76954a7c654a74 |
       +--------+---------------+----------------------------------+
-      $ openstack object show origin_folder image
+      openstack object show origin_folder image
       +----------------+---------------------------------------+
       | Field          | Value                                 |
       +----------------+---------------------------------------+
@@ -225,7 +225,7 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ openstack function execution create $function_id --input '{"container_name": "origin_folder", "object_name": "image"}'
+      openstack function execution create $function_id --input '{"container_name": "origin_folder", "object_name": "image"}'
       +------------------+-------------------------------------------------------------+
       | Field            | Value                                                       |
       +------------------+-------------------------------------------------------------+
@@ -248,7 +248,7 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ openstack function execution log show 04c60ae7-08c9-454c-9b2c-0bbf36391159
+      openstack function execution log show 04c60ae7-08c9-454c-9b2c-0bbf36391159
       Start execution: 04c60ae7-08c9-454c-9b2c-0bbf36391159
       Downloaded object image from container origin_folder
       Resized.
@@ -263,20 +263,20 @@ execution log to see the whole process.
 
    .. code-block:: console
 
-      $ openstack container list
+      openstack container list
       +-----------------------+
       | Name                  |
       +-----------------------+
       | origin_folder         |
       | origin_folder_resized |
       +-----------------------+
-      $ openstack object list origin_folder_resized
+      openstack object list origin_folder_resized
       +-------+
       | Name  |
       +-------+
       | image |
       +-------+
-      $ openstack object show origin_folder_resized image
+      openstack object show origin_folder_resized image
       +----------------+---------------------------------------+
       | Field          | Value                                 |
       +----------------+---------------------------------------+
@@ -308,16 +308,15 @@ a Python 2.7 runtime available in the deployment.
 
    .. code-block:: console
 
-      $ mkdir ~/qinling_swift_test
-      $ cd ~/qinling_swift_test
-      $ cat <<EOF > hello_world.py
-
+      mkdir ~/qinling_swift_test
+      cd ~/qinling_swift_test
+      cat <<EOF > hello_world.py
       def main(name='World',**kwargs):
           ret = 'Hello, %s' % name
           return ret
       EOF
 
-      $ cd ~/qinling_swift_test && zip -r ~/qinling_swift_test/hello_world.zip ./*
+      cd ~/qinling_swift_test && zip -r ~/qinling_swift_test/hello_world.zip ./*
 
    .. end
 
@@ -325,7 +324,7 @@ a Python 2.7 runtime available in the deployment.
 
    .. code-block:: console
 
-      $ openstack container create functions
+      openstack container create functions
 
       +---------------------------------------+------------------+------------------------------------+
       | account                               | container        | x-trans-id                         |
@@ -333,7 +332,7 @@ a Python 2.7 runtime available in the deployment.
       | AUTH_6ae7142bff0542d8a8f3859ffa184236 | functions        | 9b45bef5ab2658acb9b72ee32f39dbc8   |
       +---------------------------------------+------------------+------------------------------------+
 
-      $ openstack object create functions hello_world.zip
+      openstack object create functions hello_world.zip
 
       +-----------------+-----------+----------------------------------+
       | object          | container | etag                             |
@@ -341,7 +340,7 @@ a Python 2.7 runtime available in the deployment.
       | hello_world.zip | functions | 9b45bef5ab2658acb9b72ee32f39dbc8 |
       +-----------------+-----------+----------------------------------+
 
-      $ openstack object show functions hello_world.zip
+      openstack object show functions hello_world.zip
 
       +----------------+---------------------------------------+
       | Field          | Value                                 |
@@ -363,7 +362,7 @@ a Python 2.7 runtime available in the deployment.
 
    .. code-block:: console
 
-      $ openstack function create --name hello_world \
+      openstack function create --name hello_world \
       --runtime $runtime_id \
       --entry hello_world.main \
       --container functions \
@@ -392,8 +391,8 @@ a Python 2.7 runtime available in the deployment.
 
    .. code-block:: console
 
-      $ function_id=f1102bca-fbb4-4baf-874d-ed33bf8251f7
-      $ openstack function execution create $function_id
+      function_id=f1102bca-fbb4-4baf-874d-ed33bf8251f7
+      openstack function execution create $function_id
 
       +------------------+-----------------------------------------------+
       | Field            | Value                                         |
@@ -415,3 +414,106 @@ a Python 2.7 runtime available in the deployment.
 
    It is very easy and simple to use Qinling with swift. We have successfully created and
    invoked a function using OpenStack Swift.
+
+Creating Image type function in Qinling
+---------------------------------------
+
+With the help of docker you would be able to create image type functions in
+Qinling. As a prerequisite, you need to have a Docker Hub account. In the
+following instructions replace ``DOCKER_USER`` with your own docker hub
+username.
+
+#. In this tutorial we would be create docker image with latest Python3
+   installed. We will create a python script which would be included in the image.
+   Finally we create a Dockerfile to build the image.
+
+   .. code-block:: console
+
+      mkdir ~/qinling_test
+      cd ~/qinling_test
+      cat <<EOF > ~/qinling_test/hello.py
+
+      import sys
+      def main():
+          print ('Hello from', sys.argv[1])
+
+      if __name__ == '__main__':
+          main()
+
+      EOF
+
+      cat <<EOF > ~/qinling_test/Dockerfile
+
+      FROM python:3.7.0-alpine3.7
+      COPY . /qinling_test
+      WORKDIR /qinling_test
+      ENTRYPOINT [ "python", "./hello.py" ]
+      CMD ["Qinling!"]
+
+      EOF
+
+   .. end
+
+#. You must first run docker login to authenticate, build the image and push
+   to Docker Hub.
+
+   .. code-block:: console
+
+      docker login
+      docker build -t DOCKER_USER/qinling_test .
+      docker push DOCKER_USER/qinlng_test
+
+   .. end
+
+#. Create an image type function by providing the docker image name.
+
+   .. code-block:: console
+
+      openstack function create --name docker_test --image DOCKER_USER/qinling_test
+
+      +-------------+--------------------------------------------------------------+
+      | Field       | Value                                                        |
+      +-------------+--------------------------------------------------------------+
+      | id          | 6fa6932d-ee43-41d4-891c-77a96b52c697                         |
+      | name        | docker_test                                                  |
+      | description | None                                                         |
+      | count       | 0                                                            |
+      | code        | {u'source': u'image', u'image': u'DOCKER_USER/qinling_test'} |
+      | runtime_id  | None                                                         |
+      | entry       | None                                                         |
+      | project_id  | 6ae7142bff0542d8a8f3859ffa184236                             |
+      | created_at  | 2018-08-05 00:37:07.336918                                   |
+      | updated_at  | None                                                         |
+      | cpu         | 100                                                          |
+      | memory_size | 33554432                                                     |
+      +-------------+--------------------------------------------------------------+
+
+      function_id=6fa6932d-ee43-41d4-891c-77a96b52c697
+
+   .. end
+
+#. Invoke the function by specifying function ID.
+
+   .. code-block:: console
+
+      openstack function execution create $function_id
+
+      +------------------+--------------------------------------+
+      | Field            | Value                                |
+      +------------------+--------------------------------------+
+      | id               | 8fe0e2e9-2133-4abb-8cd4-f2f14935cab4 |
+      | function_id      | 6fa6932d-ee43-41d4-891c-77a96b52c697 |
+      | function_version | 0                                    |
+      | description      | None                                 |
+      | input            | None                                 |
+      | result           | {"output": "Hello from Qinling!\n"}  |
+      | status           | success                              |
+      | sync             | True                                 |
+      | project_id       | 6ae7142bff0542d8a8f3859ffa184236     |
+      | created_at       | 2018-08-05 00:37:25                  |
+      | updated_at       | 2018-08-05 00:37:29                  |
+      +------------------+--------------------------------------+
+
+   .. end
+
+   In the result, you can see the output of image type function.

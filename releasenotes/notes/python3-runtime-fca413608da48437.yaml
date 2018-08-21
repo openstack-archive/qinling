@@ -1,0 +1,4 @@
+---
+features:
+  - A reference runtime implementation for Python 3 is added and used as the
+    default runtime in Devstack.

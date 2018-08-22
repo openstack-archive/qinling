@@ -20,7 +20,7 @@ debtcollector==1.19.0
 decorator==4.2.1
 dogpile.cache==0.6.5
 enum-compat==0.0.2
-etcd3gw==0.2.2
+etcd3gw==0.2.3
 eventlet==0.20.0
 extras==1.0.0
 fasteners==0.14.1

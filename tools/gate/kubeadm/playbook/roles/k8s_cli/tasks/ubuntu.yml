@@ -15,6 +15,6 @@
     state: present
     update_cache: yes
   with_items:
-    - kubelet=1.9.3-00
-    - kubectl=1.9.3-00
-    - kubeadm=1.9.3-00
+    - kubelet={{ k8s_version }}-00
+    - kubectl={{ k8s_version }}-00
+    - kubeadm={{ k8s_version }}-00

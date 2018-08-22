@@ -12,15 +12,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import etcd3gw
-from tempest import config
 from tempest.lib import decorators
 from tempest.lib import exceptions
 import tenacity
 
 from qinling_tempest_plugin.tests import base
-
-CONF = config.CONF
+from qinling_tempest_plugin.tests import utils
 
 
 class FunctionVersionsTest(base.BaseQinlingTest):
@@ -104,8 +101,7 @@ class FunctionVersionsTest(base.BaseQinlingTest):
         """
         function_id = self.create_function()
 
-        etcd3_client = etcd3gw.client(host=CONF.qinling.etcd_host,
-                                      port=CONF.qinling.etcd_port)
+        etcd3_client = utils.get_etcd_client()
         lock_id = "function_version_%s" % function_id
         with etcd3_client.lock(id=lock_id):
             self.assertRaises(

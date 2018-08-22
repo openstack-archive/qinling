@@ -17,7 +17,7 @@
 - name: Init master
   vars:
     extra_opts: "{{ lookup('env', 'EXTRA_KUBEADM_INIT_OPTS') }}"
-  shell: kubeadm init --pod-network-cidr=192.168.0.0/16 --kubernetes-version=1.9.3 {{ extra_opts }}
+  shell: kubeadm init --pod-network-cidr=192.168.0.0/16 --kubernetes-version=v{{ k8s_version }} {{ extra_opts }}
   register: kubeadm_init
 
 - fail:

@@ -186,8 +186,40 @@ kubernetes_opts = [
 
 ETCD_GROUP = 'etcd'
 etcd_opts = [
-    cfg.StrOpt('host', default='127.0.0.1', help='Etcd service host address.'),
-    cfg.PortOpt('port', default=2379, help='Etcd service port.'),
+    cfg.StrOpt(
+        'host',
+        default='127.0.0.1',
+        help='Etcd service host address.'
+    ),
+    cfg.PortOpt(
+        'port',
+        default=2379,
+        help='Etcd service port.'
+    ),
+    cfg.StrOpt(
+        'protocol',
+        default='https',
+        choices=['http', 'https'],
+        help='Etcd connection protocol.'
+    ),
+    cfg.StrOpt(
+        'ca_cert',
+        default='/etc/qinling/pki/etcd/ca.crt',
+        help='Path to CA certificate file to use to securely '
+             'connect to etcd server.'
+    ),
+    cfg.StrOpt(
+        'cert_file',
+        default='/etc/qinling/pki/etcd/qinling-etcd-client.crt',
+        help='Path to client certificate file to use to securely '
+             'connect to etcd server.'
+    ),
+    cfg.StrOpt(
+        'cert_key',
+        default='/etc/qinling/pki/etcd/qinling-etcd-client.key',
+        help='Path to client certificate key file to use to securely '
+             'connect to etcd server.'
+    ),
 ]
 
 RLIMITS_GROUP = 'resource_limits'

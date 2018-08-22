@@ -1,0 +1,5 @@
+---
+features:
+  - Qinling can now use TLS certificates to securely connect to the etcd
+    service. It is enabled by default in Qinling Devstack installation. The
+    configuration is defined in ``etcd`` section in Qinling config file.

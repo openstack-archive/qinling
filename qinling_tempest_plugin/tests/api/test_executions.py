@@ -13,20 +13,18 @@
 #    limitations under the License.
 
 from concurrent import futures
-import etcd3gw
 import hashlib
 import json
 import requests
 
 import futurist
 from oslo_serialization import jsonutils
-from tempest import config
 from tempest.lib import decorators
 from tempest.lib import exceptions
 
 from qinling_tempest_plugin.tests import base
+from qinling_tempest_plugin.tests import utils
 
-CONF = config.CONF
 INVOKE_ERROR = "Function execution failed because of too much resource " \
                "consumption"
 
@@ -83,8 +81,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         """
         function_id = self.create_function()
 
-        etcd3_client = etcd3gw.client(host=CONF.qinling.etcd_host,
-                                      port=CONF.qinling.etcd_port)
+        etcd3_client = utils.get_etcd_client()
         lock_id = "function_worker_%s_%s" % (function_id, 0)
         with etcd3_client.lock(id=lock_id):
             resp, body = self.client.create_execution(

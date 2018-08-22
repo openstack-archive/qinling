@@ -14,6 +14,13 @@
 
 import hashlib
 
+from oslo_config import cfg
+
+from qinling import config as qinling_config
+from qinling.utils import etcd_util
+
+QINLING_CONF = None
+
 
 def md5(file=None, content=None):
     hash_md5 = hashlib.md5()
@@ -26,3 +33,16 @@ def md5(file=None, content=None):
         hash_md5.update(content)
 
     return hash_md5.hexdigest()
+
+
+def get_etcd_client():
+    """Use qinling's default CONF to connect to etcd."""
+    global QINLING_CONF
+
+    if not QINLING_CONF:
+        QINLING_CONF = cfg.ConfigOpts()
+        QINLING_CONF(args=[], project='qinling')
+        QINLING_CONF.register_opts(qinling_config.etcd_opts,
+                                   qinling_config.ETCD_GROUP)
+
+    return etcd_util.get_client(conf=QINLING_CONF)

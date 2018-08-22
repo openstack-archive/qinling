@@ -24,7 +24,12 @@ def get_client(conf=None):
     conf = conf or CONF
 
     if not CLIENT:
-        CLIENT = etcd3gw.client(host=conf.etcd.host, port=conf.etcd.port)
+        CLIENT = etcd3gw.client(host=conf.etcd.host,
+                                port=conf.etcd.port,
+                                protocol=conf.etcd.protocol,
+                                ca_cert=conf.etcd.ca_cert,
+                                cert_cert=conf.etcd.cert_file,
+                                cert_key=conf.etcd.cert_key)
 
     return CLIENT
 

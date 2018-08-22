@@ -12,8 +12,5 @@
 source /etc/os-release
 export HOST_OS=${HOST_OS:="${ID}"}
 
-# Set versions of K8s to use
-export KUBE_VERSION=${KUBE_VERSION:-"v1.8.0"}
-
 # Set Upstream DNS
 export UPSTREAM_DNS=${UPSTREAM_DNS:-"8.8.8.8"}

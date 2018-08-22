@@ -55,6 +55,6 @@ function gate_base_setup {
 function create_k8s_screen {
   # Starts a proxy to the Kubernetes API server in a screen session
   sudo screen -S kube_proxy -X quit || true
-  sudo screen -dmS kube_proxy && sudo screen -S kube_proxy -X screen -t kube_proxy
-  sudo screen -S kube_proxy -p kube_proxy -X stuff 'kubectl proxy --accept-hosts=".*" --address="0.0.0.0"\n'
+  sudo screen -dmS kube_proxy
+  sudo screen -S kube_proxy -p bash -X stuff 'kubectl proxy --accept-hosts=".*" --address="0.0.0.0"\n'
 }

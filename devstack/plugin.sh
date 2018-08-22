@@ -81,6 +81,23 @@ function configure_k8s_certificates {
     popd
 }
 
+function configure_etcd_certificates {
+    pushd $QINLING_DIR
+
+    mkdir_chown_stack $QINLING_CONF_DIR/pki/etcd
+    sudo cp /etc/kubernetes/pki/etcd/ca.crt $QINLING_CONF_DIR/pki/etcd/
+
+    # Re-use k8s api server etcd client cert
+    sudo cp /etc/kubernetes/pki/apiserver-etcd-client.crt $QINLING_CONF_DIR/pki/etcd/qinling-etcd-client.crt
+    sudo cp /etc/kubernetes/pki/apiserver-etcd-client.key $QINLING_CONF_DIR/pki/etcd/qinling-etcd-client.key
+
+    mkdir_chown_stack $QINLING_CONF_DIR/pki/etcd
+    # For the tempest user to read the key file when running tempest
+    chmod 644 $QINLING_CONF_DIR/pki/etcd/qinling-etcd-client.key
+
+    popd
+}
+
 
 function configure_qinling {
     mkdir_chown_stack "$QINLING_AUTH_CACHE_DIR"
@@ -122,6 +139,9 @@ function configure_qinling {
     else
         iniset $QINLING_CONF_FILE kubernetes use_api_certificate False
     fi
+
+    # Config etcd TLS certs
+    configure_etcd_certificates
 
     iniset $QINLING_CONF_FILE kubernetes replicas 5
 }

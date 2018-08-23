@@ -51,9 +51,9 @@
       devstack_plugins:
         qinling: https://git.openstack.org/openstack/qinling
       devstack_localrc:
-        TEMPEST_PLUGINS: '/opt/stack/qinling'
+        TEMPEST_PLUGINS: /opt/stack/qinling
       tox_envlist: all-plugin
-      tempest_test_regex:  '^(qinling_tempest_plugin.)'
+      tempest_test_regex: ^(qinling_tempest_plugin.)
       # Qinling's default replicas number is 3, some test cases need
       # 2 workers, set concurrency to 2 to avoid
       # "Not enough workers available" error.
@@ -65,11 +65,20 @@
     nodeset: devstack-single-node-centos-7
 
 - project:
+    templates:
+      - openstack-python-jobs
+      - openstack-python35-jobs
+      - check-requirements
+      - publish-openstack-sphinx-docs
+      - release-notes-jobs
     check:
       jobs:
         - qinling-tempest
         - openstack-tox-lower-constraints
+        - openstack-tox-cover:
+            voting: false
     gate:
+      queue: qinling
       jobs:
         - qinling-tempest
         - openstack-tox-lower-constraints

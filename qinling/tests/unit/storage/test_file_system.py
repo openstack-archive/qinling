@@ -49,7 +49,12 @@ class TestFileSystemStorage(base.BaseTest):
         function_data = "Some data".encode('utf8')
         md5 = common.md5(content=function_data)
 
-        self.storage.store(self.project_id, function, function_data)
+        package_updated, ret_md5 = self.storage.store(
+            self.project_id, function, function_data
+        )
+
+        self.assertTrue(package_updated)
+        self.assertEqual(md5, ret_md5)
 
         temp_package_path = os.path.join(FAKE_STORAGE_PATH, self.project_id,
                                          '%s.zip.new' % function)
@@ -64,6 +69,29 @@ class TestFileSystemStorage(base.BaseTest):
         fake_fd.write.assert_called_once_with(function_data)
         is_zipfile_mock.assert_called_once_with(temp_package_path)
         rename_mock.assert_called_once_with(temp_package_path, package_path)
+
+    @mock.patch('oslo_utils.fileutils.ensure_tree')
+    @mock.patch('os.path.exists')
+    def test_store_zip_exists(self, exists_mock, ensure_tree_mock):
+        function = self.rand_name('function', prefix='TestFileSystemStorage')
+        function_data = "Some data".encode('utf8')
+        md5 = common.md5(content=function_data)
+        exists_mock.return_value = True
+
+        package_updated, ret_md5 = self.storage.store(
+            self.project_id, function, function_data
+        )
+
+        self.assertFalse(package_updated)
+        self.assertEqual(md5, ret_md5)
+
+        package_path = os.path.join(
+            FAKE_STORAGE_PATH,
+            file_system.PACKAGE_PATH_TEMPLATE % (self.project_id, function,
+                                                 md5)
+        )
+
+        exists_mock.assert_called_once_with(package_path)
 
     @mock.patch('oslo_utils.fileutils.ensure_tree')
     def test_store_md5_mismatch(self, ensure_tree_mock):

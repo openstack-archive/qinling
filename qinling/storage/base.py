@@ -35,7 +35,7 @@ class PackageStorage(object):
         :param data: Package file content.
         :param kwargs: A dict may including
             - md5sum: The MD5 provided by the user.
-        :return: MD5 value of the package.
+        :return: A tuple (if the package is updated, MD5 value of the package)
         """
         raise NotImplementedError
 

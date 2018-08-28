@@ -44,7 +44,7 @@ class FileSystemStorage(base.PackageStorage):
         :param function: Function ID.
         :param data: Package file content.
         :param md5sum: The MD5 provided by the user.
-        :return: MD5 value of the package.
+        :return: A tuple (if the package is updated, MD5 value of the package)
         """
         LOG.debug(
             'Store package, function: %s, project: %s', function, project_id
@@ -58,12 +58,15 @@ class FileSystemStorage(base.PackageStorage):
         if md5sum and md5_actual != md5sum:
             raise exc.InputException("Package md5 mismatch.")
 
-        # The md5 is contained in the package path.
-        new_func_zip = os.path.join(project_path, '%s.zip.new' % function)
-        func_zip = os.path.join(project_path,
-                                PACKAGE_NAME_TEMPLATE % (function, md5_actual))
+        func_zip = os.path.join(
+            project_path,
+            PACKAGE_NAME_TEMPLATE % (function, md5_actual)
+        )
+        if os.path.exists(func_zip):
+            return False, md5_actual
 
-        # Store package
+        # Save package
+        new_func_zip = os.path.join(project_path, '%s.zip.new' % function)
         with open(new_func_zip, 'wb') as fd:
             fd.write(data)
 
@@ -72,7 +75,8 @@ class FileSystemStorage(base.PackageStorage):
             raise exc.InputException("Package is not a valid ZIP package.")
 
         os.rename(new_func_zip, func_zip)
-        return md5_actual
+
+        return True, md5_actual
 
     def retrieve(self, project_id, function, md5sum, version=0):
         """Get function package data.

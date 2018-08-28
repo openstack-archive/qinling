@@ -102,6 +102,25 @@ class TestFunctionController(base.APITest):
         )
         self._assertDictContainsSubset(resp.json, body)
 
+    def test_post_swift_not_enough_params(self):
+        body = {
+            'name': 'swift_function',
+            'code': json.dumps(
+                {
+                    "source": "swift",
+                    "swift": {"container": "fake-container"}
+                }
+            ),
+            'runtime_id': self.runtime_id,
+        }
+        resp = self.app.post(
+            '/v1/functions',
+            params=body,
+            expect_errors=True
+        )
+
+        self.assertEqual(400, resp.status_int)
+
     @mock.patch('qinling.utils.openstack.keystone.get_swiftclient')
     @mock.patch('qinling.context.AuthHook.before')
     def test_post_swift_size_exceed(self, mock_auth, mock_client):
@@ -241,6 +260,78 @@ class TestFunctionController(base.APITest):
             )
 
         self.assertEqual(400, resp.status_int)
+
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.utils.openstack.swift.check_object')
+    @mock.patch('qinling.context.AuthHook.before')
+    def test_put_swift_function(self, mock_auth, mock_check, mock_etcd_delete,
+                                mock_func_delete):
+        self.override_config('auth_enable', True, group='pecan')
+        mock_check.return_value = True
+
+        db_func = self.create_function(
+            runtime_id=self.runtime_id,
+            code={
+                "source": "swift",
+                "swift": {"container": "fake-container", "object": "fake-obj"}
+            }
+        )
+
+        body = {
+            'code': json.dumps(
+                {
+                    "source": "swift",
+                    "swift": {"object": "new-obj"}
+                }
+            ),
+        }
+        resp = self.app.put_json('/v1/functions/%s' % db_func.id, body)
+
+        self.assertEqual(200, resp.status_int)
+        swift_info = {
+            'code': {
+                "source": "swift",
+                "swift": {"container": "fake-container", "object": "new-obj"}
+            }
+        }
+        self._assertDictContainsSubset(resp.json, swift_info)
+
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.utils.openstack.swift.check_object')
+    @mock.patch('qinling.context.AuthHook.before')
+    def test_put_swift_function_without_source(self, mock_auth, mock_check,
+                                               mock_etcd_delete,
+                                               mock_func_delete):
+        self.override_config('auth_enable', True, group='pecan')
+        mock_check.return_value = True
+
+        db_func = self.create_function(
+            runtime_id=self.runtime_id,
+            code={
+                "source": "swift",
+                "swift": {"container": "fake-container", "object": "fake-obj"}
+            }
+        )
+
+        body = {
+            'code': json.dumps(
+                {
+                    "swift": {"object": "new-obj"}
+                }
+            ),
+        }
+        resp = self.app.put_json('/v1/functions/%s' % db_func.id, body)
+
+        self.assertEqual(200, resp.status_int)
+        swift_info = {
+            'code': {
+                "source": "swift",
+                "swift": {"container": "fake-container", "object": "new-obj"}
+            }
+        }
+        self._assertDictContainsSubset(resp.json, swift_info)
 
     def test_put_cpu_with_type_error(self):
         db_func = self.create_function(runtime_id=self.runtime_id)

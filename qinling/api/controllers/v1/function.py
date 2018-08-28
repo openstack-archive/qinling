@@ -201,8 +201,15 @@ class FunctionsController(rest.RestController):
             data = kwargs['package'].file.read()
         elif source == constants.SWIFT_FUNCTION:
             swift_info = values['code'].get('swift', {})
-            self._check_swift(swift_info.get('container'),
-                              swift_info.get('object'))
+
+            if not (swift_info.get('container') and swift_info.get('object')):
+                raise exc.InputException("Both container and object must be "
+                                         "provided for swift type function.")
+
+            self._check_swift(
+                swift_info.get('container'),
+                swift_info.get('object')
+            )
         else:
             create_trust = False
             values['entry'] = None
@@ -341,11 +348,15 @@ class FunctionsController(rest.RestController):
            when function is updating.
         """
         values = {}
-        for key in UPDATE_ALLOWED:
-            if kwargs.get(key) is not None:
-                if key == "code":
-                    kwargs[key] = json.loads(kwargs[key])
-                values.update({key: kwargs[key]})
+
+        try:
+            for key in UPDATE_ALLOWED:
+                if kwargs.get(key) is not None:
+                    if key == "code":
+                        kwargs[key] = json.loads(kwargs[key])
+                    values.update({key: kwargs[key]})
+        except Exception as e:
+            raise exc.InputException("Invalid input, %s" % str(e))
 
         LOG.info('Update function %s, params: %s', id, values)
         ctx = context.get_ctx()
@@ -416,10 +427,29 @@ class FunctionsController(rest.RestController):
                     values.pop('package')
 
                 # Swift type function
-                if pre_source == constants.SWIFT_FUNCTION:
-                    swift_info = values['code'].get('swift', {})
-                    self._check_swift(swift_info.get('container'),
-                                      swift_info.get('object'))
+                if (pre_source == constants.SWIFT_FUNCTION and
+                        "swift" in values.get('code', {})):
+                    swift_info = values['code']["swift"]
+
+                    if not (swift_info.get('container') or
+                            swift_info.get('object')):
+                        raise exc.InputException(
+                            "Either container or object must be provided for "
+                            "swift type function update."
+                        )
+
+                    new_swift_info = pre_func.code['swift']
+                    new_swift_info.update(swift_info)
+
+                    self._check_swift(
+                        new_swift_info.get('container'),
+                        new_swift_info.get('object')
+                    )
+
+                    values['code'] = {
+                        "source": pre_source,
+                        "swift": new_swift_info
+                    }
 
                 # Delete allocated resources in orchestrator and etcd.
                 self.engine_client.delete_function(id)

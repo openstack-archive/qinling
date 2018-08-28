@@ -182,7 +182,7 @@ class DbTestCase(BaseTest):
 
         return runtime
 
-    def create_function(self, runtime_id=None):
+    def create_function(self, runtime_id=None, code=None):
         if not runtime_id:
             runtime_id = self.create_runtime().id
 
@@ -190,7 +190,7 @@ class DbTestCase(BaseTest):
             {
                 'name': self.rand_name('function', prefix=self.prefix),
                 'runtime_id': runtime_id,
-                'code': {"source": "package", "md5sum": "fake_md5"},
+                'code': code or {"source": "package", "md5sum": "fake_md5"},
                 'entry': 'main.main',
                 # 'auth_enable' is disabled by default, we create runtime for
                 # default tenant.

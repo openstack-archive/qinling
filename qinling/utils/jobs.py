@@ -56,26 +56,29 @@ def validate_job(params):
 
     if not (first_time or pattern):
         raise exc.InputException(
-            'Pattern or first_execution_time must be specified.'
+            'pattern or first_execution_time must be specified.'
         )
 
     if first_time:
         first_time = validate_next_time(first_time)
         if not pattern and count and count > 1:
             raise exc.InputException(
-                'Pattern must be provided if count is greater than 1.'
+                'pattern must be provided if count is greater than 1.'
             )
 
         next_time = first_time
         if not (pattern or count):
             count = 1
-
     if pattern:
         validate_pattern(pattern)
-        if not first_time:
-            next_time = croniter.croniter(pattern, start_time).get_next(
-                datetime.datetime
-            )
+
+        if first_time:
+            start_time = first_time - datetime.timedelta(minutes=1)
+
+        next_time = croniter.croniter(pattern, start_time).get_next(
+            datetime.datetime
+        )
+        first_time = next_time
 
     return first_time, next_time, count
 

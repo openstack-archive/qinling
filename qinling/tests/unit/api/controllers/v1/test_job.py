@@ -15,6 +15,8 @@
 from datetime import datetime
 from datetime import timedelta
 
+from dateutil import parser
+
 from qinling import context as auth_context
 from qinling.db import api as db_api
 from qinling import status
@@ -98,6 +100,31 @@ class TestJobController(base.APITest):
         resp = self.app.post_json('/v1/jobs', body)
 
         self.assertEqual(201, resp.status_int)
+
+        res = resp.json
+        self.assertEqual(
+            res["first_execution_time"],
+            res["next_execution_time"]
+        )
+
+    def test_post_both_pattern_and_first_execution_time(self):
+        body = {
+            'name': self.rand_name('job', prefix=self.prefix),
+            'function_id': self.function_id,
+            'pattern': '0 21 * * *',
+            'first_execution_time': str(
+                datetime.utcnow() + timedelta(hours=1)),
+            'count': 10
+        }
+        resp = self.app.post_json('/v1/jobs', body)
+
+        self.assertEqual(201, resp.status_int)
+
+        res = resp.json
+        self.assertGreaterEqual(
+            parser.parse(res["next_execution_time"], ignoretz=True),
+            parser.parse(res["first_execution_time"], ignoretz=True)
+        )
 
     def test_delete(self):
         job_id = self.create_job(

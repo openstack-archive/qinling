@@ -38,7 +38,7 @@ class TestFunctionController(base.APITest):
 
     @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
     def test_post(self, mock_store):
-        mock_store.return_value = 'fake_md5'
+        mock_store.return_value = (True, 'fake_md5')
 
         with tempfile.NamedTemporaryFile() as f:
             body = {
@@ -184,7 +184,7 @@ class TestFunctionController(base.APITest):
     def test_put_package(self, mock_delete_func, mock_delete, mock_store,
                          mock_etcd_del):
         db_func = self.create_function(runtime_id=self.runtime_id)
-        mock_store.return_value = "fake_md5_changed"
+        mock_store.return_value = (True, "fake_md5_changed")
 
         with tempfile.NamedTemporaryFile() as f:
             resp = self.app.put(
@@ -202,7 +202,30 @@ class TestFunctionController(base.APITest):
         mock_delete.assert_called_once_with(unit_base.DEFAULT_PROJECT_ID,
                                             db_func.id, "fake_md5")
 
-    def test_put_package_same_md5(self):
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
+    @mock.patch('qinling.rpc.EngineClient.delete_function')
+    @mock.patch('qinling.utils.etcd_util.delete_function')
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.delete')
+    def test_put_package_md5_not_change(self, file_delete_mock,
+                                        etcd_delete_mock, function_delete_mock,
+                                        store_mock):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+        store_mock.return_value = (False, "fake_md5")
+
+        with tempfile.NamedTemporaryFile() as f:
+            resp = self.app.put(
+                '/v1/functions/%s' % db_func.id,
+                params={},
+                upload_files=[('package', f.name, f.read())]
+            )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual('fake_md5', resp.json['code'].get('md5sum'))
+        function_delete_mock.assert_called_once_with(db_func.id)
+        etcd_delete_mock.assert_called_once_with(db_func.id)
+        self.assertFalse(file_delete_mock.called)
+
+    def test_put_package_same_md5_provided(self):
         db_func = self.create_function(runtime_id=self.runtime_id)
 
         with tempfile.NamedTemporaryFile() as f:

@@ -224,7 +224,7 @@ class FunctionsController(rest.RestController):
             if store:
                 try:
                     ctx = context.get_ctx()
-                    actual_md5 = self.storage_provider.store(
+                    _, actual_md5 = self.storage_provider.store(
                         ctx.projectid, func_db.id, data, md5sum=md5sum
                     )
                     values['code'].update({"md5sum": actual_md5})
@@ -394,7 +394,7 @@ class FunctionsController(rest.RestController):
 
                 # Package type function. 'code' and 'entry' make sense only if
                 # 'package' is provided
-                update_package = False
+                package_updated = False
                 if (pre_source == constants.PACKAGE_FUNCTION and
                         values.get('package') is not None):
                     if md5sum and md5sum == pre_md5sum:
@@ -404,7 +404,7 @@ class FunctionsController(rest.RestController):
 
                     # Update the package data.
                     data = values['package'].file.read()
-                    md5sum = self.storage_provider.store(
+                    package_updated, md5sum = self.storage_provider.store(
                         ctx.projectid,
                         id,
                         data,
@@ -414,7 +414,6 @@ class FunctionsController(rest.RestController):
                         {"md5sum": md5sum, "source": pre_source}
                     )
                     values.pop('package')
-                    update_package = True
 
                 # Swift type function
                 if pre_source == constants.SWIFT_FUNCTION:
@@ -429,7 +428,7 @@ class FunctionsController(rest.RestController):
                 func_db = db_api.update_function(id, values)
 
             # Delete the old function package if needed
-            if update_package:
+            if package_updated:
                 self.storage_provider.delete(ctx.projectid, id, pre_md5sum)
 
         pecan.response.status = 200

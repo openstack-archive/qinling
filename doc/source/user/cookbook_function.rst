@@ -25,7 +25,7 @@ examples for how to create functions in Qinling.
 Examples
 ~~~~~~~~
 
-Create python function with libraries in a package
+Create Python function with libraries in a package
 --------------------------------------------------
 
 This guide describes how to create a python function with libraries in a
@@ -294,8 +294,8 @@ execution log to see the whole process.
    Pay attention to the object ``content-length`` value which is smaller than
    the original object.
 
-Creating a function using OpenStack Swift
------------------------------------------
+Create a function stored in OpenStack Swift
+-------------------------------------------
 
 OpenStack object storage service, swift can be integrated with Qinling to
 create functions. You can upload your function package to swift and create
@@ -415,10 +415,10 @@ a Python 2.7 runtime available in the deployment.
    It is very easy and simple to use Qinling with swift. We have successfully created and
    invoked a function using OpenStack Swift.
 
-Creating Image type function in Qinling
----------------------------------------
+Create image(docker) type function
+----------------------------------
 
-With the help of docker you would be able to create image type functions in
+With the help of Docker Hub you would be able to create image type functions in
 Qinling. As a prerequisite, you need to have a Docker Hub account. In the
 following instructions replace ``DOCKER_USER`` with your own docker hub
 username.
@@ -432,29 +432,28 @@ username.
       mkdir ~/qinling_test
       cd ~/qinling_test
       cat <<EOF > ~/qinling_test/hello.py
-
       import sys
+      import time
+
       def main():
-          print ('Hello from', sys.argv[1])
+          print('Hello', sys.argv[1])
+          time.sleep(3)
 
       if __name__ == '__main__':
           main()
-
       EOF
 
       cat <<EOF > ~/qinling_test/Dockerfile
-
       FROM python:3.7.0-alpine3.7
       COPY . /qinling_test
       WORKDIR /qinling_test
       ENTRYPOINT [ "python", "./hello.py" ]
-      CMD ["Qinling!"]
-
+      CMD ["Qinling"]
       EOF
 
    .. end
 
-#. You must first run docker login to authenticate, build the image and push
+#. You need first run docker login to authenticate, build the image and push
    to Docker Hub.
 
    .. code-block:: console
@@ -469,8 +468,7 @@ username.
 
    .. code-block:: console
 
-      openstack function create --name docker_test --image DOCKER_USER/qinling_test
-
+      $ openstack function create --name docker_test --image DOCKER_USER/qinling_test
       +-------------+--------------------------------------------------------------+
       | Field       | Value                                                        |
       +-------------+--------------------------------------------------------------+
@@ -488,16 +486,13 @@ username.
       | memory_size | 33554432                                                     |
       +-------------+--------------------------------------------------------------+
 
-      function_id=6fa6932d-ee43-41d4-891c-77a96b52c697
-
    .. end
 
-#. Invoke the function by specifying function ID.
+#. Invoke the function by specifying the function name or ID.
 
    .. code-block:: console
 
-      openstack function execution create $function_id
-
+      $ openstack function execution create docker_test
       +------------------+--------------------------------------+
       | Field            | Value                                |
       +------------------+--------------------------------------+
@@ -506,7 +501,7 @@ username.
       | function_version | 0                                    |
       | description      | None                                 |
       | input            | None                                 |
-      | result           | {"output": "Hello from Qinling!\n"}  |
+      | result           | {"duration": 3}                      |
       | status           | success                              |
       | sync             | True                                 |
       | project_id       | 6ae7142bff0542d8a8f3859ffa184236     |
@@ -516,4 +511,11 @@ username.
 
    .. end
 
-   In the result, you can see the output of image type function.
+#. Check the execution log.
+
+   .. code-block:: console
+
+      $ openstack function execution log show 8fe0e2e9-2133-4abb-8cd4-f2f14935cab4
+      Hello Qinling
+
+   .. end

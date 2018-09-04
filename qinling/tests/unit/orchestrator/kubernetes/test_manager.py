@@ -12,10 +12,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import mock
+import datetime
 import testtools
 import yaml
 
+import mock
 from oslo_config import cfg
 
 from qinling import config
@@ -616,10 +617,62 @@ class TestKubernetesManager(base.DbTestCase):
 
     def test_run_execution_image_type_function(self):
         pod = mock.Mock()
+        status = mock.Mock()
+        status.state.terminated.finished_at = datetime.datetime(2018, 9, 4, 10,
+                                                                1, 50)
+        status.state.terminated.started_at = datetime.datetime(2018, 9, 4, 10,
+                                                               1, 40)
         pod.status.phase = 'Succeeded'
+        pod.status.container_statuses = [status]
         self.k8s_v1_api.read_namespaced_pod.return_value = pod
-        fake_output = 'fake output'
-        self.k8s_v1_api.read_namespaced_pod_log.return_value = fake_output
+        fake_log = 'fake log'
+        self.k8s_v1_api.read_namespaced_pod_log.return_value = fake_log
+        execution_id = common.generate_unicode_uuid()
+        function_id = common.generate_unicode_uuid()
+        identifier = 'fake_identifier'
+
+        result, output = self.manager.run_execution(execution_id, function_id,
+                                                    0, identifier=identifier)
+
+        self.k8s_v1_api.read_namespaced_pod.assert_called_once_with(
+            identifier, self.fake_namespace)
+        self.k8s_v1_api.read_namespaced_pod_log.assert_called_once_with(
+            identifier, self.fake_namespace)
+        self.assertTrue(result)
+
+        expected_output = {'duration': 10, 'logs': fake_log}
+        self.assertEqual(expected_output, output)
+
+    def test_run_execution_image_type_function_retry(self):
+        pod1 = mock.Mock()
+        pod1.status.phase = ''
+        pod2 = mock.Mock()
+        status = mock.Mock()
+        status.state.terminated.finished_at = datetime.datetime(2018, 9, 4, 10,
+                                                                1, 50)
+        status.state.terminated.started_at = datetime.datetime(2018, 9, 4, 10,
+                                                               1, 40)
+        pod2.status.phase = 'Succeeded'
+        pod2.status.container_statuses = [status]
+        self.k8s_v1_api.read_namespaced_pod.side_effect = [pod1, pod2]
+        fake_log = 'fake log'
+        self.k8s_v1_api.read_namespaced_pod_log.return_value = fake_log
+        execution_id = common.generate_unicode_uuid()
+        function_id = common.generate_unicode_uuid()
+
+        result, output = self.manager.run_execution(execution_id, function_id,
+                                                    0)
+
+        self.assertEqual(2, self.k8s_v1_api.read_namespaced_pod.call_count)
+        self.k8s_v1_api.read_namespaced_pod_log.assert_called_once_with(
+            None, self.fake_namespace)
+        self.assertTrue(result)
+
+        expected_output = {'duration': 10, 'logs': fake_log}
+        self.assertEqual(expected_output, output)
+
+    def test_run_execution_image_type_function_read_pod_exception(self):
+        self.k8s_v1_api.read_namespaced_pod.side_effect = RuntimeError
         execution_id = common.generate_unicode_uuid()
         function_id = common.generate_unicode_uuid()
 
@@ -628,10 +681,14 @@ class TestKubernetesManager(base.DbTestCase):
 
         self.k8s_v1_api.read_namespaced_pod.assert_called_once_with(
             None, self.fake_namespace)
-        self.k8s_v1_api.read_namespaced_pod_log.assert_called_once_with(
-            None, self.fake_namespace)
-        self.assertTrue(result)
-        self.assertEqual(fake_output, output)
+        self.k8s_v1_api.read_namespaced_pod_log.assert_not_called()
+        self.assertFalse(result)
+
+        expected_output = {
+            'error': 'Function execution failed.',
+            'duration': 0
+        }
+        self.assertEqual(expected_output, output)
 
     @mock.patch('qinling.engine.utils.url_request')
     def test_run_execution_version_0(self, mock_request):
@@ -661,40 +718,6 @@ class TestKubernetesManager(base.DbTestCase):
         mock_request.assert_called_once_with(
             self.manager.session, 'FAKE_URL/execute', body=data
         )
-
-    def test_run_execution_no_service_url_retry(self):
-        pod1 = mock.Mock()
-        pod1.status.phase = ''
-        pod2 = mock.Mock()
-        pod2.status.phase = 'Succeeded'
-        self.k8s_v1_api.read_namespaced_pod.side_effect = [pod1, pod2]
-        fake_output = 'fake output'
-        self.k8s_v1_api.read_namespaced_pod_log.return_value = fake_output
-        execution_id = common.generate_unicode_uuid()
-        function_id = common.generate_unicode_uuid()
-
-        result, output = self.manager.run_execution(execution_id, function_id,
-                                                    0)
-
-        self.assertEqual(2, self.k8s_v1_api.read_namespaced_pod.call_count)
-        self.k8s_v1_api.read_namespaced_pod_log.assert_called_once_with(
-            None, self.fake_namespace)
-        self.assertTrue(result)
-        self.assertEqual(fake_output, output)
-
-    def test_run_execution_no_service_url_read_pod_exception(self):
-        self.k8s_v1_api.read_namespaced_pod.side_effect = RuntimeError
-        execution_id = common.generate_unicode_uuid()
-        function_id = common.generate_unicode_uuid()
-
-        result, output = self.manager.run_execution(execution_id, function_id,
-                                                    0)
-
-        self.k8s_v1_api.read_namespaced_pod.assert_called_once_with(
-            None, self.fake_namespace)
-        self.k8s_v1_api.read_namespaced_pod_log.assert_not_called()
-        self.assertFalse(result)
-        self.assertEqual({'error': 'Function execution failed.'}, output)
 
     def test_delete_function(self):
         # Deleting namespaced service is also tested in this.

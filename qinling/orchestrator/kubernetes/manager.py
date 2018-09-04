@@ -509,28 +509,40 @@ class KubernetesManager(base.OrchestratorBase):
                     self.conf.kubernetes.namespace
                 )
                 status = pod.status.phase
-                return True if status == 'Succeeded' else False
 
+                if status == 'Succeeded':
+                    return pod
+
+                raise exc.OrchestratorException()
+
+            duration = 0
             try:
                 r = tenacity.Retrying(
                     wait=tenacity.wait_fixed(1),
                     stop=tenacity.stop_after_delay(180),
-                    retry=tenacity.retry_if_result(
-                        lambda result: result is False)
+                    retry=tenacity.retry_if_exception_type(
+                        exc.OrchestratorException)
                 )
-                r.call(_wait_complete)
-            except Exception as e:
-                LOG.exception(
-                    "Failed to get pod output, pod: %s, error: %s",
-                    identifier, str(e)
-                )
-                return False, {'error': 'Function execution failed.'}
+                pod = r.call(_wait_complete)
 
-            output = self.v1.read_namespaced_pod_log(
+                statuses = pod.status.container_statuses
+                for s in statuses:
+                    if hasattr(s.state, "terminated"):
+                        end_time = s.state.terminated.finished_at
+                        start_time = s.state.terminated.started_at
+                        delta = end_time - start_time
+                        duration = delta.seconds
+                        break
+            except Exception:
+                LOG.exception("Failed to wait for pod %s", identifier)
+                return False, {'error': 'Function execution failed.',
+                               'duration': duration}
+
+            log = self.v1.read_namespaced_pod_log(
                 identifier,
                 self.conf.kubernetes.namespace,
             )
-            return True, output
+            return True, {'duration': duration, 'logs': log}
 
     def delete_function(self, function_id, version, labels=None):
         """Delete related resources for function.

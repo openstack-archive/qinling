@@ -130,16 +130,8 @@ def db_set_execution_status(execution_id, execution_status, logs, res):
 
 
 def finish_execution(execution_id, success, res, is_image_source=False):
-    logs = ''
-    if is_image_source:
-        # If the function is created from docker image, the result is
-        # direct output, here we convert to a dict to fit into the db
-        # schema.
-        res = {'output': res}
-    else:
-        # Execution log is only available for non-image source execution.
-        logs = res.pop('logs', '')
-        success = success and res.pop('success')
+    logs = res.pop('logs', '')
+    success = success and res.pop('success', True)
 
     LOG.debug(
         'Finished execution %s, success: %s', execution_id, success

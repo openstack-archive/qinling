@@ -264,6 +264,24 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual(200, resp.status)
         self.assertEqual(2, len(body['workers']))
 
+    @decorators.idempotent_id('d0598868-e45d-11e7-9125-00224d6b7bc1')
+    def test_image_function_execution(self):
+        function_id = self.create_function(image=True)
+        resp, body = self.client.create_execution(function_id,
+                                                  input='Qinling')
+
+        self.assertEqual(201, resp.status)
+        execution_id = body['id']
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        execution_id, ignore_notfound=True)
+
+        self.assertEqual('success', body['status'])
+        self.assertIn('duration', jsonutils.loads(body['result']))
+
+        resp, body = self.client.get_execution_log(execution_id)
+        self.assertEqual(200, resp.status)
+        self.assertIn('Qinling', body)
+
     @decorators.idempotent_id('ccfe67ce-e467-11e7-916c-00224d6b7bc1')
     def test_python_execution_positional_args(self):
         package = self.create_package(
@@ -319,19 +337,6 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertIn(
             'too much resource consumption', result['output']
         )
-
-    @decorators.idempotent_id('d0598868-e45d-11e7-9125-00224d6b7bc1')
-    def test_execution_image_function(self):
-        function_id = self.create_function(image=True)
-        resp, body = self.client.create_execution(function_id,
-                                                  input='Qinling')
-
-        self.assertEqual(201, resp.status)
-        execution_id = body['id']
-        self.addCleanup(self.client.delete_resource, 'executions',
-                        execution_id, ignore_notfound=True)
-        self.assertEqual('success', body['status'])
-        self.assertIn('Qinling', jsonutils.loads(body['result'])['output'])
 
     @decorators.idempotent_id('2b5f0787-b82d-4fc4-af76-cf86d389a76b')
     def test_python_execution_memory_limit_non_image(self):

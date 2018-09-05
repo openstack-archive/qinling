@@ -242,8 +242,9 @@ class TestDefaultEngine(base.DbTestCase):
         self.orchestrator.prepare_execution.return_value = (
             mock.Mock(), None)
         self.orchestrator.run_execution.side_effect = [
-            (True, 'success result'),
-            (False, 'failed result')]
+            (True, {'duration': 5, 'logs': 'fake log'}),
+            (False, {'duration': 0, 'error': 'Function execution failed.'})
+        ]
 
         # Create two executions, with different results
         self.default_engine.create_execution(
@@ -302,12 +303,15 @@ class TestDefaultEngine(base.DbTestCase):
         execution_1 = db_api.get_execution(execution_1_id)
         execution_2 = db_api.get_execution(execution_2_id)
 
-        self.assertEqual(execution_1.status, status.SUCCESS)
-        self.assertEqual(execution_1.logs, '')
-        self.assertEqual(execution_1.result, {'output': 'success result'})
-        self.assertEqual(execution_2.status, status.FAILED)
-        self.assertEqual(execution_2.logs, '')
-        self.assertEqual(execution_2.result, {'output': 'failed result'})
+        self.assertEqual(status.SUCCESS, execution_1.status)
+        self.assertEqual('fake log', execution_1.logs)
+        self.assertEqual({"duration": 5}, execution_1.result)
+        self.assertEqual(status.FAILED, execution_2.status)
+        self.assertEqual('', execution_2.logs)
+        self.assertEqual(
+            {'duration': 0, 'error': 'Function execution failed.'},
+            execution_2.result
+        )
 
     @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_create_execution_prepare_execution_exception(

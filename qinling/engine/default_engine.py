@@ -182,7 +182,7 @@ class DefaultEngine(object):
                                    is_image_source=is_image_source)
             return
 
-        if source == constants.IMAGE_FUNCTION:
+        if is_image_source:
             image = function.code['image']
             # Be consistent with k8s naming convention
             identifier = ('%s-%s' %
@@ -211,8 +211,8 @@ class DefaultEngine(object):
             utils.handle_execution_exception(execution_id, str(e))
             return
 
-        # For image type function, read the worker log; For package type
-        # function, invoke and get log
+        # For image type function, wait for its completion and retrieve the
+        # worker log; For package type function, invoke and get log
         success, res = self.orchestrator.run_execution(
             execution_id,
             function_id,

@@ -164,6 +164,9 @@ class FunctionsController(rest.RestController):
             'memory_size': kwargs.get(
                 'memory_size', CONF.resource_limits.default_memory
             ),
+            'timeout': kwargs.get(
+                'timeout', CONF.resource_limits.default_timeout
+            ),
         }
 
         # Check cpu and memory_size values.

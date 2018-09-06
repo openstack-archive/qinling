@@ -484,7 +484,7 @@ class KubernetesManager(base.OrchestratorBase):
 
     def run_execution(self, execution_id, function_id, version, rlimit=None,
                       input=None, identifier=None, service_url=None,
-                      entry='main.main', trust_id=None):
+                      entry='main.main', trust_id=None, timeout=None):
         """Run execution.
 
         Return a tuple including the result and the output.
@@ -493,7 +493,7 @@ class KubernetesManager(base.OrchestratorBase):
             func_url = '%s/execute' % service_url
             data = utils.get_request_data(
                 self.conf, function_id, version, execution_id, rlimit, input,
-                entry, trust_id, self.qinling_endpoint
+                entry, trust_id, self.qinling_endpoint, timeout
             )
             LOG.debug(
                 'Invoke function %s(version %s), url: %s, data: %s',

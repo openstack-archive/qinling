@@ -197,6 +197,7 @@ class DbTestCase(BaseTest):
                 'project_id': DEFAULT_PROJECT_ID,
                 'cpu': cfg.CONF.resource_limits.default_cpu,
                 'memory_size': cfg.CONF.resource_limits.default_memory,
+                'timeout': cfg.CONF.resource_limits.default_timeout,
             }
         )
 

@@ -63,6 +63,25 @@ class TestFunctionController(base.APITest):
         )
         self._assertDictContainsSubset(resp.json, body)
 
+    @mock.patch('qinling.storage.file_system.FileSystemStorage.store')
+    def test_post_timeout(self, mock_store):
+        mock_store.return_value = (True, 'fake_md5')
+
+        with tempfile.NamedTemporaryFile() as f:
+            body = {
+                'runtime_id': self.runtime_id,
+                'code': json.dumps({"source": "package"}),
+                'timeout': 3
+            }
+            resp = self.app.post(
+                '/v1/functions',
+                params=body,
+                upload_files=[('package', f.name, f.read())]
+            )
+
+        self.assertEqual(201, resp.status_int)
+        self.assertEqual(3, resp.json['timeout'])
+
     @mock.patch("qinling.utils.openstack.keystone.create_trust")
     @mock.patch('qinling.utils.openstack.keystone.get_swiftclient')
     @mock.patch('qinling.context.AuthHook.before')
@@ -160,6 +179,7 @@ class TestFunctionController(base.APITest):
             "project_id": unit_base.DEFAULT_PROJECT_ID,
             "cpu": cfg.CONF.resource_limits.default_cpu,
             "memory_size": cfg.CONF.resource_limits.default_memory,
+            "timeout": cfg.CONF.resource_limits.default_timeout,
         }
 
         resp = self.app.get('/v1/functions/%s' % db_func.id)
@@ -176,6 +196,7 @@ class TestFunctionController(base.APITest):
             "project_id": unit_base.DEFAULT_PROJECT_ID,
             "cpu": cfg.CONF.resource_limits.default_cpu,
             "memory_size": cfg.CONF.resource_limits.default_memory,
+            "timeout": cfg.CONF.resource_limits.default_timeout,
         }
 
         resp = self.app.get('/v1/functions')

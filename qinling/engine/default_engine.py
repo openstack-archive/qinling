@@ -172,7 +172,7 @@ class DefaultEngine(object):
             data = utils.get_request_data(
                 CONF, function_id, function_version, execution_id,
                 rlimit, input, function.entry, function.trust_id,
-                self.qinling_endpoint
+                self.qinling_endpoint, function.timeout
             )
             success, res = utils.url_request(
                 self.session, func_url, body=data

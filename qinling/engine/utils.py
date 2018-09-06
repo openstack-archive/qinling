@@ -76,7 +76,7 @@ def url_request(request_session, url, body=None):
 
 
 def get_request_data(conf, function_id, version, execution_id, rlimit, input,
-                     entry, trust_id, qinling_endpoint):
+                     entry, trust_id, qinling_endpoint, timeout):
     """Prepare the request body should send to the worker."""
     ctx = context.get_ctx()
 
@@ -103,6 +103,7 @@ def get_request_data(conf, function_id, version, execution_id, rlimit, input,
         'entry': entry,
         'download_url': download_url,
         'request_id': ctx.request_id,
+        'timeout': timeout,
     }
     if conf.pecan.auth_enable:
         data.update(

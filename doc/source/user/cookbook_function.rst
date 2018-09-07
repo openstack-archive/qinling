@@ -519,3 +519,129 @@ username.
       Hello Qinling
 
    .. end
+
+Config timeout for the function
+-------------------------------
+
+In the cloud, you need to pay for the cloud resources that are used to run your
+Qinling function. To prevent your function from running indefinitely, you
+specify a timeout. When the specified timeout is reached, Qinling terminates
+execution of the function. We recommend you set this value based on your
+expected execution time. The default is 5 seconds and you can set it up to 300
+seconds.
+
+.. note::
+
+   This guide assumes you already have a Python2 or Python3 runtime available
+   in the deployment
+
+#. Create a Python function that simply sleeps for 10 seconds to simulate a
+   long-running function.
+
+   .. code-block:: console
+
+      mkdir ~/qinling_test && cd ~/qinling_test
+      cat <<EOF > test_sleep.py
+      import time
+      def main(seconds=10, **kwargs):
+          time.sleep(seconds)
+      EOF
+
+   .. end
+
+#. Create the Qinling function.
+
+   .. code-block:: console
+
+      $ openstack function create --runtime $runtime_id --entry test_sleep.main --file ~/qinling_test/test_sleep.py --name test_sleep
+      +-------------+-------------------------------------------------------------------------+
+      | Field       | Value                                                                   |
+      +-------------+-------------------------------------------------------------------------+
+      | id          | 6c2cb248-5065-4a0a-9b7a-06818693358c                                    |
+      | name        | test_sleep                                                              |
+      | description | None                                                                    |
+      | count       | 0                                                                       |
+      | code        | {u'source': u'package', u'md5sum': u'c0830d40dbef48b11af9e63a653799ac'} |
+      | runtime_id  | ba429da0-b800-4f27-96ea-eb527bd68004                                    |
+      | entry       | test_sleep.main                                                         |
+      | project_id  | d256a42b9f8e4d66805d91655b36a318                                        |
+      | created_at  | 2018-09-10 01:43:06.250137                                              |
+      | updated_at  | None                                                                    |
+      | cpu         | 100                                                                     |
+      | memory_size | 33554432                                                                |
+      | timeout     | 5                                                                       |
+      +-------------+-------------------------------------------------------------------------+
+
+   .. end
+
+#. Invoke the function. You will see the execution is terminated after about 5
+   seconds(the default timeout).
+
+   .. code-block:: console
+
+      $ openstack function execution create test_sleep
+      +------------------+--------------------------------------------------------------+
+      | Field            | Value                                                        |
+      +------------------+--------------------------------------------------------------+
+      | id               | e096f4b3-85a7-4356-93e9-5f583e802aa2                         |
+      | function_id      | 6c2cb248-5065-4a0a-9b7a-06818693358c                         |
+      | function_version | 0                                                            |
+      | description      | None                                                         |
+      | input            | None                                                         |
+      | result           | {"duration": 5.097, "output": "Function execution timeout."} |
+      | status           | failed                                                       |
+      | sync             | True                                                         |
+      | project_id       | d256a42b9f8e4d66805d91655b36a318                             |
+      | created_at       | 2018-09-10 01:44:46                                          |
+      | updated_at       | 2018-09-10 01:44:55                                          |
+      +------------------+--------------------------------------------------------------+
+
+   .. end
+
+#. Update the function by setting a longer timeout value.
+
+   .. code-block:: console
+
+      $ openstack function update test_sleep --timeout 15
+      +-------------+-------------------------------------------------------------------------+
+      | Field       | Value                                                                   |
+      +-------------+-------------------------------------------------------------------------+
+      | id          | 6c2cb248-5065-4a0a-9b7a-06818693358c                                    |
+      | name        | test_sleep                                                              |
+      | description | None                                                                    |
+      | count       | 1                                                                       |
+      | code        | {u'source': u'package', u'md5sum': u'c0830d40dbef48b11af9e63a653799ac'} |
+      | runtime_id  | ba429da0-b800-4f27-96ea-eb527bd68004                                    |
+      | entry       | test_sleep.main                                                         |
+      | project_id  | d256a42b9f8e4d66805d91655b36a318                                        |
+      | created_at  | 2018-09-10 01:43:06                                                     |
+      | updated_at  | 2018-09-10 02:01:38.510319                                              |
+      | cpu         | 100                                                                     |
+      | memory_size | 33554432                                                                |
+      | timeout     | 15                                                                      |
+      +-------------+-------------------------------------------------------------------------+
+
+   .. end
+
+#. Invoke the function again to verify the function is successfully executed.
+
+   .. code-block:: console
+
+      $ openstack function execution create test_sleep
+      +------------------+--------------------------------------+
+      | Field            | Value                                |
+      +------------------+--------------------------------------+
+      | id               | 6dd91e1d-df91-4e19-92b6-3bec474ee09a |
+      | function_id      | 6c2cb248-5065-4a0a-9b7a-06818693358c |
+      | function_version | 0                                    |
+      | description      | None                                 |
+      | input            | None                                 |
+      | result           | {"duration": 10.143, "output": null} |
+      | status           | success                              |
+      | sync             | True                                 |
+      | project_id       | d256a42b9f8e4d66805d91655b36a318     |
+      | created_at       | 2018-09-10 02:03:56                  |
+      | updated_at       | 2018-09-10 02:04:06                  |
+      +------------------+--------------------------------------+
+
+   .. end

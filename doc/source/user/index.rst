@@ -24,6 +24,7 @@ Demos
 * `(2017.10) Trigger Qinling function based on object upload event in Swift <https://youtu.be/K2SiMZllN_A>`_
 * `(2018.05) Qinling function autoscaling <https://youtu.be/9YK3t2hoaJA>`_
 * `(2018.05) Qinling function versioning <https://asciinema.org/a/xaglSGBQ8R9hdkyOFCxg1GkzM?speed=2&rows=40>`_
+* `(2018.08) Qinling horizon demo <https://youtu.be/fdySaFZb2cY>`_
 
 Cookbooks
 ---------

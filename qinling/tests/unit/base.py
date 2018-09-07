@@ -182,7 +182,7 @@ class DbTestCase(BaseTest):
 
         return runtime
 
-    def create_function(self, runtime_id=None, code=None):
+    def create_function(self, runtime_id=None, code=None, timeout=None):
         if not runtime_id:
             runtime_id = self.create_runtime().id
 
@@ -197,7 +197,7 @@ class DbTestCase(BaseTest):
                 'project_id': DEFAULT_PROJECT_ID,
                 'cpu': cfg.CONF.resource_limits.default_cpu,
                 'memory_size': cfg.CONF.resource_limits.default_memory,
-                'timeout': cfg.CONF.resource_limits.default_timeout,
+                'timeout': timeout or cfg.CONF.resource_limits.default_timeout
             }
         )
 

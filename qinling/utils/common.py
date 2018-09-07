@@ -93,6 +93,12 @@ def generate_unicode_uuid(dashed=True):
 
 
 def validate_int_in_range(name, value, min_allowed, max_allowed):
+    unit_mapping = {
+        "cpu": "millicpu",
+        "memory": "bytes",
+        "timeout": "seconds"
+    }
+
     try:
         value_int = int(value)
     except ValueError:
@@ -103,8 +109,8 @@ def validate_int_in_range(name, value, min_allowed, max_allowed):
     if (value_int < min_allowed or value_int > max_allowed):
         raise exc.InputException(
             '%s resource limitation not within the allowable range: '
-            '%s ~ %s(%s).' % (name, min_allowed, max_allowed,
-                              'millicpu' if name == 'cpu' else 'bytes')
+            '%s ~ %s(%s).' %
+            (name, min_allowed, max_allowed, unit_mapping[name])
         )
 
 

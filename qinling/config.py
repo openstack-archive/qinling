@@ -259,6 +259,16 @@ rlimits_opts = [
         default=5,
         help='Default function execution timeout(unit: seconds)'
     ),
+    cfg.IntOpt(
+        'min_timeout',
+        default=1,
+        help='Minimum function execution timeout(unit: seconds).'
+    ),
+    cfg.IntOpt(
+        'max_timeout',
+        default=300,
+        help='Maximum function execution timeout(unit: seconds).'
+    ),
 ]
 
 

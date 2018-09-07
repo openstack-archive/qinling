@@ -46,7 +46,7 @@ CONF = cfg.CONF
 POST_REQUIRED = set(['code'])
 CODE_SOURCE = set(['package', 'swift', 'image'])
 UPDATE_ALLOWED = set(['name', 'description', 'code', 'package', 'entry',
-                      'cpu', 'memory_size'])
+                      'cpu', 'memory_size', 'timeout'])
 
 
 class FunctionWorkerController(rest.RestController):
@@ -169,7 +169,10 @@ class FunctionsController(rest.RestController):
             ),
         }
 
-        # Check cpu and memory_size values.
+        common.validate_int_in_range(
+            'timeout', values['timeout'], CONF.resource_limits.min_timeout,
+            CONF.resource_limits.max_timeout
+        )
         common.validate_int_in_range(
             'cpu', values['cpu'], CONF.resource_limits.min_cpu,
             CONF.resource_limits.max_cpu
@@ -364,7 +367,14 @@ class FunctionsController(rest.RestController):
         LOG.info('Update function %s, params: %s', id, values)
         ctx = context.get_ctx()
 
-        if set(values.keys()).issubset(set(['name', 'description'])):
+        if values.get('timeout'):
+            common.validate_int_in_range(
+                'timeout', values['timeout'], CONF.resource_limits.min_timeout,
+                CONF.resource_limits.max_timeout
+            )
+
+        db_update_only = set(['name', 'description', 'timeout'])
+        if set(values.keys()).issubset(db_update_only):
             func_db = db_api.update_function(id, values)
         else:
             source = values.get('code', {}).get('source')

@@ -158,11 +158,6 @@ class Link(Resource):
     target = wtypes.text
     rel = wtypes.text
 
-    @classmethod
-    def sample(cls):
-        return cls(href='http://example.com/here',
-                   target='here', rel='self')
-
 
 class Function(Resource):
     id = wtypes.text
@@ -180,25 +175,6 @@ class Function(Resource):
     created_at = wtypes.text
     updated_at = wtypes.text
 
-    @classmethod
-    def sample(cls):
-        return cls(
-            id='123e4567-e89b-12d3-a456-426655440000',
-            name='hello_world',
-            description='this is the first function.',
-            cpu=1,
-            memory_size=1,
-            timeout=1,
-            runtime_id='123e4567-e89b-12d3-a456-426655440001',
-            code={'zip': True},
-            entry='main',
-            count=10,
-            latest_version=0,
-            project_id='default',
-            created_at='1970-01-01T00:00:00.000000',
-            updated_at='1970-01-01T00:00:00.000000'
-        )
-
 
 class Functions(ResourceList):
     functions = [Function]
@@ -207,18 +183,6 @@ class Functions(ResourceList):
         self._type = 'functions'
 
         super(Functions, self).__init__(**kwargs)
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        sample.functions = [Function.sample()]
-        sample.next = (
-            "http://localhost:7070/v1/functions?"
-            "sort_keys=id,name&sort_dirs=asc,desc&limit=10&"
-            "marker=123e4567-e89b-12d3-a456-426655440000"
-        )
-
-        return sample
 
 
 class FunctionWorker(Resource):

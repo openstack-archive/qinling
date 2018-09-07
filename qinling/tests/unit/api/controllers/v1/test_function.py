@@ -58,7 +58,8 @@ class TestFunctionController(base.APITest):
         body.update(
             {
                 'entry': 'main.main',
-                'code': {"source": "package", "md5sum": "fake_md5"}
+                'code': {"source": "package", "md5sum": "fake_md5"},
+                'timeout': cfg.CONF.resource_limits.default_timeout
             }
         )
         self._assertDictContainsSubset(resp.json, body)
@@ -81,6 +82,26 @@ class TestFunctionController(base.APITest):
 
         self.assertEqual(201, resp.status_int)
         self.assertEqual(3, resp.json['timeout'])
+
+    def test_post_timeout_invalid(self):
+        with tempfile.NamedTemporaryFile() as f:
+            body = {
+                'runtime_id': self.runtime_id,
+                'code': json.dumps({"source": "package"}),
+                'timeout': cfg.CONF.resource_limits.max_timeout + 1
+            }
+            resp = self.app.post(
+                '/v1/functions',
+                params=body,
+                upload_files=[('package', f.name, f.read())],
+                expect_errors=True
+            )
+
+        self.assertEqual(400, resp.status_int)
+        self.assertIn(
+            'timeout resource limitation not within the allowable range',
+            resp.json['faultstring']
+        )
 
     @mock.patch("qinling.utils.openstack.keystone.create_trust")
     @mock.patch('qinling.utils.openstack.keystone.get_swiftclient')
@@ -216,6 +237,32 @@ class TestFunctionController(base.APITest):
 
         self.assertEqual(200, resp.status_int)
         self.assertEqual('new_name', resp.json['name'])
+
+    def test_put_timeout(self):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+
+        resp = self.app.put_json(
+            '/v1/functions/%s' % db_func.id, {'timeout': 10}
+        )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(10, resp.json['timeout'])
+
+    def test_put_timeout_invalid(self):
+        db_func = self.create_function(runtime_id=self.runtime_id)
+
+        # Check for type of cpu values.
+        resp = self.app.put_json(
+            '/v1/functions/%s' % db_func.id,
+            {'timeout': cfg.CONF.resource_limits.max_timeout + 1},
+            expect_errors=True
+        )
+
+        self.assertEqual(400, resp.status_int)
+        self.assertIn(
+            'timeout resource limitation not within the allowable range',
+            resp.json['faultstring']
+        )
 
     @mock.patch('qinling.utils.etcd_util.delete_function')
     @mock.patch('qinling.storage.file_system.FileSystemStorage.store')

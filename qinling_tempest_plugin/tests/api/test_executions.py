@@ -506,7 +506,27 @@ class ExecutionsTest(base.BaseQinlingTest):
 
         result = jsonutils.loads(body['result'])
 
-        self.assertGreater(result['duration'], 5)
+        self.assertGreaterEqual(result['duration'], 5)
         self.assertIn(
             'Function execution timeout', result['output']
         )
+
+        # Update function timeout
+        resp, _ = self.client.update_function(
+            function_id,
+            timeout=10
+        )
+        self.assertEqual(200, resp.status_code)
+
+        resp, body = self.client.create_execution(
+            function_id,
+            input='{"seconds": 7}'
+        )
+
+        self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
+        self.assertEqual('success', body['status'])
+
+        result = jsonutils.loads(body['result'])
+        self.assertGreaterEqual(result['duration'], 7)

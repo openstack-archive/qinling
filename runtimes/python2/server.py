@@ -27,6 +27,7 @@ from flask import request
 from flask import Response
 from keystoneauth1.identity import generic
 from keystoneauth1 import session
+import psutil
 import requests
 
 app = Flask(__name__)
@@ -34,6 +35,7 @@ app = Flask(__name__)
 DOWNLOAD_ERROR = "Failed to download function package from %s, error: %s"
 INVOKE_ERROR = "Function execution failed because of too much resource " \
                "consumption"
+TIMEOUT_ERROR = "Function execution timeout."
 
 
 def _print_trace():
@@ -71,6 +73,17 @@ def _get_responce(output, duration, logs, success, code):
         status=code,
         mimetype='application/json'
     )
+
+
+def _killtree(pid, including_parent=True):
+    parent = psutil.Process(pid)
+    for child in parent.children(recursive=True):
+        print("kill child %s" % child)
+        child.kill()
+
+    if including_parent:
+        print("kill parent %s" % parent)
+        parent.kill()
 
 
 def _invoke_function(execution_id, zip_file_dir, module_name, method, arg,
@@ -146,6 +159,7 @@ def execute():
     auth_url = params.get('auth_url')
     username = params.get('username')
     password = params.get('password')
+    timeout = params.get('timeout')
     zip_file_dir = '/var/qinling/packages/%s' % function_id
     rlimit = {
         'cpu': params['cpu'],
@@ -206,25 +220,31 @@ def execute():
     return_dict['success'] = False
     start = time.time()
 
-    # Run the function in a separate process to avoid messing up the log
+    # Run the function in a separate process to avoid messing up the log. If
+    # the timeout is reached, kill all the subprocesses.
     p = Process(
         target=_invoke_function,
         args=(execution_id, zip_file_dir, function_module, function_method,
               input.pop('__function_input', None), input, return_dict, rlimit)
     )
+
+    timed_out = False
     p.start()
-    p.join()
+    p.join(timeout)
+    if p.is_alive():
+        _killtree(p.pid)
+        timed_out = True
 
     ####################################################################
     #
-    # Get execution output(log, duration, etc.)
+    # Get execution result(log, duration, etc.)
     #
     ####################################################################
     duration = round(time.time() - start, 3)
 
     # Process was killed unexpectedly or finished with error.
     if p.exitcode != 0:
-        output = INVOKE_ERROR
+        output = TIMEOUT_ERROR if timed_out else INVOKE_ERROR
         success = False
     else:
         output = return_dict.get('result')

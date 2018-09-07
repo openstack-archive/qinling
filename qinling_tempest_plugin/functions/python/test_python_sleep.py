@@ -14,5 +14,5 @@
 import time
 
 
-def main(seconds=5, **kwargs):
+def main(seconds=4, **kwargs):
     time.sleep(seconds)

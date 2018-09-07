@@ -339,7 +339,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         )
 
     @decorators.idempotent_id('2b5f0787-b82d-4fc4-af76-cf86d389a76b')
-    def test_python_execution_memory_limit_non_image(self):
+    def test_python_execution_memory_limit(self):
         """In this case, the following steps are taken:
 
         1. Create a function that requires ~80M memory to run.
@@ -390,7 +390,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual(4, output)
 
     @decorators.idempotent_id('ed714f98-29fe-4e8d-b6ee-9730f92bddea')
-    def test_python_execution_cpu_limit_non_image(self):
+    def test_python_execution_cpu_limit(self):
         """In this case, the following steps are taken:
 
         1. Create a function that takes some time to finish (calculating the
@@ -408,7 +408,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         package = self.create_package(
             name='python/test_python_cpu_limit.py'
         )
-        function_id = self.create_function(package_path=package)
+        function_id = self.create_function(package_path=package, timeout=180)
 
         # Invoke function
         resp, body = self.client.create_execution(function_id)
@@ -486,3 +486,27 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual('success', body['status'])
         result = json.loads(body['result'])
         self.assertEqual(page_sha256, result['output'])
+
+    @decorators.idempotent_id('b05e3bac-b23f-11e8-9679-00224d6b7bc1')
+    def test_python_execution_timeout(self):
+        package = self.create_package(
+            name='python/test_python_sleep.py'
+        )
+        function_id = self.create_function(package_path=package)
+
+        resp, body = self.client.create_execution(
+            function_id,
+            input='{"seconds": 7}'
+        )
+
+        self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
+        self.assertEqual('failed', body['status'])
+
+        result = jsonutils.loads(body['result'])
+
+        self.assertGreater(result['duration'], 5)
+        self.assertIn(
+            'Function execution timeout', result['output']
+        )

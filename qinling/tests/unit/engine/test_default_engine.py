@@ -243,7 +243,7 @@ class TestDefaultEngine(base.DbTestCase):
             mock.Mock(), None)
         self.orchestrator.run_execution.side_effect = [
             (True, {'duration': 5, 'logs': 'fake log'}),
-            (False, {'duration': 0, 'error': 'Function execution failed.'})
+            (False, {'duration': 0, 'output': 'Function execution failed.'})
         ]
 
         # Create two executions, with different results
@@ -287,7 +287,8 @@ class TestDefaultEngine(base.DbTestCase):
                       identifier=mock.ANY,
                       service_url=None,
                       entry=function.entry,
-                      trust_id=function.trust_id),
+                      trust_id=function.trust_id,
+                      timeout=function.timeout),
             mock.call(execution_2_id,
                       function_id,
                       0,
@@ -296,7 +297,8 @@ class TestDefaultEngine(base.DbTestCase):
                       identifier=mock.ANY,
                       service_url=None,
                       entry=function.entry,
-                      trust_id=function.trust_id)
+                      trust_id=function.trust_id,
+                      timeout=function.timeout)
         ]
         self.orchestrator.run_execution.assert_has_calls(run_calls)
 
@@ -309,7 +311,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.assertEqual(status.FAILED, execution_2.status)
         self.assertEqual('', execution_2.logs)
         self.assertEqual(
-            {'duration': 0, 'error': 'Function execution failed.'},
+            {'duration': 0, 'output': 'Function execution failed.'},
             execution_2.result
         )
 
@@ -348,10 +350,11 @@ class TestDefaultEngine(base.DbTestCase):
             mock.Mock(), execution_id, function_id, 0, runtime_id)
 
         execution = db_api.get_execution(execution_id)
-        self.assertEqual(execution.status, status.ERROR)
-        self.assertEqual(execution.logs, '')
-        self.assertEqual(execution.result,
-                         {'error': 'Function execution failed.'})
+
+        self.assertEqual(status.ERROR, execution.status)
+        self.assertEqual('', execution.logs)
+        self.assertEqual({'output': 'Function execution failed.'},
+                         execution.result)
 
     @mock.patch('qinling.utils.etcd_util.get_service_url')
     def test_create_execution_package_type_function(
@@ -385,7 +388,7 @@ class TestDefaultEngine(base.DbTestCase):
         self.orchestrator.run_execution.assert_called_once_with(
             execution_id, function_id, 0, rlimit=self.rlimit, input=None,
             identifier=runtime_id, service_url='svc_url', entry=function.entry,
-            trust_id=function.trust_id)
+            trust_id=function.trust_id, timeout=function.timeout)
 
         execution = db_api.get_execution(execution_id)
 
@@ -410,10 +413,10 @@ class TestDefaultEngine(base.DbTestCase):
 
         execution = db_api.get_execution(execution_id)
 
-        self.assertEqual(execution.status, status.ERROR)
-        self.assertEqual(execution.logs, '')
-        self.assertEqual(execution.result,
-                         {'error': 'Function execution failed.'})
+        self.assertEqual(status.ERROR, execution.status)
+        self.assertEqual('', execution.logs)
+        self.assertEqual({'output': 'Function execution failed.'},
+                         execution.result)
 
     @mock.patch('qinling.engine.utils.get_request_data')
     @mock.patch('qinling.engine.utils.url_request')

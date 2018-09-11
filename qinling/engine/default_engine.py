@@ -20,7 +20,6 @@ from qinling.db import api as db_api
 from qinling.engine import utils
 from qinling import exceptions as exc
 from qinling import status
-from qinling.utils import common
 from qinling.utils import constants
 from qinling.utils import etcd_util
 
@@ -184,19 +183,15 @@ class DefaultEngine(object):
 
         if is_image_source:
             image = function.code['image']
-            # Be consistent with k8s naming convention
-            identifier = ('%s-%s' %
-                          (common.generate_unicode_uuid(dashed=False),
-                           function_id)
-                          )[:63]
+            identifier = ('%s-%s' % (execution_id, function_id))[:63]
         else:
             identifier = runtime_id
             labels = {'runtime_id': runtime_id}
 
         try:
-            # For image function, it will be executed inside this method; for
-            # package type function it only sets up underlying resources and
-            # get a service url. If the service url is already created
+            # For image function, it will be executed inside this method;
+            # For package type function it only sets up underlying resources
+            # and get a service url. If the service url is already created
             # beforehand, nothing happens.
             _, svc_url = self.orchestrator.prepare_execution(
                 function_id,
@@ -212,7 +207,8 @@ class DefaultEngine(object):
             return
 
         # For image type function, wait for its completion and retrieve the
-        # worker log; For package type function, invoke and get log
+        # worker log;
+        # For package type function, invoke and get log
         success, res = self.orchestrator.run_execution(
             execution_id,
             function_id,
@@ -222,7 +218,8 @@ class DefaultEngine(object):
             identifier=identifier,
             service_url=svc_url,
             entry=function.entry,
-            trust_id=function.trust_id
+            trust_id=function.trust_id,
+            timeout=function.timeout
         )
 
         utils.finish_execution(execution_id, success, res,

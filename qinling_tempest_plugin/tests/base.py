@@ -118,7 +118,7 @@ class BaseQinlingTest(test.BaseTestCase):
         self.addCleanup(os.remove, zip_file)
         return zip_file
 
-    def create_function(self, package_path=None, image=False,
+    def create_function(self, package_path=None, image=None,
                         md5sum=None, timeout=None):
         function_name = data_utils.rand_name(
             'function',
@@ -145,7 +145,7 @@ class BaseQinlingTest(test.BaseTestCase):
                 )
         else:
             resp, body = self.client.create_function(
-                {"source": "image", "image": "openstackqinling/alpine-test"},
+                {"source": "image", "image": image},
                 None,
                 name=function_name,
             )

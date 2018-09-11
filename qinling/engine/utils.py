@@ -46,7 +46,7 @@ def url_request(request_session, url, body=None):
         LOG.exception(
             "Failed to request url %s, error: %s", ping_url, str(e)
         )
-        return False, {'error': 'Function execution failed.'}
+        return False, {'output': 'Function execution failed.'}
 
     for a in six.moves.xrange(10):
         res = None
@@ -67,12 +67,12 @@ def url_request(request_session, url, body=None):
                 LOG.error("Response status: %s, content: %s",
                           res.status_code, res.content)
 
-            return False, {'error': 'Function execution timeout.'}
+            return False, {'output': 'Function execution timeout.'}
 
     LOG.exception("Could not connect to function service. Reason: %s",
                   exception)
 
-    return False, {'error': 'Internal service error.'}
+    return False, {'output': 'Internal service error.'}
 
 
 def get_request_data(conf, function_id, version, execution_id, rlimit, input,
@@ -149,5 +149,7 @@ def handle_execution_exception(execution_id, exc_str):
         'Error running execution %s: %s', execution_id, exc_str
     )
     db_set_execution_status(
-        execution_id, status.ERROR, '', {'error': 'Function execution failed.'}
+        execution_id, status.ERROR,
+        '',
+        {'output': 'Function execution failed.'}
     )

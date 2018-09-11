@@ -91,7 +91,7 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual(201, resp.status)
         self.assertEqual('error', body['status'])
         result = jsonutils.loads(body['result'])
-        self.assertEqual('Function execution failed.', result['error'])
+        self.assertEqual('Function execution failed.', result['output'])
 
     @decorators.idempotent_id('2199d1e6-de7d-4345-8745-a8184d6022b1')
     def test_get_all_admin(self):
@@ -266,7 +266,8 @@ class ExecutionsTest(base.BaseQinlingTest):
 
     @decorators.idempotent_id('d0598868-e45d-11e7-9125-00224d6b7bc1')
     def test_image_function_execution(self):
-        function_id = self.create_function(image=True)
+        function_id = self.create_function(
+            image="openstackqinling/alpine-test")
         resp, body = self.client.create_execution(function_id,
                                                   input='Qinling')
 
@@ -281,6 +282,42 @@ class ExecutionsTest(base.BaseQinlingTest):
         resp, body = self.client.get_execution_log(execution_id)
         self.assertEqual(200, resp.status)
         self.assertIn('Qinling', body)
+
+    @decorators.idempotent_id('ab962144-d5b1-11e8-978f-026f8338c1e5')
+    def test_image_function_execution_timeout(self):
+        function_id = self.create_function(image="lingxiankong/sleep")
+        resp, body = self.client.create_execution(function_id,
+                                                  input='6')
+
+        self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
+        self.assertEqual('failed', body['status'])
+
+        result = jsonutils.loads(body['result'])
+
+        self.assertGreaterEqual(result['duration'], 5)
+        self.assertIn(
+            'Function execution timeout', result['output']
+        )
+
+        # Update function timeout
+        resp, _ = self.client.update_function(
+            function_id,
+            timeout=10
+        )
+        self.assertEqual(200, resp.status_code)
+
+        resp, body = self.client.create_execution(function_id,
+                                                  input='6')
+
+        self.assertEqual(201, resp.status)
+        self.addCleanup(self.client.delete_resource, 'executions',
+                        body['id'], ignore_notfound=True)
+        self.assertEqual('success', body['status'])
+
+        result = jsonutils.loads(body['result'])
+        self.assertGreaterEqual(result['duration'], 6)
 
     @decorators.idempotent_id('ccfe67ce-e467-11e7-916c-00224d6b7bc1')
     def test_python_execution_positional_args(self):
@@ -313,7 +350,6 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual('failed', body['status'])
 
         result = jsonutils.loads(body['result'])
-        self.assertNotIn('error', result)
         self.assertIn(
             'Too many open files', result['output']
         )
@@ -333,7 +369,6 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertEqual('failed', body['status'])
 
         result = jsonutils.loads(body['result'])
-        self.assertNotIn('error', result)
         self.assertIn(
             'too much resource consumption', result['output']
         )

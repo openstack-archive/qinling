@@ -500,6 +500,24 @@ class TestKubernetesManager(base.DbTestCase):
         self.k8s_v1_api.create_namespaced_pod.assert_called_once_with(
             self.fake_namespace, body=yaml.safe_load(pod_body))
 
+    def test_prepare_execution_with_image_pod_failed(self):
+        function_id = common.generate_unicode_uuid()
+        image = self.rand_name('image', prefix=self.prefix)
+        identifier = (
+            '%s-%s' % (common.generate_unicode_uuid(dashed=True), function_id)
+        )[:63]
+        self.k8s_v1_api.create_namespaced_pod.side_effect = RuntimeError
+
+        self.assertRaises(
+            exc.OrchestratorException,
+            self.manager.prepare_execution,
+            function_id,
+            0,
+            rlimit=self.rlimit,
+            image=image,
+            identifier=identifier,
+        )
+
     def test_prepare_execution_not_image_no_worker_available(self):
         ret_pods = mock.Mock()
         ret_pods.items = []
@@ -661,7 +679,7 @@ class TestKubernetesManager(base.DbTestCase):
         function_id = common.generate_unicode_uuid()
 
         result, output = self.manager.run_execution(execution_id, function_id,
-                                                    0)
+                                                    0, timeout=5)
 
         self.assertEqual(2, self.k8s_v1_api.read_namespaced_pod.call_count)
         self.k8s_v1_api.read_namespaced_pod_log.assert_called_once_with(
@@ -671,13 +689,34 @@ class TestKubernetesManager(base.DbTestCase):
         expected_output = {'duration': 10, 'logs': fake_log}
         self.assertEqual(expected_output, output)
 
+    def test_run_execution_image_type_function_timeout(self):
+        execution_id = common.generate_unicode_uuid()
+        function_id = common.generate_unicode_uuid()
+        pod1 = mock.Mock()
+        pod1.status.phase = ''
+        self.k8s_v1_api.read_namespaced_pod.return_value = pod1
+
+        result, output = self.manager.run_execution(
+            execution_id, function_id, 0,
+            identifier='fake_identifier',
+            timeout=1
+        )
+
+        self.assertFalse(result)
+
+        expected_output = {
+            'output': 'Function execution timeout.',
+            'duration': 1
+        }
+        self.assertEqual(expected_output, output)
+
     def test_run_execution_image_type_function_read_pod_exception(self):
         self.k8s_v1_api.read_namespaced_pod.side_effect = RuntimeError
         execution_id = common.generate_unicode_uuid()
         function_id = common.generate_unicode_uuid()
 
         result, output = self.manager.run_execution(execution_id, function_id,
-                                                    0)
+                                                    0, timeout=5)
 
         self.k8s_v1_api.read_namespaced_pod.assert_called_once_with(
             None, self.fake_namespace)
@@ -685,7 +724,7 @@ class TestKubernetesManager(base.DbTestCase):
         self.assertFalse(result)
 
         expected_output = {
-            'error': 'Function execution failed.',
+            'output': 'Function execution failed.',
             'duration': 0
         }
         self.assertEqual(expected_output, output)

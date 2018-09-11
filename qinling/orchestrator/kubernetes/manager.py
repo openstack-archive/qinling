@@ -414,10 +414,14 @@ class KubernetesManager(base.OrchestratorBase):
             "Creating pod %s for image function:\n%s", pod_name, pod_body
         )
 
-        self.v1.create_namespaced_pod(
-            self.conf.kubernetes.namespace,
-            body=yaml.safe_load(pod_body),
-        )
+        try:
+            self.v1.create_namespaced_pod(
+                self.conf.kubernetes.namespace,
+                body=yaml.safe_load(pod_body),
+            )
+        except Exception:
+            LOG.exception("Failed to create pod.")
+            raise exc.OrchestratorException('Execution preparation failed.')
 
     def _update_pod_label(self, pod, new_label):
         name = pod.metadata.name
@@ -463,6 +467,7 @@ class KubernetesManager(base.OrchestratorBase):
                 )
 
             self._create_pod(image, rlimit, identifier, labels, input)
+
             return identifier, None
         else:
             pods = self._choose_available_pods(labels, function_id=function_id,
@@ -513,15 +518,16 @@ class KubernetesManager(base.OrchestratorBase):
                 if status == 'Succeeded':
                     return pod
 
-                raise exc.OrchestratorException()
+                raise exc.TimeoutException()
 
             duration = 0
             try:
                 r = tenacity.Retrying(
                     wait=tenacity.wait_fixed(1),
-                    stop=tenacity.stop_after_delay(180),
+                    stop=tenacity.stop_after_delay(timeout),
                     retry=tenacity.retry_if_exception_type(
-                        exc.OrchestratorException)
+                        exc.TimeoutException),
+                    reraise=True
                 )
                 pod = r.call(_wait_complete)
 
@@ -533,15 +539,31 @@ class KubernetesManager(base.OrchestratorBase):
                         delta = end_time - start_time
                         duration = delta.seconds
                         break
+            except exc.TimeoutException:
+                LOG.exception(
+                    "Timeout for function execution %s, pod %s",
+                    execution_id, identifier
+                )
+
+                self.v1.delete_namespaced_pod(
+                    identifier,
+                    self.conf.kubernetes.namespace,
+                    {}
+                )
+                LOG.debug('Pod %s deleted.', identifier)
+
+                return False, {'output': 'Function execution timeout.',
+                               'duration': timeout}
             except Exception:
                 LOG.exception("Failed to wait for pod %s", identifier)
-                return False, {'error': 'Function execution failed.',
+                return False, {'output': 'Function execution failed.',
                                'duration': duration}
 
             log = self.v1.read_namespaced_pod_log(
                 identifier,
                 self.conf.kubernetes.namespace,
             )
+
             return True, {'duration': duration, 'logs': log}
 
     def delete_function(self, function_id, version, labels=None):

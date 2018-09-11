@@ -121,3 +121,8 @@ class SwiftException(QinlingException):
 class EtcdLockException(QinlingException):
     http_code = 409
     message = 'Etcd lock failed'
+
+
+class TimeoutException(QinlingException):
+    http_code = 500
+    message = 'Function execution timeout'

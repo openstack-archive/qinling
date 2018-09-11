@@ -11,9 +11,8 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-import json
-
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 
 from qinling.db import api as db_api
 from qinling.db.sqlalchemy import models
@@ -112,7 +111,12 @@ def create_execution(engine_client, params):
     # input in params should be a string.
     if input:
         try:
-            params['input'] = json.loads(input)
+            function_input = jsonutils.loads(input)
+            # If input is e.g. '6', result of jsonutils.loads is 6 which can
+            # not be stored in db.
+            if type(function_input) == int:
+                raise ValueError
+            params['input'] = function_input
         except ValueError:
             params['input'] = {'__function_input': input}
 

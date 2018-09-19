@@ -77,8 +77,7 @@ latex_documents = [
 
 # openstackdocstheme options
 repository_name = 'openstack/qinling'
-bug_project = 'qinling'
-bug_tag = ''
+use_storyboard = True
 
 # Must set this variable to include year, month, day, hours, and minutes.
 html_last_updated_fmt = '%Y-%m-%d %H:%M'

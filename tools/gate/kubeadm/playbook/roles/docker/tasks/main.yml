@@ -5,10 +5,10 @@
     - ca-certificates
     - curl
 
-- include: ubuntu.yml
+- include_tasks: ubuntu.yml
   when:
     ansible_pkg_mgr == 'apt'
 
-- include: centos.yml
+- include_tasks: centos.yml
   when:
     ansible_pkg_mgr == 'yum'

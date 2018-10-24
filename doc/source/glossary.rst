@@ -19,3 +19,12 @@ As the Qinling project evolves, it's important that people working on Qinling,
 users using Qinling, and operators deploying Qinling use a common set of
 terminology in order to avoid misunderstandings and confusion. To that end, we
 are providing the following glossary of terms.
+
+Runtime
+~~~~~~~
+
+The runtime is programming language support. In Qinling, each runtime is
+encapsulated in a container image which is used for creating the runtime
+container. Qinling communicates with the container by sending HTTP requests and
+runs user function inside. Currently, Qinling only supports Python 2 and
+Python 3 officially and Node.JS in experimental.

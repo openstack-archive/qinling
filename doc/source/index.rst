@@ -54,6 +54,14 @@ Administration/Operation Guide
 
    admin/index
 
+CLI Guide
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   cli/index
+
 Contributor/Developer Guide
 ---------------------------
 

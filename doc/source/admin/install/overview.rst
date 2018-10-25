@@ -44,8 +44,6 @@ Messaging queue
 
 Additionally, users can interact with Qinling service either by sending HTTP
 request or using openstack CLI provided by
-`python-qinlingclient <https://docs.openstack.org/python-qinlingclient/latest/>`_
-
-.. note::
-
-   The horizon plugin for Qinling is still not available now.
+`python-qinlingclient <https://docs.openstack.org/python-qinlingclient/latest/>`_.
+Qinling Horizon dashboard is also available
+`here <https://docs.openstack.org/qinling-dashboard/latest/>`_.

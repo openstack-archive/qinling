@@ -131,17 +131,21 @@ function configure_qinling {
     # Configure the database.
     iniset $QINLING_CONF_FILE database connection `database_connection_url qinling`
 
-    # Configure Kubernetes API server certificates for qinling if required.
-    if [ "$QINLING_K8S_APISERVER_TLS" == "True" ]; then
-        iniset $QINLING_CONF_FILE kubernetes kube_host https://$(hostname -f):6443
-        configure_k8s_certificates
-        sudo kubectl create -f $QINLING_DIR/example/kubernetes/k8s_qinling_role.yaml
-    else
-        iniset $QINLING_CONF_FILE kubernetes use_api_certificate False
-    fi
+    if [ "$QINLING_INSTALL_K8S" == "True" ]; then
+        # Configure Kubernetes API server certificates for qinling if required.
+        if [ "$QINLING_K8S_APISERVER_TLS" == "True" ]; then
+            iniset $QINLING_CONF_FILE kubernetes kube_host https://$(hostname -f):6443
+            configure_k8s_certificates
+            sudo kubectl create -f $QINLING_DIR/example/kubernetes/k8s_qinling_role.yaml
+        else
+            iniset $QINLING_CONF_FILE kubernetes use_api_certificate False
+        fi
 
-    # Config etcd TLS certs
-    configure_etcd_certificates
+        # Config etcd TLS certs
+        configure_etcd_certificates
+    else
+        echo_summary "Skip k8s related configuration"
+    fi
 
     iniset $QINLING_CONF_FILE kubernetes replicas 5
 }
@@ -191,8 +195,12 @@ if is_service_enabled qinling; then
             create_qinling_accounts
         fi
 
-        echo_summary "Installing kubernetes cluster"
-        install_k8s
+        if [ "$QINLING_INSTALL_K8S" == "True" ]; then
+            echo_summary "Installing kubernetes cluster"
+            install_k8s
+        else
+            echo_summary "Skip kubernetes cluster installation"
+        fi
 
         configure_qinling
 

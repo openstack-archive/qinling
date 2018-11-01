@@ -182,6 +182,15 @@ kubernetes_opts = [
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
         help='Log level for kubernetes operations.'
     ),
+    cfg.ListOpt(
+        'trusted_cidrs',
+        item_type=cfg.types.String(),
+        default=[],
+        help='List of CIDR that have access to the services in '
+             'Kubernetes, e.g. trusted_cidrs=127.0.0.1/32,198.72.124.109/32. '
+             'If it is empty list, the default value is the host IP address '
+             'that the qinling-engine service is running on.'
+    )
 ]
 
 ETCD_GROUP = 'etcd'

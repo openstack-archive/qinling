@@ -18,6 +18,7 @@ import yaml
 
 import mock
 from oslo_config import cfg
+from oslo_utils import netutils
 
 from qinling import config
 from qinling import exceptions as exc
@@ -62,7 +63,7 @@ class TestKubernetesManager(base.DbTestCase):
         self.k8s_v1_api.list_namespace.return_value = namespaces
 
         network_policy = mock.Mock()
-        network_policy.metadata.name = 'disable-interpods-connections'
+        network_policy.metadata.name = 'allow-qinling-engine-only'
         network_policies = mock.Mock()
         network_policies.items = [network_policy]
         self.k8s_v1_ext.list_namespaced_network_policy.return_value = (
@@ -149,11 +150,18 @@ class TestKubernetesManager(base.DbTestCase):
 
         k8s_manager.KubernetesManager(self.conf, self.qinling_endpoint)
 
+        host_ip = netutils.get_my_ipv4()
+        cidr = "%s/32" % host_ip
+
         network_policy_body = {
             'apiVersion': 'extensions/v1beta1',
             'kind': 'NetworkPolicy',
-            'metadata': {'name': 'disable-interpods-connections'},
-            'spec': {'pod_selector': {}}
+            'metadata': {'name': 'allow-qinling-engine-only'},
+            'spec': {
+                'podSelector': {},
+                'policyTypes': ["Ingress"],
+                'ingress': [{'from': [{'ipBlock': {'cidr': cidr}}]}]
+            }
         }
         v1ext.list_namespaced_network_policy.assert_called_with(
             self.fake_namespace
@@ -164,7 +172,7 @@ class TestKubernetesManager(base.DbTestCase):
     def test__ensure_network_policy_not_create(self):
         # self.manager is not used in this test.
         item = mock.Mock()
-        item.metadata.name = 'disable-interpods-connections'
+        item.metadata.name = 'allow-qinling-engine-only'
         network_policies = mock.Mock()
         network_policies.items = [item]
         v1ext = self.k8s_v1_ext

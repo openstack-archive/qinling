@@ -15,7 +15,7 @@
 Setting up a development environment with devstack
 ==================================================
 
-This page describes how to setup a working development
+This page describes how to set up a working development
 environment that can be used in deploying qinling on latest releases
 of Ubuntu. These instructions assume you are already familiar
 with git. Refer to `Getting the code`_ for additional information.
@@ -67,21 +67,31 @@ configuration:
     LOG_COLOR=False
     LOGDAYS=1
 
-    ENABLED_SERVICES=rabbit,mysql,key,tempest
+    ENABLED_SERVICES=rabbit,mysql,key
 
 .. end
 
-.. note::
+Here are several things you could customize:
 
-   For multiple network cards, you need to update the Kubernetes apiserver's advertise address
-   to the address on the interface which is used to get to the default gateway by adding one
-   environment variable.
+* For multiple network cards, you need to specify the kubernetes API server's
+  advertise address manually.
 
    .. code-block:: console
 
        export EXTRA_KUBEADM_INIT_OPTS="--apiserver-advertise-address <default-host-ip>"
 
    .. end
+
+* Devstack will set up a new kubernetes cluster and re-use etcd service inside
+  the cluster for Qinling services, which means you don't need to add etcd to
+  the enabled services list in the ``local.conf`` file.
+* If you already have an existing kubernetes cluster, add
+  ``QINLING_INSTALL_K8S=False`` to the ``local.conf`` file. Go to
+  `Config Qinling with existing Kubernetes cluster <https://docs.openstack.org/qinling/latest/admin/install/config_kubernetes.html>`_
+  for more details.
+* If you want to interact with Qinling in Horizon, add
+  ``enable_plugin qinling-dashboard https://git.openstack.org/openstack/qinling-dashboard``
+  in the ``local.conf`` file.
 
 Running devstack
 ----------------

@@ -28,8 +28,20 @@ Prerequisites
 
   .. code-block:: console
 
-      K8S_ADDRESS=10.0.0.5
-      ETCD_ADDRESS=10.0.0.6
+      export K8S_ADDRESS=10.0.0.5
+      export ETCD_ADDRESS=10.0.0.6
+      export QINLING_SERVICE_USER=qinling
+
+  .. end
+
+  Make sure the kubernetes and etcd services are both accessible to external.
+
+* You know the IP address that ``qinling-engine`` service talks to kubernetes,
+  for example:
+
+  .. code-block:: console
+
+      export QINLING_ENGINE_ADDRESS=10.0.0.7
 
   .. end
 
@@ -38,16 +50,18 @@ Prerequisites
 
   .. code-block:: console
 
-      K8S_CA_CERT=$HOME/ca.crt
-      K8S_CA_KEY=$HOME/ca.key
-      ETCD_CA_CERT=$HOME/etcd_ca.crt
-      ETCD_CA_KEY=$HOME/etcd_ca.key
+      export K8S_CA_CERT=$HOME/ca.crt
+      export K8S_CA_KEY=$HOME/ca.key
+      export ETCD_CA_CERT=$HOME/etcd_ca.crt
+      export ETCD_CA_KEY=$HOME/etcd_ca.key
 
   .. end
 
 * This guide assumes
   `RBAC <https://kubernetes.io/docs/admin/authorization/rbac/>`_ is enabled in
   the kubernetes cluster.
+* All the following commands are supposed to be executed under ``root``
+  permission.
 
 Qinling configurations
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -74,12 +88,21 @@ Kubernetes API and etcd in Qinling's configuration file.
 
 .. end
 
-Change the kubernetes and etcd service addresses:
+First, change the kubernetes and etcd service addresses in the config file, and
+add the addresses that ``qinling-engine`` uses to talk to kubernetes services
+to the ``trusted_cidrs`` option. We will create all the related certificates in
+the following steps.
+
+.. note::
+
+    If the ``qinling-engine`` service is running behind a NAT device, make sure
+    you get the correct IP address that talks to kubernetes.
 
 .. code-block:: ini
 
     [kubernetes]
     kube_host = https://${K8S_ADDRESS}:6443
+    trusted_cidrs = ${QINLING_ENGINE_ADDRESS}/32
     ...
     [etcd]
     host = ${ETCD_ADDRESS}
@@ -125,8 +148,8 @@ out there for certificate generation. We use ``cfssl`` as the example here.
 
     .. end
 
-#) Move the certificates to the appropriate folders and ensure the qinling
-   service user has permission to those folders.
+#) Move the certificates to the pre-defined locations in the config file and
+   ensure the qinling service user has the permission to those locations.
 
     .. code-block:: console
 
@@ -137,16 +160,19 @@ out there for certificate generation. We use ``cfssl`` as the example here.
         cp etcd-client.pem /etc/qinling/pki/etcd/qinling-etcd-client.crt
         cp ${K8S_CA_CERT} /etc/qinling/pki/kubernetes/ca.crt
         cp ${ETCD_CA_CERT} /etc/qinling/pki/etcd/ca.crt
-        chown -R qinling:qinling /etc/qinling/pki
+        chown -R ${QINLING_SERVICE_USER}:${QINLING_SERVICE_USER} /etc/qinling/pki
+        cd -; rm -rf /tmp/certs
 
     .. end
 
 Create Role and RoleBinding in Kubernetes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-According least privilege principle, the operation permission of qinling user
-in kubernetes cluster should be limited, this could be easily achieved by
-applying the pre-defined authorization manifest file.
+According to the least privilege principle, the operation permission of qinling
+service user in kubernetes cluster should be restricted, this could be easily
+achieved by applying the pre-defined authorization manifest file. The following
+command is supposed to be executed with ``admin`` access of the kubernetes
+cluster.
 
 .. code-block:: console
 
@@ -154,16 +180,16 @@ applying the pre-defined authorization manifest file.
 
 .. end
 
-Restart qinling-engine service
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Restart Qinlig services
+~~~~~~~~~~~~~~~~~~~~~~~
 
-Restart the ``qinling-engine`` service after the steps above are done, and now
-Qinling is accessing the Kubernetes API and etcd service using TLS. The
-requests that Qinling makes to the Kubernetes API are also authorized.
+Restart all the Qinling services. Now Qinling is accessing the Kubernetes API
+and etcd service using TLS. The requests that Qinling makes to the Kubernetes
+API are also authorized.
 
 .. code-block:: console
 
-    systemctl restart devstack@qinling-engine.service
+    systemctl restart devstack@qinling-*.service
 
 .. end
 

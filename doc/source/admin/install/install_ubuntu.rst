@@ -302,18 +302,9 @@ information.
 For etcd installation, you can refer to
 `OpenStack Installation Guide <https://docs.openstack.org/install-guide/environment-etcd.html>`_.
 
-#. Config kubernetes in Qinling. Refer to
-   `Config Qinling using existing Kubernetes cluster <https://docs.openstack.org/qinling/latest/admin/install/config_kubernetes.html>`_.
-
-#. Config etcd. In the ``[etcd]`` section of ``/etc/qinling/qinling.conf``,
-   configure the IP address and port that etcd service is listening on.
-
-   .. code-block:: ini
-
-      [etcd]
-      ...
-      host = 10.0.0.9
-      port = 2379
+Qinling could also connect with existing kubernetes and etcd services,
+`here <https://docs.openstack.org/qinling/latest/admin/install/config_kubernetes.html>`_
+is the guide for the detailed configuration.
 
 Finalize installation
 ---------------------

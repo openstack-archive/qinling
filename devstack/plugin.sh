@@ -25,12 +25,11 @@ function install_k8s {
     source tools/gate/kubeadm/setup_gate.sh
     popd
 
-    # Pre-fetch the default docker image for runtimes and image function
-    # test.
-    sudo docker pull $QINLING_PYTHON_RUNTIME_IMAGE
-    sudo docker pull $QINLING_NODEJS_RUNTIME_IMAGE
-    sudo docker pull $QINLING_SIDECAR_IMAGE
-    sudo docker pull openstackqinling/alpine-test
+    # Pre-fetch the docker images for runtimes and image function test.
+    for image in "$QINLING_PYTHON_RUNTIME_IMAGE" "$QINLING_NODEJS_RUNTIME_IMAGE" "$QINLING_SIDECAR_IMAGE" "openstackqinling/alpine-test" "lingxiankong/sleep"
+    do
+        sudo docker pull $image
+    done
 }
 
 
@@ -148,6 +147,12 @@ function configure_qinling {
     fi
 
     iniset $QINLING_CONF_FILE kubernetes replicas 5
+
+    if [ -n ${QINLING_TRUSTED_CIDRS} ]; then
+        iniset $QINLING_CONF_FILE kubernetes trusted_cidrs ${QINLING_TRUSTED_CIDRS}
+    else
+        iniset $QINLING_CONF_FILE kubernetes trusted_cidrs "${HOST_IP}/32,127.0.0.1/32"
+    fi
 }
 
 

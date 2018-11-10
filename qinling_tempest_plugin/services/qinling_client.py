@@ -16,10 +16,13 @@ from datetime import datetime
 from datetime import timedelta
 import json
 
+from oslo_log import log as logging
 import requests
 from tempest.lib import exceptions
 
 from qinling_tempest_plugin.services import base as client_base
+
+LOG = logging.getLogger(__name__)
 
 
 class QinlingClient(client_base.QinlingClientBase):
@@ -83,6 +86,8 @@ class QinlingClient(client_base.QinlingClientBase):
         url_path = '%s/v1/functions' % (self.base_url)
         resp = requests.post(url_path, **req_kwargs)
 
+        LOG.info('Request: %s POST %s', resp.status_code, url_path)
+
         return resp, json.loads(resp.text)
 
     def update_function(self, function_id, package_data=None, code=None,
@@ -105,6 +110,8 @@ class QinlingClient(client_base.QinlingClientBase):
 
         url_path = '%s/v1/functions/%s' % (self.base_url, function_id)
         resp = requests.put(url_path, **req_kwargs)
+
+        LOG.info('Request: %s PUT %s', resp.status_code, url_path)
 
         return resp, json.loads(resp.text)
 

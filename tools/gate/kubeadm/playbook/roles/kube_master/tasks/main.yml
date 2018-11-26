@@ -11,7 +11,7 @@
   ignore_errors: True
 
 - name: reset kubeadm setup
-  shell: kubeadm reset
+  shell: kubeadm reset -f
   ignore_errors: True
 
 - name: Init master

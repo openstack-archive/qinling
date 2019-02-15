@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Glance Release Notes documentation build configuration file, created by
+# Qinling Release Notes documentation build configuration file, created by
 # sphinx-quickstart on Tue Nov  3 17:40:50 2015.
 #
 # This file is execfile()d with the current directory set to its

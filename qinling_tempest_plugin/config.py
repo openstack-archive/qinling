@@ -45,4 +45,8 @@ QinlingGroup = [
     cfg.StrOpt("nodejs_runtime_image",
                default="openstackqinling/nodejs-runtime:0.0.1",
                help="The NodeJS runtime being used in the tests."),
+    cfg.BoolOpt("allow_external_connection",
+                default=False,
+                help="If the tests which need external network connection "
+                     "should be running."),
 ]

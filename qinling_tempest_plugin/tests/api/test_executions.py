@@ -19,11 +19,14 @@ import requests
 
 import futurist
 from oslo_serialization import jsonutils
+from tempest import config
 from tempest.lib import decorators
 from tempest.lib import exceptions
+import testtools
 
 from qinling_tempest_plugin.tests import base
 
+CONF = config.CONF
 INVOKE_ERROR = "Function execution failed because of too much resource " \
                "consumption"
 
@@ -492,6 +495,8 @@ class ExecutionsTest(base.BaseQinlingTest):
         self.assertLessEqual(lower, first_duration)
 
     @decorators.idempotent_id('07edf2ff-7544-4f30-b006-fd5302a2a9cc')
+    @testtools.skipUnless(CONF.qinling.allow_external_connection,
+                          "External network connection is not allowed")
     def test_python_execution_public_connection(self):
         """Test connections from k8s pod to the outside.
 

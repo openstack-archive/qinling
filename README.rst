@@ -15,7 +15,7 @@ different container orchestration platforms (Kubernetes/Swarm, etc.) and
 different function package storage backends (local/Swift/S3) by nature using
 plugin mechanism.
 
-* Free software: Apache license
+* Free software: under the `Apache license <https://www.apache.org/licenses/LICENSE-2.0>`_
 * Documentation: https://docs.openstack.org/qinling/latest/
 * Source: http://git.openstack.org/cgit/openstack/qinling
 * Features: https://storyboard.openstack.org/#!/project/927

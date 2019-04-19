@@ -13,12 +13,12 @@
           set -x
           cat > clonemap.yaml << EOF
           clonemap:
-            - name: openstack-infra/devstack-gate
+            - name: openstack/devstack-gate
               dest: devstack-gate
           EOF
           /usr/zuul-env/bin/zuul-cloner -m clonemap.yaml --cache-dir /opt/git \
-              https://git.openstack.org \
-              openstack-infra/devstack-gate
+              https://opendev.org \
+              openstack/devstack-gate
         executable: /bin/bash
         chdir: '{{ ansible_user_dir }}/workspace'
       environment: '{{ zuul | zuul_legacy_vars }}'
@@ -37,7 +37,7 @@
           export DEVSTACK_PROJECT_FROM_GIT="python-qinlingclient"
           export OVERRIDE_ENABLED_SERVICES=dstat,rabbit,mysql,key,tempest
           export PROJECTS="openstack/qinling $PROJECTS"
-          export DEVSTACK_LOCAL_CONFIG="enable_plugin qinling https://git.openstack.org/openstack/qinling"
+          export DEVSTACK_LOCAL_CONFIG="enable_plugin qinling https://opendev.org/openstack/qinling"
 
           function post_test_hook {
               cd $BASE/new/qinling/qinling_tempest_plugin/

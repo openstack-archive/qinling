@@ -3,7 +3,7 @@
     parent: devstack-tempest
     timeout: 7800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/python-qinlingclient
       - openstack/qinling
       - openstack/tempest
@@ -49,7 +49,7 @@
         c-vol: false
         cinder: false
       devstack_plugins:
-        qinling: https://git.openstack.org/openstack/qinling
+        qinling: https://opendev.org/openstack/qinling
       devstack_localrc:
         TEMPEST_PLUGINS: /opt/stack/qinling
       tox_envlist: all-plugin

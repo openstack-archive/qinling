@@ -17,7 +17,7 @@ plugin mechanism.
 
 * Free software: under the `Apache license <https://www.apache.org/licenses/LICENSE-2.0>`_
 * Documentation: https://docs.openstack.org/qinling/latest/
-* Source: http://git.openstack.org/cgit/openstack/qinling
+* Source: https://opendev.org/openstack/qinling
 * Features: https://storyboard.openstack.org/#!/project/927
 * Bug Track: https://storyboard.openstack.org/#!/project/927
 * Release notes:  https://docs.openstack.org/releasenotes/qinling/

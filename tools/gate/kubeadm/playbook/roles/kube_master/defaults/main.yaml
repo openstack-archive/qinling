@@ -1,2 +1,2 @@
 ---
-k8s_version: "1.11.0"
+k8s_version: "1.13.6"

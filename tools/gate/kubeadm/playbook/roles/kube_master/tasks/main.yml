@@ -36,11 +36,8 @@
 - name: Allow pod on master
   shell: kubectl taint nodes --all node-role.kubernetes.io/master-
 
-- name: Download calico yaml
-  get_url:
-    url: https://docs.projectcalico.org/v2.6/getting-started/kubernetes/installation/hosted/kubeadm/1.6/calico.yaml
-    dest: "{{ ansible_env.HOME }}/calico.yaml"
-    force: no
-
-- name: Install network plugin
-  shell: kubectl apply -f {{ ansible_env.HOME }}/calico.yaml
+- name: Install Calico
+  shell: kubectl apply -f {{ item }}
+  loop:
+    - https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+    - https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml

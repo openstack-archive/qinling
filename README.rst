@@ -4,7 +4,7 @@ Qinling
 
 .. note::
 
-   Qinling (is pronounced "tʃinliŋ") refers to Qinling Mountains in southern
+   Qinling (is pronounced "tchinling") refers to Qinling Mountains in southern
    Shaanxi Province in China. The mountains provide a natural boundary between
    North and South China and support a huge variety of plant and wildlife, some
    of which is found nowhere else on Earth.

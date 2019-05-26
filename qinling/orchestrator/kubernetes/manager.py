@@ -20,7 +20,6 @@ import time
 import jinja2
 from kubernetes.client import V1DeleteOptions
 from oslo_log import log as logging
-from oslo_utils import netutils
 import requests
 import tenacity
 import yaml
@@ -49,9 +48,6 @@ class KubernetesManager(base.OrchestratorBase):
 
         # Create namespace if not exists
         self._ensure_namespace()
-
-        # Create the network policy if not exists
-        self._ensure_network_policy()
 
         # Get templates.
         template_loader = jinja2.FileSystemLoader(
@@ -90,43 +86,6 @@ class KubernetesManager(base.OrchestratorBase):
             self.v1.create_namespace(namespace_body)
 
             LOG.info('Namespace %s created.', self.conf.kubernetes.namespace)
-
-    def _ensure_network_policy(self):
-        policy_name = 'allow-qinling-engine-only'
-        namespace = self.conf.kubernetes.namespace
-        ret = self.v1extension.list_namespaced_network_policy(namespace)
-        policies = [i.metadata.name for i in ret.items]
-
-        if policy_name not in policies:
-            if len(self.conf.kubernetes.trusted_cidrs) != 0:
-                cidrs = self.conf.kubernetes.trusted_cidrs
-            else:
-                host_ip = netutils.get_my_ipv4()
-                cidrs = ["%s/32" % host_ip]
-
-            LOG.info('Creating network policy %s(allow %s) in namespace %s',
-                     policy_name, cidrs, namespace)
-
-            from_def = []
-            for cidr in cidrs:
-                from_def.append({'ipBlock': {'cidr': cidr}})
-
-            policy_body = {
-                'apiVersion': 'extensions/v1beta1',
-                'kind': 'NetworkPolicy',
-                'metadata': {'name': policy_name},
-                'spec': {
-                    'podSelector': {},
-                    'policyTypes': ["Ingress"],
-                    'ingress': [{'from': from_def}]
-                }
-            }
-
-            self.v1extension.create_namespaced_network_policy(
-                namespace, policy_body)
-
-            LOG.info('Network policy %s in namespace %s created.',
-                     policy_name, namespace)
 
     @tenacity.retry(
         wait=tenacity.wait_fixed(2),

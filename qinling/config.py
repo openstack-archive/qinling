@@ -184,6 +184,7 @@ kubernetes_opts = [
     ),
     cfg.ListOpt(
         'trusted_cidrs',
+        deprecated_for_removal=True,
         item_type=cfg.types.String(),
         default=[],
         help='List of CIDR that have access to the services in '

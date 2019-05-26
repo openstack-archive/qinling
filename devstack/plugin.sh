@@ -147,12 +147,6 @@ function configure_qinling {
     fi
 
     iniset $QINLING_CONF_FILE kubernetes replicas 5
-
-    if [ -n ${QINLING_TRUSTED_CIDRS} ]; then
-        iniset $QINLING_CONF_FILE kubernetes trusted_cidrs ${QINLING_TRUSTED_CIDRS}
-    else
-        iniset $QINLING_CONF_FILE kubernetes trusted_cidrs "${HOST_IP}/32,127.0.0.1/32"
-    fi
 }
 
 

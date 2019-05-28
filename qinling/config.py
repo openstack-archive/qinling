@@ -16,6 +16,7 @@ from keystonemiddleware import auth_token
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log
+from oslo_middleware import cors
 
 from qinling import version
 
@@ -334,4 +335,35 @@ def parse_args(args=None, usage=None, default_config_files=None):
         version=version,
         usage=usage,
         default_config_files=default_config_files
+    )
+
+
+def set_config_defaults():
+    """This method updates all configuration default values."""
+    set_cors_middleware_defaults()
+
+
+def set_cors_middleware_defaults():
+    """Update default configuration options for oslo.middleware."""
+    cors.set_defaults(
+        allow_headers=['X-Auth-Token',
+                       'X-Identity-Status',
+                       'X-Roles',
+                       'X-Service-Catalog',
+                       'X-User-Id',
+                       'X-Tenant-Id',
+                       'X-Project-Id',
+                       'X-User-Name',
+                       'X-Project-Name'],
+        allow_methods=['GET',
+                       'PUT',
+                       'POST',
+                       'DELETE',
+                       'PATCH'],
+        expose_headers=['X-Auth-Token',
+                        'X-Subject-Token',
+                        'X-Service-Token',
+                        'X-Project-Id',
+                        'X-User-Name',
+                        'X-Project-Name']
     )

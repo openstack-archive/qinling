@@ -14,9 +14,12 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+import oslo_middleware.cors as cors_middleware
+import oslo_middleware.http_proxy_to_wsgi as http_proxy_to_wsgi_middleware
 import pecan
 
 from qinling.api import access_control
+from qinling import config as q_config
 from qinling import context as ctx
 from qinling.db import api as db_api
 from qinling.services import periodics
@@ -43,6 +46,9 @@ def get_pecan_config():
 def setup_app(config=None):
     if not config:
         config = get_pecan_config()
+
+    q_config.set_config_defaults()
+
     app_conf = dict(config.app)
 
     db_api.setup_db()
@@ -61,4 +67,18 @@ def setup_app(config=None):
     # Set up access control.
     app = access_control.setup(app)
 
-    return app
+    # Create HTTPProxyToWSGI wrapper
+    app = http_proxy_to_wsgi_middleware.HTTPProxyToWSGI(app, cfg.CONF)
+
+    # Create a CORS wrapper, and attach mistral-specific defaults that must be
+    # included in all CORS responses.
+    return cors_middleware.CORS(app, cfg.CONF)
+
+
+def init_wsgi():
+    # By default, oslo.config parses the CLI args if no args is provided.
+    # As a result, invoking this wsgi script from gunicorn leads to the error
+    # with argparse complaining that the CLI options have already been parsed.
+    q_config.parse_args(args=[])
+
+    return setup_app()

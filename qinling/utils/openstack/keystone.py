@@ -32,7 +32,7 @@ def _get_user_keystone_session():
     auth = v3.Token(
         auth_url=CONF.keystone_authtoken.www_authenticate_uri,
         token=ctx.auth_token,
-        project_domain_name=CONF.keystone_authtoken.project_domain_name,
+        project_domain_name=ctx.project_domain_name,
         project_name=ctx.project_name
     )
 

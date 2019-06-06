@@ -12,6 +12,7 @@
       - ^doc/.*
       - ^qinling/tests/unit/.*$
       - ^releasenotes/.*$
+      - ^api-ref/.*$
     pre-run: playbooks/pre.yaml
     post-run: playbooks/post.yaml
     vars:

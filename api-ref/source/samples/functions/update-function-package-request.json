@@ -1,0 +1,9 @@
+{
+  "description": "Hello World function from local package archive",
+  "memory_size": 33554432,
+  "timeout": 15,
+  "entry": "hello_world.main",
+  "cpu": 200,
+  "runtime_id": "cbd9e85f-a1b2-4120-a2c7-57c90809ce7d",
+  "name": "hello_world"
+}

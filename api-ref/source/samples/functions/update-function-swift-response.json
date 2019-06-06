@@ -1,0 +1,22 @@
+{
+  "count": 0,
+  "code": {
+    "source": "swift",
+    "swift": {
+      "object": "hello_world.py",
+      "container": "functions"
+    }
+  },
+  "description": "Hello World function from Swift",
+  "created_at": "2019-06-10 01:28:38",
+  "updated_at": "2019-06-10 02:22:27.663257",
+  "latest_version": 0,
+  "id": "ecdf3b0c-ac37-4ba8-a02c-5d60cf86cc8b",
+  "memory_size": 33554432,
+  "timeout": 15,
+  "entry": "hello_world.main",
+  "project_id": "5eeb5916ae4b43699f06ea422e581b83",
+  "cpu": 200,
+  "runtime_id": "cbd9e85f-a1b2-4120-a2c7-57c90809ce7d",
+  "name": "hello_world"
+}

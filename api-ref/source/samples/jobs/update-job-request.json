@@ -1,0 +1,7 @@
+{
+  "status": "paused", 
+  "name": "every-minute", 
+  "pattern": "* * * * *", 
+  "function_input": "{\"name\": \"Foo\"}", 
+  "next_execution_time": "2019-06-07 22:41:00"
+}

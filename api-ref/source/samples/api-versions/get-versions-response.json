@@ -1,0 +1,15 @@
+{
+  "versions": [
+    {
+      "status": "CURRENT",
+      "id": "v1.0",
+      "links": [
+        {
+          "href": "http://api-uat.ormuco.com:7070/v1",
+          "target": "v1",
+          "rel": "self"
+        }
+      ]
+    }
+  ]
+}

@@ -217,9 +217,12 @@ class TestJobController(base.APITest):
             count=10
         ).id
 
+        next_hour_and_half = datetime.utcnow() + timedelta(hours=1.5)
+        next_two_hours = datetime.utcnow() + timedelta(hours=2)
+
         req_body = {
             'next_execution_time': str(
-                datetime.utcnow() + timedelta(hours=1.5)
+                next_hour_and_half.strftime('%Y-%m-%dT%H:%M:%SZ')
             ),
             'pattern': '1 */1 * * *'
         }
@@ -239,7 +242,9 @@ class TestJobController(base.APITest):
 
         req_body = {
             'status': status.RUNNING,
-            'next_execution_time': str(datetime.utcnow() + timedelta(hours=2)),
+            'next_execution_time': str(
+                next_two_hours.strftime('%Y-%m-%dT%H:%M:%SZ')
+            ),
         }
         resp = self.app.put_json('/v1/jobs/%s' % job_id, req_body)
 

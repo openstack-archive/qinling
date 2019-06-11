@@ -85,7 +85,7 @@ def datetime_to_str(dct, attr_name):
     """Convert datetime object in dict to string."""
     if (dct.get(attr_name) is not None and
             not isinstance(dct.get(attr_name), six.string_types)):
-        dct[attr_name] = dct[attr_name].isoformat(' ')
+        dct[attr_name] = dct[attr_name].strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
 def generate_unicode_uuid(dashed=True):

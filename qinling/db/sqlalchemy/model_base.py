@@ -85,7 +85,6 @@ class _QinlingModelBase(oslo_models.ModelBase, oslo_models.TimestampMixin):
         updated_at = getattr(self, 'updated_at')
         if updated_at:
             setattr(m, 'updated_at', updated_at.isoformat(' '))
-
         return m
 
     def __repr__(self):

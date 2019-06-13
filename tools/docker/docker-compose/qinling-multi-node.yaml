@@ -1,0 +1,34 @@
+version: '3'
+services:
+  qinling-api:
+    build:
+      context: ../../..
+      dockerfile: tools/docker/Dockerfile
+    restart: always
+    ports:
+      - "7070:7070"
+    networks:
+      database:
+      message-broker:
+    env_file:
+     - qinling.env
+#    volumes:
+#      - "/path/to/qinling.conf:/etc/qinling/qinling.conf"
+    environment:
+      - QINLING_SERVER=api
+      - UPGRADE_DB=true
+
+  qinling-engine:
+    build:
+      context: ../../..
+      dockerfile: tools/docker/Dockerfile
+    restart: always
+    networks:
+      - database
+      - message-broker
+    env_file:
+     - qinling.env
+#    volumes:
+#      - "/path/to/qinling.conf:/etc/qinling/qinling.conf"
+    environment:
+      - QINLING_SERVER=engine

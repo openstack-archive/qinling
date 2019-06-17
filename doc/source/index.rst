@@ -29,7 +29,7 @@ OpenStack services or call it directly from any web or mobile app.
 
 * Free software: Apache license
 * Documentation: https://docs.openstack.org/qinling/latest/
-* Source: http://git.openstack.org/cgit/openstack/qinling
+* Source: https://opendev.org/openstack/qinling
 * Features: https://storyboard.openstack.org/#!/project/927
 * Bug Track: https://storyboard.openstack.org/#!/project/927
 * IRC channel on Freenode: #openstack-qinling

@@ -1,0 +1,12 @@
+{
+  "code": {
+    "source": "image",
+    "image": "docker-registry/hello-world"
+  },
+  "description": "Hello World from Docker image",
+  "memory_size": 33554432,
+  "timeout": 15,
+  "cpu": 200,
+  "runtime_id": "cbd9e85f-a1b2-4120-a2c7-57c90809ce7d",
+  "name": "hello_world"
+}

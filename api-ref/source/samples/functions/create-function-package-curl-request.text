@@ -1,0 +1,11 @@
+curl -X POST http://127.0.0.1:7070/v1/functions \
+  -H "X-Auth-Token: gAAAAAB..." \
+  -F name=hello_world \
+  -F runtime_id=cbd9e85f-a1b2-4120-a2c7-57c90809ce7d \
+  -F code='{"source": "package"}' \
+  -F entry=hello_world.main \
+  -F cpu=200 \
+  -F memory=33000000 \
+  -F description="Hello World function based on a package" \
+  -F timeout=15 \
+  -F package=@/home/dev/hello_world.zip

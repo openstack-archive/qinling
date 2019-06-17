@@ -56,7 +56,7 @@ def _download_package(url, zip_file, token=None, unzip=None):
         headers = {'X-Auth-Token': token}
 
     try:
-        r = requests.get(url, headers=headers, stream=True, timeout=5,
+        r = requests.get(url, headers=headers, stream=True, timeout=30,
                          verify=False)
         if r.status_code != 200:
             return make_response(DOWNLOAD_ERROR % (url, r.content), 500)

@@ -1,0 +1,4 @@
+{
+  "description": "Webhook based on function alias triggered by Gitlab",
+  "function_alias": "hq-staging-function"
+}

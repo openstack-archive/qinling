@@ -1,0 +1,6 @@
+{
+  "description": "Execution of a function based on an alias",
+  "sync": true,
+  "input": "{\"name\": \"foo\"}",
+  "function_alias": "hq-production-function"
+}

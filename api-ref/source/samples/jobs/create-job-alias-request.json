@@ -1,0 +1,7 @@
+{
+  "count": 5, 
+  "name": "every-minute", 
+  "pattern": "* * * * *", 
+  "function_input": "{\"name\": \"Foo\"}", 
+  "function_alias": "hq-production-function"
+}

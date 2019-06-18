@@ -36,10 +36,11 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - x-auth-token: x-auth-token
-   - function_id: function_id
+   - function_id: execution_function_id
+   - function_alias: execution_function_alias
    - input: execution_input
    - description: execution_description
-   - function_version: execution_version
+   - function_version: execution_function_version
    - sync: execution_sync
 
 Request Example
@@ -48,16 +49,19 @@ Request Example
 .. literalinclude:: samples/executions/create-execution-request.json
    :language: javascript
 
+.. literalinclude:: samples/executions/create-execution-alias-request.json
+   :language: javascript
+
 Response Parameters
 -------------------
 
 .. rest_parameters:: parameters.yaml
 
    - id: id
-   - function_id: function_id
+   - function_id: execution_function_id
    - input: execution_input
    - description: execution_description
-   - function_version: execution_version
+   - function_version: execution_function_version
    - sync: execution_sync
    - project_id: project_id
    - status: status
@@ -104,10 +108,10 @@ Response Parameters
 .. rest_parameters:: parameters.yaml
 
    - id: id
-   - function_id: function_id
+   - function_id: execution_function_id
    - input: execution_input
    - description: execution_description
-   - function_version: execution_version
+   - function_version: execution_function_version
    - sync: execution_sync
    - project_id: project_id
    - status: status
@@ -156,10 +160,10 @@ Response Parameters
 .. rest_parameters:: parameters.yaml
 
    - id: id
-   - function_id: function_id
+   - function_id: execution_function_id
    - input: execution_input
    - description: execution_description
-   - function_version: execution_version
+   - function_version: execution_function_version
    - sync: execution_sync
    - project_id: project_id
    - status: status
@@ -207,10 +211,10 @@ Response Parameters
 .. rest_parameters:: parameters.yaml
 
    - id: id
-   - function_id: function_id
+   - function_id: execution_function_id
    - input: execution_input
    - description: execution_description
-   - function_version: execution_version
+   - function_version: execution_function_version
    - sync: execution_sync
    - project_id: project_id
    - status: status

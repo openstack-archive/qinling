@@ -1,0 +1,4 @@
+{
+  "function_alias": "hq-production-function",
+  "description": "Webhook based on function alias triggered by Jenkins"
+}

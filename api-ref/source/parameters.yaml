@@ -108,6 +108,29 @@ execution_description:
   required: false
   type: string
 
+execution_function_alias:
+  description: |
+    Alias name of the function (if an alias has been created)
+  in: body
+  required: false
+  type: string
+
+execution_function_id:
+  description: |
+    ID for the function, if an alias is used then ``function_id`` is
+    not required
+  in: body
+  required: true
+  type: uuid
+
+execution_function_version:
+  description: |
+    Version of the function to execute, default is ``0``. If an alias is
+    used then ``function_version`` is not required
+  in: body
+  required: false
+  type: integer
+
 execution_input:
   description: |
     Input data to pass to the function, e.g. ``{"name": "foo"}``
@@ -121,13 +144,6 @@ execution_sync:
   in: body
   required: false
   type: bool
-
-execution_version:
-  description: |
-    Version of the function to execute, default is ``0``
-  in: body
-  required: false
-  type: integer
 
 function_code:
   description: |
@@ -282,6 +298,29 @@ job_first_execution:
   required: true
   type: string
 
+job_function_alias:
+  description: |
+    Alias name of the function (if an alias has been created)
+  in: body
+  required: false
+  type: string
+
+job_function_id:
+  description: |
+    ID for the function, if an alias is used then ``function_id`` is
+    not required
+  in: body
+  required: true
+  type: uuid
+
+job_function_version:
+  description: |
+    Version of the function to execute, default is ``0``. If an alias is
+    used then ``function_version`` is not required
+  in: body
+  required: false
+  type: integer
+
 job_input:
   description: |
     Input data to pass to the function, e.g. ``{"name": "foo"}``
@@ -330,15 +369,6 @@ job_status_update:
   in: body
   required: false
   type: string
-
-job_version:
-  description: |
-    Version of the function to execute, default is ``0``
-  in: body
-  required: false
-  type: integer
-
-
 
 project_id:
   description: |
@@ -457,16 +487,31 @@ webhook_description:
   required: false
   type: string
 
+webhook_function_alias:
+  description: |
+    Alias name of the function (if an alias has been created)
+  in: body
+  required: false
+  type: string
+
+webhook_function_id:
+  description: |
+    ID for the function, if an alias is used then ``function_id`` is
+    not required
+  in: body
+  required: true
+  type: uuid
+
+webhook_function_version:
+  description: |
+    Version of the function
+  in: body
+  required: false
+  type: integer
+
 webhook_url:
   description: |
     Webhook URL
   in: body
   required: true
   type: string
-
-webhook_version:
-  description: |
-    Version of the function
-  in: body
-  required: false
-  type: integer

@@ -36,14 +36,18 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - x-auth-token: x-auth-token
-   - function_id: function_id
-   - function_version: webhook_version
+   - function_id: webhook_function_id
+   - function_alias: webhook_function_alias
+   - function_version: webhook_function_version
    - description: webhook_description
 
 Request Example
 ---------------
 
 .. literalinclude:: samples/webhooks/create-webhook-request.json
+   :language: javascript
+
+.. literalinclude:: samples/webhooks/create-webhook-alias-request.json
    :language: javascript
 
 Response Parameters
@@ -53,8 +57,8 @@ Response Parameters
 
    - id: id
    - description: webhook_description
-   - function_id: function_id
-   - version_number: webhook_version
+   - function_id: webhook_function_id
+   - version_number: webhook_function_version
    - webhook_url: webhook_url
    - project_id: project_id
    - created_at: created_at
@@ -102,8 +106,8 @@ Response Parameters
 
    - id: id
    - description: webhook_description
-   - function_id: function_id
-   - version_number: webhook_version
+   - function_id: webhook_function_id
+   - version_number: webhook_function_version
    - webhook_url: webhook_url
    - project_id: project_id
    - created_at: created_at
@@ -152,8 +156,8 @@ Response Parameters
 
    - id: id
    - description: webhook_description
-   - function_id: function_id
-   - version_number: webhook_version
+   - function_id: webhook_function_id
+   - version_number: webhook_function_version
    - webhook_url: webhook_url
    - project_id: project_id
    - created_at: created_at
@@ -193,6 +197,10 @@ Request
 
    - x-auth-token: x-auth-token
    - webhook_id: path_webhook_id
+   - function_id: webhook_function_id
+   - function_alias: webhook_function_alias
+   - function_version: webhook_function_version
+   - description: webhook_description
 
 Response Parameters
 -------------------
@@ -201,8 +209,8 @@ Response Parameters
 
    - id: id
    - description: webhook_description
-   - function_id: function_id
-   - version_number: webhook_version
+   - function_id: webhook_function_id
+   - version_number: webhook_function_version
    - webhook_url: webhook_url
    - project_id: project_id
    - created_at: created_at
@@ -212,6 +220,9 @@ Request Example
 ---------------
 
 .. literalinclude:: samples/webhooks/update-webhook-request.json
+   :language: javascript
+
+.. literalinclude:: samples/webhooks/update-webhook-alias-request.json
    :language: javascript
 
 Response Example

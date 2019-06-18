@@ -37,8 +37,9 @@ Request
 
    - x-auth-token: x-auth-token
    - name: job_name
-   - function_id: function_id
-   - function_version: job_version
+   - function_id: job_function_id
+   - function_alias: job_function_alias
+   - function_version: job_function_version
    - function_input: job_input 
    - pattern: job_pattern
    - count: job_count
@@ -49,6 +50,9 @@ Request Example
 .. literalinclude:: samples/jobs/create-job-request.json
    :language: javascript
 
+.. literalinclude:: samples/jobs/create-job-alias-request.json
+   :language: javascript
+
 Response Parameters
 -------------------
 
@@ -56,8 +60,8 @@ Response Parameters
 
    - id: id
    - name: job_name
-   - function_id: function_id
-   - function_version: job_version
+   - function_id: job_function_id
+   - function_version: job_function_version
    - function_input: job_input 
    - pattern: job_pattern
    - count: job_count
@@ -109,8 +113,8 @@ Response Parameters
 
    - id: id
    - name: job_name
-   - function_id: function_id
-   - function_version: job_version
+   - function_id: job_function_id
+   - function_version: job_function_version
    - function_input: job_input 
    - pattern: job_pattern
    - count: job_count
@@ -163,8 +167,8 @@ Response Parameters
 
    - id: id
    - name: job_name
-   - function_id: function_id
-   - function_version: job_version
+   - function_id: job_function_id
+   - function_version: job_function_version
    - function_input: job_input 
    - pattern: job_pattern
    - count: job_count

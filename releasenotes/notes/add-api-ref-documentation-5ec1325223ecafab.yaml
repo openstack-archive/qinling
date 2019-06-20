@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Add API reference documentation.
+
+    The documentation covers ``functions``, ``executions``, ``versions``,
+    ``aliases``, ``webhooks`` and ``jobs`` endpoints.
+
+    See `Qinling api-ref documentation
+    <https://developer.openstack.org/api-ref/function-engine/>`__ for details.

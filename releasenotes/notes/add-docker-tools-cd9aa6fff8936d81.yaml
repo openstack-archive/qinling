@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Docker support has been added to help people to test Qinling
+    easily and quickly. Authentication has been disabled by default
+    which means Keystone is not required.
+
+    Dockerfile has been created to build Docker image from the master branch.
+    Docker compose files have been created to deploy RabbitMQ, MySQL and
+    Qinling API/Engine containers.
+
+    Files have been added under ``tools/docker/`` directory same as for the
+    README with all the required instructions.

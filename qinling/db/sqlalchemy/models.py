@@ -78,6 +78,7 @@ class Job(model_base.QinlingSecureModelBase):
     function = relationship('Function', back_populates="jobs")
     function_input = sa.Column(sa.String(255), nullable=True)
     function_version = sa.Column(sa.Integer, default=0)
+    function_alias = sa.Column(sa.String(255), nullable=True)
 
     def to_dict(self):
         d = super(Job, self).to_dict()

@@ -1,0 +1,29 @@
+uwsgi:
+  http-socket: 0.0.0.0:7070
+  # Paths have to be changed to fit your deployment
+  wsgi-file: /var/www/cgi-bin/qinling/wsgi.py
+  chdir: /var/lib/kolla/venv/lib/python3.6/site-packages
+  pythonpath: /var/lib/kolla/venv/lib/python3.6/site-packages
+  virtualenv: /var/lib/kolla/venv
+
+  plugins: python3
+  # Set uid and gip to a appropriate user on your server. In many
+  # installations qinling will be correct
+  uid: qinling
+  gid: qinling
+
+  processes: 5
+  threads: 1
+  vacuum: true
+  harakiri: 20
+  buffer-size: 65535
+  post-buffering: 8192
+  # Set die-on-term and exit-on-reload so that uWSGI shuts down
+  die-on-term: true
+  exit-on-reload: true
+  master: true
+  enable-threads: true
+  # uWSGI recommends this to prevent thundering herd on accept
+  thunder-lock: true
+  honour-stdin: true
+  memory-report: false

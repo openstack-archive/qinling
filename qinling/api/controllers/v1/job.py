@@ -56,37 +56,37 @@ class JobsController(rest.RestController):
                 'Either function_alias or function_id must be provided.'
             )
 
-        # Check the input params.
-        first_time, next_time, count = jobs.validate_job(params)
         LOG.info("Creating %s, params: %s", self.type, params)
 
-        version = params.get('function_version', 0)
-        # if function_alias provided
-        function_alias = params.get('function_alias')
-        if function_alias:
-            alias_db = db_api.get_function_alias(function_alias)
-            function_id = alias_db.function_id
-            version = alias_db.function_version
-            params.update({'function_id': function_id,
-                           'version': version})
+        # Check the input params.
+        first_time, next_time, count = jobs.validate_job(params)
 
-        with db_api.transaction():
+        version = params.get('function_version', 0)
+        function_alias = params.get('function_alias')
+
+        if function_alias:
+            # Check if the alias exists.
+            db_api.get_function_alias(function_alias)
+        else:
+            # Check the function(version) exists.
             db_api.get_function(params['function_id'])
             if version > 0:
+                # Check if the version exists.
                 db_api.get_function_version(params['function_id'], version)
 
-            values = {
-                'name': params.get('name'),
-                'pattern': params.get('pattern'),
-                'first_execution_time': first_time,
-                'next_execution_time': next_time,
-                'count': count,
-                'function_id': params['function_id'],
-                'function_version': version,
-                'function_input': params.get('function_input'),
-                'status': status.RUNNING
-            }
-            db_job = db_api.create_job(values)
+        values = {
+            'name': params.get('name'),
+            'pattern': params.get('pattern'),
+            'first_execution_time': first_time,
+            'next_execution_time': next_time,
+            'count': count,
+            'function_alias': function_alias,
+            'function_id': params.get("function_id"),
+            'function_version': version,
+            'function_input': params.get('function_input'),
+            'status': status.RUNNING
+        }
+        db_job = db_api.create_job(values)
 
         return resources.Job.from_db_obj(db_job)
 

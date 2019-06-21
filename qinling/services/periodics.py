@@ -98,8 +98,16 @@ def handle_job(engine_client):
 
     for job in jobs_db:
         job_id = job.id
-        func_id = job.function_id
-        func_version = job.function_version
+        func_alias = job.function_alias
+
+        if func_alias:
+            alias = db_api.get_function_alias(func_alias, insecure=True)
+            func_id = alias.function_id
+            func_version = alias.function_version
+        else:
+            func_id = job.function_id
+            func_version = job.function_version
+
         LOG.debug("Processing job: %s, function: %s(version %s)", job_id,
                   func_id, func_version)
 

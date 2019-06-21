@@ -73,7 +73,8 @@ class Job(model_base.QinlingSecureModelBase):
     count = sa.Column(sa.Integer)
     function_id = sa.Column(
         sa.String(36),
-        sa.ForeignKey(Function.id)
+        sa.ForeignKey(Function.id),
+        nullable=True
     )
     function = relationship('Function', back_populates="jobs")
     function_input = sa.Column(sa.String(255), nullable=True)

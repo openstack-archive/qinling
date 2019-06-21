@@ -32,7 +32,7 @@ class TestJobController(base.APITest):
         db_function = self.create_function()
         self.function_id = db_function.id
 
-    def test_post(self):
+    def test_create_with_function(self):
         body = {
             'name': self.rand_name('job', prefix=self.prefix),
             'first_execution_time': str(
@@ -43,7 +43,7 @@ class TestJobController(base.APITest):
 
         self.assertEqual(201, resp.status_int)
 
-    def test_post_with_version(self):
+    def test_create_with_version(self):
         db_api.increase_function_version(self.function_id, 0)
 
         body = {
@@ -58,13 +58,10 @@ class TestJobController(base.APITest):
         self.assertEqual(201, resp.status_int)
         self.assertEqual(1, resp.json.get('function_version'))
 
-    def test_post_with_alias(self):
-        db_api.increase_function_version(self.function_id, 0,
-                                         description="version 1")
+    def test_create_with_alias(self):
         name = self.rand_name(name="alias", prefix=self.prefix)
         body = {
             'function_id': self.function_id,
-            'function_version': 1,
             'name': name
         }
         db_api.create_function_alias(**body)
@@ -79,9 +76,21 @@ class TestJobController(base.APITest):
         resp = self.app.post_json('/v1/jobs', job_body)
 
         self.assertEqual(201, resp.status_int)
-        self.assertEqual(1, resp.json.get('function_version'))
+        self.assertEqual(name, resp.json.get('function_alias'))
+        self.assertIsNone(resp.json.get('function_id'))
 
-    def test_post_without_required_params(self):
+    def test_create_with_invalid_alias(self):
+        body = {
+            'function_alias': 'fake_alias',
+            'first_execution_time': str(
+                datetime.utcnow() + timedelta(hours=1)),
+        }
+
+        resp = self.app.post_json('/v1/jobs', body, expect_errors=True)
+
+        self.assertEqual(404, resp.status_int)
+
+    def test_create_without_required_params(self):
         resp = self.app.post(
             '/v1/jobs',
             params={},
@@ -90,7 +99,7 @@ class TestJobController(base.APITest):
 
         self.assertEqual(400, resp.status_int)
 
-    def test_post_pattern(self):
+    def test_create_pattern(self):
         body = {
             'name': self.rand_name('job', prefix=self.prefix),
             'function_id': self.function_id,
@@ -107,7 +116,7 @@ class TestJobController(base.APITest):
             res["next_execution_time"]
         )
 
-    def test_post_both_pattern_and_first_execution_time(self):
+    def test_create_both_pattern_and_first_execution_time(self):
         body = {
             'name': self.rand_name('job', prefix=self.prefix),
             'function_id': self.function_id,

@@ -117,7 +117,7 @@ class TestPeriodics(base.DbTestCase):
 
         now = datetime.utcnow()
         db_job = self.create_job(
-            function_id,
+            function_id=function_id,
             status=status.RUNNING,
             next_execution_time=now,
             count=2
@@ -196,4 +196,41 @@ class TestPeriodics(base.DbTestCase):
         self.assertEqual(2, db_version.count)
         db_execs = db_api.get_executions(function_id=function_id,
                                          function_version=1)
+        self.assertEqual(2, len(db_execs))
+
+    @mock.patch('qinling.utils.jobs.get_next_execution_time')
+    def test_job_handler_with_alias(self, mock_next_time):
+        e_client = mock.Mock()
+        now = datetime.utcnow()
+        # It doesn't matter what's the returned value, but need to be in
+        # datetime type.
+        mock_next_time.return_value = now + timedelta(seconds=1)
+
+        # Create a alias for a function.
+        alias_name = self.rand_name(name="alias", prefix=self.prefix)
+        db_func = self.create_function()
+        function_id = db_func.id
+        db_api.create_function_alias(name=alias_name, function_id=function_id)
+
+        self.create_job(
+            function_alias=alias_name,
+            status=status.RUNNING,
+            next_execution_time=now,
+        )
+
+        periodics.handle_job(e_client)
+        context.set_ctx(self.ctx)
+
+        # Create function version 1 and update the alias.
+        db_api.increase_function_version(function_id, 0)
+        db_api.update_function_alias(alias_name, function_version=1)
+
+        periodics.handle_job(e_client)
+        context.set_ctx(self.ctx)
+
+        db_func = db_api.get_function(function_id)
+        self.assertEqual(1, db_func.count)
+        db_version = db_api.get_function_version(function_id, 1)
+        self.assertEqual(1, db_version.count)
+        db_execs = db_api.get_executions(function_id=function_id)
         self.assertEqual(2, len(db_execs))

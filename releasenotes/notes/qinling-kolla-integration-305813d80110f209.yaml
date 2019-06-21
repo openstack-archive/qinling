@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Qinling is now fully integrated within Kolla (Docker) and Kolla Ansible.
+
+    Qinling features supported by Kolla:
+
+    * Configure an external Kubernetes cluster
+    * Use ``etcd`` from Kolla
+    * Qinling API Apache WSGI deployment
+    * ``CORS`` configuration
+
+    See `Kolla documentation
+    <https://docs.openstack.org/kolla-ansible/latest/reference/compute/qinling-guide.html>`_ for
+    details.

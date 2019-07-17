@@ -66,7 +66,7 @@ class BaseQinlingTest(test.BaseTestCase):
 
     @tenacity.retry(
         wait=tenacity.wait_fixed(3),
-        stop=tenacity.stop_after_attempt(10),
+        stop=tenacity.stop_after_attempt(20),
         retry=tenacity.retry_if_exception_type(AssertionError)
     )
     def wait_runtime_available(self, id):

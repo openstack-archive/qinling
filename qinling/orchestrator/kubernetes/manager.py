@@ -18,7 +18,6 @@ import os
 import time
 
 import jinja2
-from kubernetes.client import V1DeleteOptions
 from oslo_log import log as logging
 import requests
 import tenacity
@@ -149,7 +148,8 @@ class KubernetesManager(base.OrchestratorBase):
 
         self.v1extension.create_namespaced_deployment(
             body=yaml.safe_load(deployment_body),
-            namespace=self.conf.kubernetes.namespace
+            namespace=self.conf.kubernetes.namespace,
+            async_req=False
         )
 
         self._wait_deployment_available(name)
@@ -176,8 +176,7 @@ class KubernetesManager(base.OrchestratorBase):
         for svc_name in names:
             self.v1.delete_namespaced_service(
                 svc_name,
-                self.conf.kubernetes.namespace,
-                V1DeleteOptions(),
+                self.conf.kubernetes.namespace
             )
         LOG.info("Services in deployment %s deleted.", name)
 
@@ -521,8 +520,7 @@ class KubernetesManager(base.OrchestratorBase):
 
                 self.v1.delete_namespaced_pod(
                     identifier,
-                    self.conf.kubernetes.namespace,
-                    {}
+                    self.conf.kubernetes.namespace
                 )
                 LOG.debug('Pod %s deleted.', identifier)
 
@@ -560,8 +558,7 @@ class KubernetesManager(base.OrchestratorBase):
         for svc_name in names:
             self.v1.delete_namespaced_service(
                 svc_name,
-                self.conf.kubernetes.namespace,
-                V1DeleteOptions(),
+                self.conf.kubernetes.namespace
             )
 
         self.v1.delete_collection_namespaced_pod(
@@ -592,5 +589,4 @@ class KubernetesManager(base.OrchestratorBase):
         self.v1.delete_namespaced_pod(
             pod_name,
             self.conf.kubernetes.namespace,
-            {}
         )

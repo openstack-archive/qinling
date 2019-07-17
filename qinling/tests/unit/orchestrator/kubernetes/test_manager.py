@@ -158,7 +158,8 @@ class TestKubernetesManager(base.DbTestCase):
         )
         self.k8s_v1_ext.create_namespaced_deployment.assert_called_once_with(
             body=yaml.safe_load(deployment_body),
-            namespace=self.fake_namespace)
+            namespace=self.fake_namespace,
+            async_req=False)
         self.k8s_v1_ext.read_namespaced_deployment.assert_called_once_with(
             fake_deployment_name, self.fake_namespace)
 
@@ -219,8 +220,8 @@ class TestKubernetesManager(base.DbTestCase):
             self.fake_namespace,
             label_selector='runtime_id=%s' % fake_deployment_name)
         delete_service_calls = [
-            mock.call(svc1_name, self.fake_namespace, mock.ANY),
-            mock.call(svc2_name, self.fake_namespace, mock.ANY),
+            mock.call(svc1_name, self.fake_namespace),
+            mock.call(svc2_name, self.fake_namespace),
         ]
         self.k8s_v1_api.delete_namespaced_service.assert_has_calls(
             delete_service_calls)
@@ -742,8 +743,8 @@ class TestKubernetesManager(base.DbTestCase):
         )
 
         delete_service_calls = [
-            mock.call(svc1_name, self.fake_namespace, mock.ANY),
-            mock.call(svc2_name, self.fake_namespace, mock.ANY)
+            mock.call(svc1_name, self.fake_namespace),
+            mock.call(svc2_name, self.fake_namespace)
         ]
         self.k8s_v1_api.delete_namespaced_service.assert_has_calls(
             delete_service_calls)
@@ -920,4 +921,5 @@ class TestKubernetesManager(base.DbTestCase):
         self.manager.delete_worker(pod_name)
 
         self.k8s_v1_api.delete_namespaced_pod.assert_called_once_with(
-            pod_name, self.fake_namespace, {})
+            pod_name, self.fake_namespace
+        )

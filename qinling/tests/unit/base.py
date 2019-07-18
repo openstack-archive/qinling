@@ -203,12 +203,13 @@ class DbTestCase(BaseTest):
 
         return function
 
-    def create_job(self, function_id=None, **kwargs):
-        if not function_id:
+    def create_job(self, function_id=None, function_alias=None, **kwargs):
+        if not function_id and not function_alias:
             function_id = self.create_function().id
 
         job_params = {
             'name': self.rand_name('job', prefix=self.prefix),
+            'function_alias': function_alias,
             'function_id': function_id,
             # 'auth_enable' is disabled by default
             'project_id': DEFAULT_PROJECT_ID,

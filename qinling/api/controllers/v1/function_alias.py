@@ -152,5 +152,5 @@ class FunctionAliasesController(rest.RestController):
 
         alias = db_api.update_function_alias(alias_name, **values)
 
-        LOG.info("Alias updated.")
+        LOG.info("Alias %s updated.", alias_name)
         return resources.FunctionAlias.from_db_obj(alias)

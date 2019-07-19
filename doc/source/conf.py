@@ -23,7 +23,6 @@ sys.path.insert(0, os.path.abspath('../..'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
-    #'sphinx.ext.intersphinx',
     'openstackdocstheme',
 ]
 
@@ -38,7 +37,6 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Qinling'
 copyright = u"%d, OpenStack Foundation" % dt.datetime.now().year
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
@@ -60,15 +58,15 @@ html_theme = "openstackdocs"
 html_static_path = []
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = '%sdoc' % project
+htmlhelp_basename = 'Qinlingdoc'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
     ('index',
-     '%s.tex' % project,
-     u'%s Documentation' % project,
+     'Qinling.tex',
+     u'Qinling Documentation',
      u'OpenStack Foundation', 'manual'),
 ]
 
@@ -78,6 +76,3 @@ latex_documents = [
 # openstackdocstheme options
 repository_name = 'openstack/qinling'
 use_storyboard = True
-
-# Must set this variable to include year, month, day, hours, and minutes.
-html_last_updated_fmt = '%Y-%m-%d %H:%M'

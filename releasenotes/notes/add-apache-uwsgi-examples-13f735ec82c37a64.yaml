@@ -8,5 +8,5 @@ features:
     virtualhost and uWSGI examples are available into ``etc/{apache2|uwsgi}`` directory.
 
     See `Qinling documentation
-    <https://docs.openstack.org/qinling/latest/contributor/contributor/mod-wsgi.html>`__
+    <https://docs.openstack.org/qinling/latest/contributor/mod-wsgi.html>`__
     for details.

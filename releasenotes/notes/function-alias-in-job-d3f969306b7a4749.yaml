@@ -1,0 +1,3 @@
+fixes:
+  - When creating job with function alias, the job could always pick up the
+    updated function and its version corresponding to the alias.

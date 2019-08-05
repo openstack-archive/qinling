@@ -219,11 +219,12 @@ class DbTestCase(BaseTest):
 
         return job
 
-    def create_webhook(self, function_id=None, **kwargs):
-        if not function_id:
+    def create_webhook(self, function_id=None, function_alias=None, **kwargs):
+        if not function_id and not function_alias:
             function_id = self.create_function().id
 
         webhook_params = {
+            'function_alias': function_alias,
             'function_id': function_id,
             # 'auth_enable' is disabled by default
             'project_id': DEFAULT_PROJECT_ID,
@@ -233,11 +234,13 @@ class DbTestCase(BaseTest):
 
         return webhook
 
-    def create_execution(self, function_id=None, **kwargs):
-        if not function_id:
+    def create_execution(self, function_id=None, function_alias=None,
+                         **kwargs):
+        if not function_id and not function_alias:
             function_id = self.create_function().id
 
         execution_params = {
+            'function_alias': function_alias,
             'function_id': function_id,
             'project_id': DEFAULT_PROJECT_ID,
             'status': status.RUNNING,

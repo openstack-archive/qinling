@@ -1,0 +1,4 @@
+---
+fixes:
+  - When creating execution and webhook with function alias, they should always pick up the
+    updated function and its version corresponding to the alias.

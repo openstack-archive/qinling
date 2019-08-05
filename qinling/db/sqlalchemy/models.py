@@ -52,7 +52,8 @@ class Function(model_base.QinlingSecureModelBase):
 class Execution(model_base.QinlingSecureModelBase):
     __tablename__ = 'executions'
 
-    function_id = sa.Column(sa.String(36), nullable=False)
+    function_alias = sa.Column(sa.String(255), nullable=True)
+    function_id = sa.Column(sa.String(36), nullable=True)
     function_version = sa.Column(sa.Integer, default=0)
     status = sa.Column(sa.String(32), nullable=False)
     sync = sa.Column(sa.BOOLEAN, default=True)
@@ -91,11 +92,13 @@ class Job(model_base.QinlingSecureModelBase):
 class Webhook(model_base.QinlingSecureModelBase):
     __tablename__ = 'webhooks'
 
+    function_alias = sa.Column(sa.String(255), nullable=True)
     function_id = sa.Column(
         sa.String(36),
-        sa.ForeignKey(Function.id)
+        sa.ForeignKey(Function.id),
+        nullable=True
     )
-    function_version = sa.Column(sa.Integer, default=0)
+    function_version = sa.Column(sa.Integer, nullable=True)
     description = sa.Column(sa.String(255))
 
 
@@ -169,5 +172,6 @@ Function.versions = relationship(
 )
 Function.aliases = relationship(
     "FunctionAlias",
-    uselist=True
+    uselist=True,
+    backref="function"
 )

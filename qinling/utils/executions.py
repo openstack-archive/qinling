@@ -80,7 +80,7 @@ def create_execution(engine_client, params):
         function_id = alias_db.function_id
         version = alias_db.function_version
         params.update({'function_id': function_id,
-                       'version': version})
+                       'function_version': version})
 
     func_db = db_api.get_function(function_id)
     runtime_id = func_db.runtime_id

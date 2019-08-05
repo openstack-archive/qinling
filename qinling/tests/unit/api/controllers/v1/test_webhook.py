@@ -11,9 +11,13 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
+import json
+import mock
 
+from qinling import context
 from qinling.db import api as db_api
 from qinling.tests.unit.api import base
+from qinling.utils import constants
 
 
 class TestWebhookController(base.APITest):
@@ -67,7 +71,7 @@ class TestWebhookController(base.APITest):
         resp = self.app.get('/v1/webhooks/%s' % webhook_id, expect_errors=True)
         self.assertEqual(404, resp.status_int)
 
-    def test_post_with_version(self):
+    def test_create_with_version(self):
         db_api.increase_function_version(self.func_id, 0)
 
         body = {
@@ -79,8 +83,9 @@ class TestWebhookController(base.APITest):
 
         self.assertEqual(201, resp.status_int)
         self.assertEqual(1, resp.json.get("function_version"))
+        self.assertIsNone(resp.json.get("function_alias"))
 
-    def test_post_with_alias(self):
+    def test_create_with_alias(self):
         db_api.increase_function_version(self.func_id, 0)
         name = self.rand_name(name="alias", prefix=self.prefix)
         body = {
@@ -97,9 +102,21 @@ class TestWebhookController(base.APITest):
         resp = self.app.post_json('/v1/webhooks', webhook_body)
 
         self.assertEqual(201, resp.status_int)
-        self.assertEqual(1, resp.json.get("function_version"))
+        self.assertEqual(name, resp.json.get('function_alias'))
+        self.assertIsNone(resp.json.get("function_id"))
+        self.assertIsNone(resp.json.get("function_version"))
 
-    def test_post_without_required_params(self):
+    def test_create_with_invalid_alias(self):
+        body = {
+            'function_alias': 'fake_alias',
+            'description': 'webhook test'
+        }
+
+        resp = self.app.post_json('/v1/webhooks', body, expect_errors=True)
+
+        self.assertEqual(404, resp.status_int)
+
+    def test_create_without_required_params(self):
         resp = self.app.post(
             '/v1/webhooks',
             params={},
@@ -108,11 +125,11 @@ class TestWebhookController(base.APITest):
 
         self.assertEqual(400, resp.status_int)
 
-    def test_put_with_version(self):
+    def test_update_with_version(self):
         db_api.increase_function_version(self.func_id, 0)
         webhook = self.create_webhook(self.func_id)
 
-        self.assertEqual(0, webhook.function_version)
+        self.assertIsNone(webhook.function_version)
 
         resp = self.app.put_json(
             '/v1/webhooks/%s' % webhook.id,
@@ -121,8 +138,9 @@ class TestWebhookController(base.APITest):
 
         self.assertEqual(200, resp.status_int)
         self.assertEqual(1, resp.json.get("function_version"))
+        self.assertIsNone(resp.json.get("function_alias"))
 
-    def test_put_without_version(self):
+    def test_update_only_description(self):
         db_api.increase_function_version(self.func_id, 0)
         webhook = self.create_webhook(self.func_id, function_version=1)
 
@@ -136,3 +154,114 @@ class TestWebhookController(base.APITest):
         self.assertEqual(200, resp.status_int)
         self.assertEqual(1, resp.json.get("function_version"))
         self.assertEqual('updated description', resp.json.get("description"))
+
+    def test_update_function_alias_1(self):
+        # Create webhook using function alias
+        db_api.increase_function_version(self.func_id, 0)
+        name = self.rand_name(name="alias", prefix=self.prefix)
+        body = {
+            'function_id': self.func_id,
+            'function_version': 1,
+            'name': name
+        }
+        db_api.create_function_alias(**body)
+        webhook = self.create_webhook(function_alias=name)
+
+        db_api.increase_function_version(self.func_id, 1)
+        new_name = self.rand_name(name="alias", prefix=self.prefix)
+        body = {
+            'function_id': self.func_id,
+            'function_version': 2,
+            'name': new_name
+        }
+        db_api.create_function_alias(**body)
+
+        # Update webhook with the new alias
+        resp = self.app.put_json(
+            '/v1/webhooks/%s' % webhook.id,
+            {'function_alias': new_name}
+        )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(new_name, resp.json.get("function_alias"))
+        self.assertIsNone(resp.json.get("function_id"))
+        self.assertIsNone(resp.json.get("function_version"))
+
+    def test_update_function_alias_2(self):
+        # Create webhook using function id
+        db_api.increase_function_version(self.func_id, 0)
+        webhook = self.create_webhook(function_id=self.func_id,
+                                      function_version=1)
+
+        db_api.increase_function_version(self.func_id, 1)
+        alias_name = self.rand_name(name="alias", prefix=self.prefix)
+        body = {
+            'function_id': self.func_id,
+            'function_version': 2,
+            'name': alias_name
+        }
+        db_api.create_function_alias(**body)
+
+        # Update webhook with function alias
+        resp = self.app.put_json(
+            '/v1/webhooks/%s' % webhook.id,
+            {'function_alias': alias_name}
+        )
+
+        self.assertEqual(200, resp.status_int)
+        self.assertEqual(alias_name, resp.json.get("function_alias"))
+        self.assertIsNone(resp.json.get("function_id"))
+        self.assertIsNone(resp.json.get("function_version"))
+
+    @mock.patch("qinling.utils.openstack.keystone.create_trust_context")
+    @mock.patch("qinling.utils.executions.create_execution")
+    def test_invoke_with_function_id(self, mock_create_execution,
+                                     mock_create_context):
+        exec_mock = mock_create_execution.return_value
+        exec_mock.id = "fake_id"
+        webhook = self.create_webhook(function_id=self.func_id)
+
+        resp = self.app.post_json('/v1/webhooks/%s/invoke' % webhook.id, {})
+        context.set_ctx(self.ctx)
+
+        self.assertEqual(202, resp.status_int)
+
+        params = {
+            'function_id': self.func_id,
+            'function_version': None,
+            'sync': False,
+            'input': json.dumps({}),
+            'description': constants.EXECUTION_BY_WEBHOOK % webhook.id
+        }
+        mock_create_execution.assert_called_once_with(mock.ANY, params)
+
+    @mock.patch("qinling.utils.openstack.keystone.create_trust_context")
+    @mock.patch("qinling.utils.executions.create_execution")
+    def test_invoke_with_function_alias(self, mock_create_execution,
+                                        mock_create_context):
+        exec_mock = mock_create_execution.return_value
+        exec_mock.id = "fake_id"
+
+        db_api.increase_function_version(self.func_id, 0)
+        alias_name = self.rand_name(name="alias", prefix=self.prefix)
+        body = {
+            'function_id': self.func_id,
+            'function_version': 1,
+            'name': alias_name
+        }
+        db_api.create_function_alias(**body)
+        webhook = self.create_webhook(function_alias=alias_name)
+
+        resp = self.app.post_json('/v1/webhooks/%s/invoke' % webhook.id, {})
+        context.set_ctx(self.ctx)
+
+        self.assertEqual(202, resp.status_int)
+
+        params = {
+            'function_id': self.func_id,
+            'function_version': 1,
+            'sync': False,
+            'input': json.dumps({}),
+            'description': constants.EXECUTION_BY_WEBHOOK % webhook.id
+        }
+        mock_create_execution.assert_called_once_with(mock.ANY, params)

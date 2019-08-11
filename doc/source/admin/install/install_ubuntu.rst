@@ -185,7 +185,7 @@ Install and configure Qinling components
 
       # apt install -y python-pip
       # cd /var/lib/qinling
-      # git clone https://git.openstack.org/openstack/qinling.git
+      # git clone https://opendev.org/openstack/qinling.git
       # chown -R qinling:qinling qinling
       # cd qinling
       # pip install -e .

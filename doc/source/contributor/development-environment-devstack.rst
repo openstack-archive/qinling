@@ -95,7 +95,7 @@ Here are several things you could customize:
 
     .. code-block:: console
 
-        enable_plugin qinling-dashboard https://git.openstack.org/openstack/qinling-dashboard
+        enable_plugin qinling-dashboard https://opendev.org/openstack/qinling-dashboard
 
     .. end
 

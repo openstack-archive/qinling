@@ -76,10 +76,12 @@
       - release-notes-jobs-python3
     check:
       jobs:
+        - openstack-tox-pep8
         - qinling-tempest
     gate:
       queue: qinling
       jobs:
+        - openstack-tox-pep8
         - qinling-tempest
     experimental:
       jobs:

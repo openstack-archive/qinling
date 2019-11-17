@@ -53,6 +53,7 @@
         qinling: https://opendev.org/openstack/qinling
       devstack_localrc:
         TEMPEST_PLUGINS: /opt/stack/qinling
+        USE_PYTHON3: True
       tox_envlist: all-plugin
       tempest_test_regex: ^(qinling_tempest_plugin.)
       # Qinling's default replicas number is 3, some test cases need
@@ -69,19 +70,16 @@
     templates:
       - openstack-cover-jobs
       - openstack-lower-constraints-jobs
-      - openstack-python-jobs
       - openstack-python3-ussuri-jobs
       - check-requirements
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
       jobs:
-        - openstack-tox-pep8
         - qinling-tempest
     gate:
       queue: qinling
       jobs:
-        - openstack-tox-pep8
         - qinling-tempest
     experimental:
       jobs:

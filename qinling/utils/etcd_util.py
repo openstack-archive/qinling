@@ -14,6 +14,7 @@
 
 import etcd3gw
 from oslo_config import cfg
+from oslo_utils import encodeutils
 
 CONF = cfg.CONF
 CLIENT = None
@@ -74,7 +75,7 @@ def delete_worker(function_id, worker, version=0):
 def get_workers(function_id, version=0):
     client = get_client()
     values = client.get_prefix("%s_%s/worker" % (function_id, version))
-    workers = [w[0] for w in values]
+    workers = [encodeutils.safe_decode(w[0]) for w in values]
     return workers
 
 
@@ -91,4 +92,4 @@ def create_service_url(function_id, url, version=0):
 def get_service_url(function_id, version=0):
     client = get_client()
     values = client.get('%s_%s/service_url' % (function_id, version))
-    return None if not values else values[0]
+    return None if not values else encodeutils.safe_decode(values[0])

@@ -225,7 +225,7 @@ in the following steps.
 
    .. code-block:: console
 
-      $ openstack function execution create c9195311-9aa7-4748-bd4b-1b0f9c28d858
+      $ openstack function execution create --function c9195311-9aa7-4748-bd4b-1b0f9c28d858
       +-------------+--------------------------------------+
       | Field       | Value                                |
       +-------------+--------------------------------------+

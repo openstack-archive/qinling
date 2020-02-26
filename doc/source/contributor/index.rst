@@ -25,10 +25,10 @@ project.
 .. toctree::
     :maxdepth: 1
 
+    contributing
     development-environment-devstack
     architecture
     Setting up your development Apache mod_wsgi/uWSGI <mod-wsgi>
-    contributing
 
 Indices and tables
 ------------------

@@ -14,9 +14,9 @@
 
 import datetime
 import testtools
+from unittest import mock
 import yaml
 
-import mock
 from oslo_config import cfg
 
 from qinling import config

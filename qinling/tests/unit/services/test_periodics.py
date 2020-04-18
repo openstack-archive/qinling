@@ -14,8 +14,8 @@
 from datetime import datetime
 from datetime import timedelta
 import time
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 
 from qinling import context

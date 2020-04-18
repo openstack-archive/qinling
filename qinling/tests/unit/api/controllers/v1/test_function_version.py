@@ -15,8 +15,8 @@
 from datetime import datetime
 from datetime import timedelta
 import json
+from unittest import mock
 
-import mock
 
 from qinling import context
 from qinling.db import api as db_api

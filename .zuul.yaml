@@ -54,7 +54,8 @@
       devstack_localrc:
         TEMPEST_PLUGINS: /opt/stack/qinling
         USE_PYTHON3: True
-      tox_envlist: all-plugin
+      tox_envlist: all
+      tox_extra_args: --sitepackages
       tempest_test_regex: ^(qinling_tempest_plugin.)
       # Qinling's default replicas number is 3, some test cases need
       # 2 workers, set concurrency to 2 to avoid

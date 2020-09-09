@@ -76,11 +76,13 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - qinling-tempest
+        - qinling-tempest:
+            voting: false
     gate:
       queue: qinling
       jobs:
-        - qinling-tempest
+        - qinling-tempest:
+            voting: false
     experimental:
       jobs:
         - qinling-tempest-centos7

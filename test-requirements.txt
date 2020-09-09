@@ -3,6 +3,11 @@
 # process, which may cause wedges in the gate later.
 
 hacking<0.13,>=0.12.0 # Apache-2.0
+# remove this pyflakes from here once you bump the
+# hacking to 3.2.0 or above. hacking 3.2.0 takes
+# care of pyflakes version compatibilty.
+pyflakes>=2.1.1
+
 coverage!=4.4,>=4.0 # Apache-2.0
 oslotest>=3.2.0 # Apache-2.0
 testrepository>=0.0.18 # Apache-2.0/BSD

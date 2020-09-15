@@ -14,7 +14,6 @@
 
 import abc
 
-import six
 from stevedore import driver
 
 from qinling import exceptions as exc
@@ -22,8 +21,7 @@ from qinling import exceptions as exc
 STORAGE_PROVIDER = None
 
 
-@six.add_metaclass(abc.ABCMeta)
-class PackageStorage(object):
+class PackageStorage(object, metaclass=abc.ABCMeta):
     """PackageStorage interface."""
 
     @abc.abstractmethod

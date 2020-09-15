@@ -17,7 +17,6 @@ import json
 
 from oslo_log import log as logging
 import pecan
-import six
 import webob
 from wsme import exc as wsme_exc
 
@@ -44,9 +43,9 @@ def wrap_wsme_controller_exception(func):
         except exc.QinlingException as e:
             pecan.response.translatable_error = e
 
-            LOG.error('Error during API call: %s', six.text_type(e))
+            LOG.error('Error during API call: %s', str(e))
             raise wsme_exc.ClientSideError(
-                msg=six.text_type(e),
+                msg=str(e),
                 status_code=e.http_code
             )
 
@@ -65,11 +64,11 @@ def wrap_pecan_controller_exception(func):
         try:
             return func(*args, **kwargs)
         except exc.QinlingException as e:
-            LOG.error('Error during API call: %s', six.text_type(e))
+            LOG.error('Error during API call: %s', str(e))
             return webob.Response(
                 status=e.http_code,
                 content_type='application/json',
-                body=json.dumps(dict(faultstring=six.text_type(e))),
+                body=json.dumps(dict(faultstring=str(e))),
                 charset='UTF-8'
             )
 
@@ -86,7 +85,7 @@ def get_filters(**params):
 
     for column, data in params.items():
         if data is not None:
-            if isinstance(data, six.string_types):
+            if isinstance(data, str):
                 f_type, value = _extract_filter_type_and_value(data)
                 create_or_update_filter(column, value, f_type, filters)
             else:
@@ -128,7 +127,7 @@ def _extract_filter_type_and_value(data):
         prefix = filter_type + ':'
         prefix_len = len(prefix)
         if data.startswith(prefix):
-            value = six.text_type(data[prefix_len:])
+            value = str(data[prefix_len:])
             if filter_type in LIST_VALUE_FILTER_TYPES:
                 value = list(value.split(','))
             return filter_type, value

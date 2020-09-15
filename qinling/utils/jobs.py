@@ -16,14 +16,13 @@ import datetime
 import croniter
 from dateutil import parser
 from oslo_utils import timeutils
-import six
 
 from qinling import exceptions as exc
 
 
 def validate_next_time(next_execution_time):
     next_time = next_execution_time
-    if isinstance(next_execution_time, six.string_types):
+    if isinstance(next_execution_time, str):
         try:
             # We need naive datetime object.
             next_time = parser.parse(next_execution_time, ignoretz=True)

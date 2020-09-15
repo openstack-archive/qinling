@@ -18,7 +18,6 @@ import sys
 import warnings
 
 from oslo_utils import uuidutils
-import six
 
 from qinling import exceptions as exc
 from qinling import version
@@ -84,7 +83,7 @@ def convert_dict_to_string(d):
 def datetime_to_str(dct, attr_name):
     """Convert datetime object in dict to string."""
     if (dct.get(attr_name) is not None and
-            not isinstance(dct.get(attr_name), six.string_types)):
+            not isinstance(dct.get(attr_name), str)):
         dct[attr_name] = dct[attr_name].strftime('%Y-%m-%dT%H:%M:%SZ')
 
 

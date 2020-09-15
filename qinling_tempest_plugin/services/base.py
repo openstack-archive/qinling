@@ -13,11 +13,11 @@
 #    limitations under the License.
 
 import json
+import urllib
 
-import six
 from tempest.lib.common import rest_client
 
-urlparse = six.moves.urllib.parse
+urlparse = urllib.parse
 
 
 class QinlingClientBase(rest_client.RestClient):

@@ -14,7 +14,6 @@
 
 import abc
 
-import six
 from stevedore import driver
 
 from qinling import exceptions as exc
@@ -22,8 +21,7 @@ from qinling import exceptions as exc
 ORCHESTRATOR = None
 
 
-@six.add_metaclass(abc.ABCMeta)
-class OrchestratorBase(object):
+class OrchestratorBase(object, metaclass=abc.ABCMeta):
     """OrchestratorBase interface."""
 
     @abc.abstractmethod

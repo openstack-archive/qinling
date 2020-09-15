@@ -15,7 +15,6 @@ import time
 
 from oslo_log import log as logging
 import requests
-import six
 import tenacity
 
 from qinling import context
@@ -48,7 +47,7 @@ def url_request(request_session, url, body=None):
         )
         return False, {'output': 'Function execution failed.'}
 
-    for a in six.moves.xrange(10):
+    for a in range(10):
         res = None
         try:
             # Default execution max duration is 3min, could be configurable

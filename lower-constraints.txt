@@ -105,7 +105,6 @@ rsa==3.4.2
 setproctitle==1.1.10
 setuptools==21.0.0
 simplegeneric==0.8.1
-six==1.10.0
 SQLAlchemy==1.0.10
 sqlalchemy-migrate==0.11.0
 sqlparse==0.2.4

@@ -21,7 +21,6 @@ from alembic import config as alembic_cfg
 from alembic import util as alembic_u
 from oslo_config import cfg
 from oslo_utils import importutils
-import six
 
 # We need to import qinling.api.app to
 # make sure we register all needed options.
@@ -34,7 +33,7 @@ def do_alembic_command(config, cmd, *args, **kwargs):
     try:
         getattr(alembic_cmd, cmd)(config, *args, **kwargs)
     except alembic_u.CommandError as e:
-        alembic_u.err(six.text_type(e))
+        alembic_u.err(str(e))
 
 
 def do_check_migration(config, _cmd):

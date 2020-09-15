@@ -14,7 +14,6 @@
 import json
 
 from oslo_utils import uuidutils
-import six
 from wsme import types as wtypes
 
 from qinling import exceptions as exc
@@ -33,7 +32,7 @@ class ListType(wtypes.UserType):
         :param value: A comma separated string of values
         :returns: A list of values.
         """
-        items = [v.strip().lower() for v in six.text_type(value).split(',')]
+        items = [v.strip().lower() for v in str(value).split(',')]
 
         # remove empty items.
         return [x for x in items if x]

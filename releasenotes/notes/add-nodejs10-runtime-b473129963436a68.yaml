@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Add NodeJS 10.16 runtime, NodeJS 10.16 is the latest LTS version which
-    provide many new features and performances improvement.
